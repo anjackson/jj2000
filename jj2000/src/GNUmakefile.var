@@ -1,0 +1,80 @@
+# CVS identifier:
+# $Id: GNUmakefile.var,v 1.9 2000/07/10 12:12:12 dsanta Exp $
+#
+#     JJ2000
+#
+# This is the variables makefile for JJ2000 project,
+# to be included in each package makefile and in the global
+# makefile. This file can be edited to match the user's
+# environment. The RELROOT variable is defined in defined
+# in the local makefiles of the packages.
+#
+# Question or comments: henry@crf.canon.fr
+#
+#-------------------------------Feel free to edit next section
+
+
+
+####Directories of the project (expanded from current package directory)
+
+#Destination for release version
+RELEASEDIR=$(RELROOT)/../release
+
+#Destination for distribution file
+DISTDIR=$(RELROOT)/../distrib-jars
+
+#Destination for docs
+DOCDIR=$(RELROOT)/../doc
+
+# The Java CLASSPATH is set lower
+
+####Executables
+
+#Java compiler
+JAVAC=javac
+
+#Documentation generator
+JAVADOC=javadoc
+
+#Archive tool
+JAR=jar
+
+#Delete tool
+RM=rm -f
+
+#Create directory tool (no complaints if existent)
+MKDIR=mkdir -p
+
+#Recursive remove tool
+RECRM=rm -rf
+
+# Print current working directory tool
+PWDCOMM=pwd
+
+####Compiling options
+
+# Set the Java CLASSPATH, only in top-level make
+# Override CLASSPATH from environment, even if -e is specified as make option
+# and export it as an environment variable.
+ifeq ($(MAKELEVEL),0)
+	override CLASSPATH := $(shell $(PWDCOMM))/$(RELROOT):$(CLASSPATH)
+	export CLASSPATH
+endif
+
+#Java compiler options
+
+# In debug mode add the local variable tables and so on
+JAVACDEBUGFLAGS= -g
+
+# JDK 1.1.x: the -O flag is removed due to bugs in Sun's JDK 1.1.x compiler
+# (JDK 1.1.x comlain about some final variables with -O)
+JAVACRELEASEFLAGS=
+
+# JDK 1.2.x: optimize and target to 1.1 JVMs
+#JAVACRELEASEFLAGS= -O -target 1.1
+
+#Javadoc options
+JAVADOCFLAGS= -private
+
+
+

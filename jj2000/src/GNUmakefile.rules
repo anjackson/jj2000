@@ -1,0 +1,107 @@
+# CVS identifier:
+# $Id: GNUmakefile.rules,v 1.5 2000/01/25 20:05:04 dsanta Exp $
+#
+#    JJ2000
+# 
+# This is the rules makefile for jj2000 project,
+# to be included in each package makefile. This makefile
+# should NOT be included in the global makefile (global
+# building rules would be overriden).
+#
+# Question or comments: henry@crf.canon.fr
+#
+
+#
+# All customizations should be done in the 
+# "GNUmakefile.var" file.
+#
+
+#--------------------------------Do not edit next section
+
+#Retrieve source files names
+SOURCEFILES=$(wildcard *.java)
+
+#Generate the liste of reference class files
+REFERENCECLASSFILES=$(addsuffix .class, $(basename $(SOURCEFILES))) 
+
+# The compilation rule assumes that each source file
+# contains at least one class that has the same name
+# as the basename of the file. This reference class
+# file is used to track changes of the source file
+
+####
+# Default target
+
+.PHONY: default
+default : files
+
+####
+# Compile source code
+
+# -> Compile out of date classes <-
+.PHONY: files
+files : cleanrel $(REFERENCECLASSFILES)
+
+# -> Compile all the classes <-
+.PHONY: all
+all : cleanrel
+	$(JAVAC) $(JAVACDEBUGFLAGS) $(SOURCEFILES)
+
+# -> Compile release version <-
+.PHONY: release
+release : $(RELEASEDIR)
+	$(JAVAC) $(JAVACRELEASEFLAGS) -d $(RELEASEDIR) $(SOURCEFILES)
+
+# -> Make sure the RELEASEDIR exits <-
+.PHONY: $(RELEASEDIR)
+$(RELEASEDIR):
+	$(MKDIR) $(RELEASEDIR)
+
+# -> Rules for compiling a java source code <-
+%.class : %.java
+	$(JAVAC) $(JAVACDEBUGFLAGS) $<
+
+####
+# Cleanup
+
+# Remove *.class files in each package
+.PHONY: clean
+clean : 
+	$(RM) *.class;
+
+# Remove release class files and directory
+.PHONY: cleanrel
+cleanrel:
+	$(RECRM) $(RELEASEDIR)/*
+
+####
+# Help message
+
+help :
+	@echo ""
+	@echo "    JJ2000 local makefile for GNU make."
+	@echo "       List of all possible targets"
+	@echo ""
+	@echo "all:"
+	@echo "  compiles the package with a single call to"
+	@echo "  the compiler. It does not check file updates so"
+	@echo "  compiling is systematic. Debugging is turned on."
+	@echo ""
+	@echo "files:"
+	@echo "  compiles the package with one call of the"
+	@echo "  the compiler per file. File updates are checked"
+	@echo "  so compiling occurs only when necessary. Debugging"
+	@echo "  is turned on."
+	@echo ""
+	@echo "release:"
+	@echo "  builds a release version of the package."
+	@echo "  This means compiling with optimization turned on"
+	@echo "  and moving the result to the release directory."
+	@echo ""
+	@echo "clean:"
+	@echo "  removes *.class files from the package"
+	@echo "  directory."
+	@echo ""
+	@echo "The default target is 'files'."
+	@echo ""
+
