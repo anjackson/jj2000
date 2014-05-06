@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: InvWTData.java,v 1.13 2000/09/05 09:26:18 grosbois Exp $
+ * $Id: InvWTData.java,v 1.15 2001/09/20 13:07:09 grosbois Exp $
  * 
  * Class:                   InvWTData
  * 
@@ -39,12 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 /**
@@ -55,44 +50,28 @@ package jj2000.j2k.wavelet.synthesis;
 public interface InvWTData extends MultiResImgData {
 
     /**
-     * Returns the subband tree, for the specified
-     * tile-component. This method returns the root element of the
-     * subband tree structure, see 'Subband' and 'SubbandSyn'. The
-     * tree comprises all the available resolution levels.
+     * Returns the subband tree, for the specified tile-component. This method
+     * returns the root element of the subband tree structure, see 'Subband'
+     * and 'SubbandSyn'. The tree comprises all the available resolution
+     * levels.
      *
      * @param t The index of the tile, from 0 to T-1.
      *
      * @param c The index of the component, from 0 to C-1.
      *
      * @return The root of the tree structure.
-     *
-     *
      * */
-    public SubbandSyn getSubbandTree(int t,int c);
+    public SubbandSyn getSynSubbandTree(int t,int c);
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
-     *
-     *
+     * Returns the horizontal code-block partition origin. Allowable values
+     * are 0 and 1, nothing else.
      * */
-    public int getPartitionULX();
+    public int getCbULX();
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
-     *
-     *
+     * Returns the vertical code-block partition origin Allowable values are 0
+     * and 1, nothing else.
      * */
-    public int getPartitionULY();
+    public int getCbULY();
 }

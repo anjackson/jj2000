@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ImgWriterPPM.java,v 1.11 2001/01/24 15:01:52 grosbois Exp $
+ * $Id: ImgWriterPPM.java,v 1.16 2002/07/25 15:10:14 grosbois Exp $
  *
  * Class:                   ImgWriterRawPPM
  *
@@ -104,13 +104,12 @@ public class ImgWriterPPM extends ImgWriter {
      * Creates a new writer to the specified File object, to write data from
      * the specified component.
      *
-     * <P>The three components that will be written as R, G and B must be
-     * specified through the b1, b2 and b3 arguments.
+     * <p>The three components that will be written as R, G and B must be
+     * specified through the b1, b2 and b3 arguments.</p>
      *
      * @param out The file where to write the data
      *
-     * @param imgSrc The source from where to get the image data to
-     * write.
+     * @param imgSrc The source from where to get the image data to write.
      *
      * @param n1 The index of the first component from where to get the data,
      * that will be written as the red channel.
@@ -123,31 +122,35 @@ public class ImgWriterPPM extends ImgWriter {
      *
      * @see DataBlk
      * */
-    public ImgWriterPPM(File out, 
-			BlkImgDataSrc imgSrc, 
+    public ImgWriterPPM(File out, BlkImgDataSrc imgSrc, 
 			int n1,int n2,int n3) throws IOException{
         // Check that imgSrc is of the correct type
         // Check that the component index is valid
-        if ((n1 < 0) || (n1 >= imgSrc.getNumComps()) ||
-            (n2 < 0) || (n2 >= imgSrc.getNumComps()) ||
-            (n3 < 0) || (n3 >= imgSrc.getNumComps()) ||
-            (imgSrc.getNomRangeBits(n1) > 8) || 
-            (imgSrc.getNomRangeBits(n2) > 8) ||
-            (imgSrc.getNomRangeBits(n3) > 8)) {
-            throw new IllegalArgumentException();
+        if((n1<0) || (n1>=imgSrc.getNumComps()) ||
+	   (n2<0) || (n2>=imgSrc.getNumComps()) ||
+	   (n3<0) || (n3>=imgSrc.getNumComps()) ||
+	   (imgSrc.getNomRangeBits(n1)>8) || 
+	   (imgSrc.getNomRangeBits(n2)>8) ||
+	   (imgSrc.getNomRangeBits(n3)>8)) {
+            throw new IllegalArgumentException("Invalid component indexes");
         }
         // Initialize
         w = imgSrc.getCompImgWidth(n1);
         h = imgSrc.getCompImgHeight(n1);
         // Check that all components have same width and height
-        if (w != imgSrc.getCompImgWidth(n2) ||
-            w != imgSrc.getCompImgWidth(n3) ||
-            h != imgSrc.getCompImgHeight(n2) ||
-            h != imgSrc.getCompImgHeight(n3)) {
-            throw new IllegalArgumentException();
+        if(w!=imgSrc.getCompImgWidth(n2) ||
+	   w!=imgSrc.getCompImgWidth(n3) ||
+	   h!=imgSrc.getCompImgHeight(n2) ||
+	   h!=imgSrc.getCompImgHeight(n3)) {
+            throw new IllegalArgumentException("All components must have the"+
+					       " same dimensions and no"+
+					       " subsampling");
         }
+	w = imgSrc.getImgWidth();
+	h = imgSrc.getImgHeight();
+
         // Continue initialization
-        if (out.exists() && !out.delete()) {
+        if(out.exists() && !out.delete()) {
             throw new IOException("Could not reset file");
         }
         this.out = new RandomAccessFile(out,"rw");
@@ -170,13 +173,12 @@ public class ImgWriterPPM extends ImgWriter {
      * Creates a new writer to the specified file, to write data from the
      * specified component.
      *
-     * <P>The three components that will be written as R, G and B must be
-     * specified through the b1, b2 and b3 arguments.
+     * <p>The three components that will be written as R, G and B must be
+     * specified through the b1, b2 and b3 arguments.</p>
      *
      * @param fname The name of the file where to write the data
      *
-     * @param imgSrc The source from where to get the image data to
-     * write.
+     * @param imgSrc The source from where to get the image data to write.
      *
      * @param n1 The index of the first component from where to get the data,
      * that will be written as the red channel.
@@ -189,10 +191,9 @@ public class ImgWriterPPM extends ImgWriter {
      *
      * @see DataBlk
      * */
-    public ImgWriterPPM(String fname, 
-			BlkImgDataSrc imgSrc, 
+    public ImgWriterPPM(String fname, BlkImgDataSrc imgSrc, 
 			int n1,int n2,int n3) throws IOException {
-            this(new File(fname), imgSrc, n1, n2, n3);
+            this(new File(fname),imgSrc,n1,n2,n3);
     }
               
     /**
@@ -206,11 +207,11 @@ public class ImgWriterPPM extends ImgWriter {
         int i;
         // Finish writing the file, writing 0s at the end if the data at end
         // has not been written.
-        if (out.length() != 3*w*h+offset) {
+        if(out.length() != 3*w*h+offset) {
             // Goto end of file
             out.seek(out.length());
             // Fill with 0s n all the components
-            for (i = 3*w*h+offset-(int)out.length(); i >0; i--) {
+            for(i=3*w*h+offset-(int)out.length(); i>0; i--) {
                 out.writeByte(0);
             }
         }
@@ -236,10 +237,12 @@ public class ImgWriterPPM extends ImgWriter {
      * relative to the current tile of the source. Before writing, the
      * coefficients are limited to the nominal range.
      *
-     * <P>This method may not be called concurrently from different threads.
+     * <p>This method may not be called concurrently from different
+     * threads.</p>
      *
-     * <P>If the data returned from the BlkImgDataSrc source is progressive,
-     * then it is requested over and over until it is not progressive anymore.
+     * <p>If the data returned from the BlkImgDataSrc source is progressive,
+     * then it is requested over and over until it is not progressive
+     * anymore.</p>
      *
      * @param ulx The horizontal coordinate of the upper-left corner of the
      * area to write, relative to the current tile.
@@ -263,30 +266,28 @@ public class ImgWriterPPM extends ImgWriter {
         
         // Active tiles in all components have same offset since they are at
         // same resolution (PPM does not support anything else)
-        tOffx = src.getULX(cps[0])-
-            (src.getImgULX()+src.getCompSubsX(cps[0])-1)/
-            src.getCompSubsX(cps[0]);
-        tOffy = src.getULY(cps[0])-
-            (src.getImgULY()+src.getCompSubsY(cps[0])-1)/
-            src.getCompSubsY(cps[0]);
+        tOffx = src.getCompULX(cps[0]) -
+            (int)Math.ceil(src.getImgULX()/(double)src.getCompSubsX(cps[0]));
+        tOffy = src.getCompULY(cps[0]) -
+            (int)Math.ceil(src.getImgULY()/(double)src.getCompSubsY(cps[0]));
 
         // Check the array size
-        if (db.data != null && db.data.length < w) {
+        if(db.data!=null && db.data.length<w) {
             // A new one will be allocated by getInternCompData()
             db.data = null;
         }
         
         // Check the line buffer
-        if (buf == null || buf.length < 3*w) {
+        if(buf==null || buf.length<3*w) {
             buf = new byte[3*w];
         }
 
         // Write the data to the file
         // Write line by line
-        for (i = 0; i < h; i++) {
+        for(i=0; i<h; i++) {
             // Write into buffer first loop over the three components and
             // write for each
-            for(c=0;c<3;c++){
+            for(c=0; c<3; c++) {
                 maxVal= (1<<src.getNomRangeBits(cps[c]))-1;
                 shift = levShift[c];
             
@@ -303,16 +304,15 @@ public class ImgWriterPPM extends ImgWriter {
                 // Get the fracbits value
                 fracbits = fb[c];
                 // Write all bytes in the line
-                if (fracbits == 0) {
-                    for (k = db.offset+w-1, j=3*w-1+c-2; j>=0; k--) {
+                if(fracbits==0) {
+                    for(k=db.offset+w-1, j=3*w-1+c-2; j>=0; k--) {
                         tmp = db.data[k]+shift;
                         buf[j] = (byte)((tmp<0)? 0 : ((tmp>maxVal)?
                                                       maxVal : tmp));
                         j -= 3;
                     }
-                }
-                else {
-                    for (k = db.offset+w-1, j=3*w-1+c-2; j>=0; k--) {
+                } else {
+                    for(k=db.offset+w-1, j=3*w-1+c-2; j>=0; k--) {
                         tmp = (db.data[k]>>>fracbits)+shift;
                         buf[j] = (byte)((tmp<0)? 0 : ((tmp>maxVal)?
                                                       maxVal : tmp));
@@ -339,11 +339,12 @@ public class ImgWriterPPM extends ImgWriter {
      * */
     public void write() throws IOException {
         int i;
-        int tw = src.getWidth();  // Tile width 
-        int th = src.getHeight();  // Tile height
+        int tIdx = src.getTileIdx();
+        int tw = src.getTileCompWidth(tIdx,0);  // Tile width 
+        int th = src.getTileCompHeight(tIdx,0);  // Tile height
         // Write in strips
-        for (i=0; i <th ; i+=DEF_STRIP_HEIGHT) {
-            write(0,i,tw,((th-i) < DEF_STRIP_HEIGHT) ? th-i : DEF_STRIP_HEIGHT);
+        for(i=0; i<th ; i+=DEF_STRIP_HEIGHT) {
+            write(0,i,tw,((th-i)<DEF_STRIP_HEIGHT) ? th-i : DEF_STRIP_HEIGHT);
         }
     }
     
@@ -358,7 +359,7 @@ public class ImgWriterPPM extends ImgWriter {
      *
      * @exception IOException If there is an I/O Error 
      * */
-     private void writeHeaderInfo() throws IOException{
+     private void writeHeaderInfo() throws IOException {
         byte[] byteVals;
         int i;
         String val;
@@ -372,7 +373,7 @@ public class ImgWriterPPM extends ImgWriter {
         // Write width in ASCII
         val=String.valueOf(w);
         byteVals=val.getBytes();
-        for(i=0;i<byteVals.length;i++){
+        for(i=0;i<byteVals.length;i++) {
             out.write(byteVals[i]);
             offset++;
         }
@@ -381,7 +382,7 @@ public class ImgWriterPPM extends ImgWriter {
         // Write height in ASCII
         val=String.valueOf(h);
         byteVals=val.getBytes();
-        for(i=0;i<byteVals.length;i++){
+        for(i=0;i<byteVals.length;i++) {
             out.write(byteVals[i]);
             offset++;
         }

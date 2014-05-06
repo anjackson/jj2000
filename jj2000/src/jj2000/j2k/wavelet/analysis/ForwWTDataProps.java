@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ForwWTDataProps.java,v 1.8 2000/09/05 09:25:56 grosbois Exp $
+ * $Id: ForwWTDataProps.java,v 1.10 2001/09/20 12:42:42 grosbois Exp $
  * 
  * Class:                   ForwWTDataProps
  * 
@@ -40,12 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.wavelet.analysis;
 
 import jj2000.j2k.image.*;
@@ -53,23 +48,20 @@ import jj2000.j2k.wavelet.*;
 
 /**
  * This interface extends the ImgData interface with methods that are
- * necessary for forward wavelet data (i.e. data that is produced by a forward 
- * wavelet transform).
- */
+ * necessary for forward wavelet data (i.e. data that is produced by a forward
+ * wavelet transform).  */
 public interface ForwWTDataProps extends ImgData {
 
     /**
      * Returns the reversibility of the given tile-component. Data is
-     * reversible when it is suitable for lossless and
-     * lossy-to-lossless compression.
+     * reversible when it is suitable for lossless and lossy-to-lossless
+     * compression.
      *
      * @param t Tile index
      *
      * @param c Component index
      *
      * @return true is the data is reversible, false if not.
-     *
-     *
      * */
     public boolean isReversible(int t,int c);
 
@@ -86,34 +78,18 @@ public interface ForwWTDataProps extends ImgData {
      * @see SubbandAn
      *
      * @see Subband
-     *
-     *
      * */
-    public SubbandAn getSubbandTree(int t,int c);
+    public SubbandAn getAnSubbandTree(int t,int c);
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
-     *
-     *
+     * Returns the horizontal offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULX();
+    public int getCbULX();
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
-     *
-     *
+     * Returns the vertical offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULY();
+    public int getCbULY();
 }

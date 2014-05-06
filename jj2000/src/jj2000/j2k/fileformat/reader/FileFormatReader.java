@@ -1,7 +1,7 @@
 /*
  * cvs identifier:
  *
- * $Id: FileFormatReader.java,v 1.14 2001/02/16 14:55:46 qtxjoas Exp $
+ * $Id: FileFormatReader.java,v 1.16 2002/07/25 14:04:08 grosbois Exp $
  * 
  * Class:                   FileFormatReader
  *
@@ -44,6 +44,7 @@ package jj2000.j2k.fileformat.reader;
 
 import jj2000.j2k.codestream.*;
 import jj2000.j2k.fileformat.*;
+import jj2000.j2k.util.*;
 import jj2000.j2k.io.*;
 
 import java.util.*;
@@ -57,7 +58,7 @@ import java.io.*;
  *
  * @see jj2000.j2k.fileformat.writer.FileFormatWriter
  * */
-public class FileFormatReader implements FileFormatBoxes{
+public class FileFormatReader implements FileFormatBoxes {
     
     /** The random access from which the file format boxes are read */
     private RandomAccessIO in;
@@ -76,10 +77,9 @@ public class FileFormatReader implements FileFormatBoxes{
      *
      * @param in The RandomAccessIO from which to read the file format
      * */
-    public FileFormatReader(RandomAccessIO in){
+    public FileFormatReader(RandomAccessIO in) {
         this.in = in;
     }
-
 
     /** 
      * This method checks whether the given RandomAccessIO is a valid JP2 file
@@ -103,17 +103,16 @@ public class FileFormatReader implements FileFormatBoxes{
         boolean jp2HeaderBoxFound=false;
         boolean lastBoxFound = false;
 
-        try{
+        try {
 
-            // Go through the randomaccessio and find the first
-            // contiguous codestream box. Check also that the File Format is
-            // correct
+            // Go through the randomaccessio and find the first contiguous
+            // codestream box. Check also that the File Format is correct
             
-            // Make sure that the first 12 bytes is the JP2_SIGNATURE_BOX
-            // or if not that the first 2 bytes is the SOC marker
+            // Make sure that the first 12 bytes is the JP2_SIGNATURE_BOX or
+            // if not that the first 2 bytes is the SOC marker
             if(in.readInt() != 0x0000000c ||
                in.readInt() != JP2_SIGNATURE_BOX ||
-               in.readInt() != 0x0d0a870a){ // Not a JP2 file
+               in.readInt() != 0x0d0a870a) { // Not a JP2 file
                 in.seek(0);
                 
                 marker = (short)in.readShort();
@@ -129,13 +128,13 @@ public class FileFormatReader implements FileFormatBoxes{
             JP2FFUsed = true;
             
             // Read File Type box
-            if(!readFileTypeBox()){
+            if(!readFileTypeBox()) {
                 // Not a valid JP2 file or codestream
                 throw new Error("Invalid JP2 file: File Type box missing");
             }
                                               
             // Read all remaining boxes 
-            while(!lastBoxFound){
+            while(!lastBoxFound) {
                 pos = in.getPos();
                 length = in.readInt();
                 if((pos+length) == in.length())
@@ -145,19 +144,18 @@ public class FileFormatReader implements FileFormatBoxes{
                 if(length == 0){
                     lastBoxFound = true;
                     length = in.length()-in.getPos();
-                }
-                else if(length == 1) {
+                } else if(length == 1) {
                     longLength = in.readLong();
                     throw new IOException("File too long.");
-                }
-                else longLength = (long) 0;
+                } else longLength = (long) 0;
 
-                switch(box){
+                switch(box) {
                 case CONTIGUOUS_CODESTREAM_BOX:
-                    if(!jp2HeaderBoxFound)
+                    if(!jp2HeaderBoxFound) {
                         throw new Error("Invalid JP2 file: JP2Header box not "+
                                         "found before Contiguous codestream "+
                                         "box ");
+		    }
                     readContiguousCodeStreamBox(pos, length, longLength);
                     break;
                 case JP2_HEADER_BOX:
@@ -180,17 +178,19 @@ public class FileFormatReader implements FileFormatBoxes{
                     readUUIDInfoBox(length);
                     break;
                 default:
-                  System.out.println("Unknown box-type: "+box);
+                    FacilityManager.getMsgLogger().
+                        printmsg(MsgLogger.WARNING,"Unknown box-type: 0x"+
+				 Integer.toHexString(box));
                 }
                 if(!lastBoxFound)
                     in.seek(pos+length);
             }
-        }catch( EOFException e ){
+        } catch(EOFException e) {
             throw new Error("EOF reached before finding Contiguous "+
                             "Codestream Box");
         }
 
-        if(codeStreamPos.size() == 0){
+        if(codeStreamPos.size()==0) {
           // Not a valid JP2 file or codestream
           throw new Error("Invalid JP2 file: Contiguous codestream box "+
                           "missing");
@@ -201,12 +201,11 @@ public class FileFormatReader implements FileFormatBoxes{
     }
 
     /** 
-     * This method reads the File Type box
+     * This method reads the File Type box.
      *
      * @return false if the File Type box was not found or invalid else true
      *
      * @exception java.io.IOException If an I/O error ocurred.
-     *
      * @exception java.io.EOFException If the end of file was reached
      * */
     public boolean readFileTypeBox()throws IOException, EOFException {
@@ -221,23 +220,23 @@ public class FileFormatReader implements FileFormatBoxes{
         
         // Read box length (LBox)
         length = in.readInt();
-        if(length == 0) // This can not be last box
+        if(length==0) { // This can not be last box
             throw new Error("Zero-length of Profile Box");
+	}
 
         // Check that this is a File Type box (TBox)
-        if(in.readInt() != FILE_TYPE_BOX)
+        if(in.readInt() != FILE_TYPE_BOX) {
             return false;
+	}
 
         // Check for XLBox
-        if(length == 1) { // Box has 8 byte length;
+        if(length==1) { // Box has 8 byte length;
             longLength = in.readLong();
             throw new IOException("File too long.");
         }
 
-        // Check that this is a correct DBox value
         // Read Brand field
-        if(in.readInt() != FT_BR)
-            return false;
+        in.readInt();
 
         // Read MinV field
         in.readInt();
@@ -249,8 +248,9 @@ public class FileFormatReader implements FileFormatBoxes{
             if(in.readInt() == FT_BR)
                 foundComp = true;
         }
-        if(!foundComp)
+        if(!foundComp) {
             return false;
+	}
 
         return true;
     }
@@ -274,8 +274,9 @@ public class FileFormatReader implements FileFormatBoxes{
     public boolean readJP2HeaderBox(long pos, int length, long longLength)
         throws IOException, EOFException {
 
-        if(length == 0) // This can not be last box
+        if(length==0) { // This can not be last box
             throw new Error("Zero-length of JP2Header Box");
+	}
 
         // Here the JP2Header data (DBox) would be read if we were to use it
         

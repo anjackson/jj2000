@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: MsgLogger.java,v 1.6 2000/09/05 09:25:22 grosbois Exp $
+ * $Id: MsgLogger.java,v 1.7 2001/08/17 16:24:51 grosbois Exp $
  *
  * Class:                   MsgLogger
  *
@@ -39,12 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.util;
 
 /**
@@ -53,21 +48,21 @@ package jj2000.j2k.util;
  * a terminal, text file, text area in a GUI display, dialog boxes in a GUI
  * display, etc., or a combination of those.
  *
- * <P>Messages are short strings (a couple of lines) that indicate some state
+ * <>Messages are short strings (a couple of lines) that indicate some state
  * of the program, and that have a severity code associated with them (see
  * below). Simple strings is text (can be long) that has no severity code
- * associated with it. Typical use of simple strings is to display help texts.
+ * associated with it. Typical use of simple strings is to display help
+ * texts.</p>
  *
- * <P>Each message has a severity code, which can be one of the following:
+ * <p>Each message has a severity code, which can be one of the following:
  * LOG, INFO, WARNING, ERROR. Each implementation should treat each severity
- * code in a way which corresponds to the type of diplay used.
+ * code in a way which corresponds to the type of diplay used.</p>
  *
- * <P>Messages are printed via the 'printmsg()' method. Simple strings are
+ * <p>Messages are printed via the 'printmsg()' method. Simple strings are
  * printed via the 'print()', 'println()' and 'flush()' methods, each simple
  * string is considered to be terminated once the 'flush()' method has been
  * called. The 'printmsg()' method should never be called before a previous
- * simple string has been terminated.
- *
+ * simple string has been terminated.</p>
  * */
 public interface MsgLogger {
 
@@ -99,8 +94,6 @@ public interface MsgLogger {
      * @param sev The message severity (LOG, INFO, etc.)
      *
      * @param msg The message to display
-     *
-     *
      * */
     public void printmsg(int sev, String msg);
 
@@ -120,15 +113,11 @@ public interface MsgLogger {
      * @param flind Indentation of the first line
      *
      * @param ind Indentation of any other lines.
-     *
-     *
      * */
     public void println(String str, int flind, int ind);
 
     /**
      * Writes any buffered data from the println() method to the device.
-     *
-     *
      * */
     public void flush();
 }

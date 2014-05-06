@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ImgWriterPGM.java,v 1.10 2001/01/24 15:01:27 grosbois Exp $
+ * $Id: ImgWriterPGM.java,v 1.14 2002/07/19 14:13:38 grosbois Exp $
  *
  * Class:                   ImgWriterRawPGM
  *
@@ -53,16 +53,17 @@ import java.io.*;
  * size of the component from which to get the data, not the size of the
  * source image (they differ if there is some sub-sampling).
  *
- * <P>Before writing, all coefficients are inversly level shifted and then
+ * <p>Before writing, all coefficients are inversly level shifted and then
  * "saturated" (they are limited to the nominal dynamic range).<br> <u>Ex:</u>
  * if the nominal range is 0-255, the following algorithm is applied:<br>
  * <tt>if coeff<0, output=0<br> if coeff>255, output=255<br> else
- * output=coeff</tt>
+ * output=coeff</tt></p>
  *
- * <P>The write() methods of an object of this class may not be called
- * concurrently from different threads.
+ * <p>The write() methods of an object of this class may not be called
+ * concurrently from different threads.</p>
  *
- * <P>NOTE: This class is not thread safe, for reasons of internal buffering.
+ * <p>NOTE: This class is not thread safe, for reasons of internal
+ * buffering.</p>
  * */
 public class ImgWriterPGM extends ImgWriter {
 
@@ -94,14 +95,13 @@ public class ImgWriterPGM extends ImgWriter {
      * Creates a new writer to the specified File object, to write data from
      * the specified component.
      *
-     * <P>The size of the image that is written to the file is the size of the
+     * <p>The size of the image that is written to the file is the size of the
      * component from which to get the data, specified by b, not the size of
-     * the source image (they differ if there is some sub-sampling).
+     * the source image (they differ if there is some sub-sampling).</p>
      *
      * @param out The file where to write the data
      *
-     * @param imgSrc The source from where to get the image data to
-     * write.
+     * @param imgSrc The source from where to get the image data to write.
      *
      * @param c The index of the component from where to get the data.
      * */
@@ -109,19 +109,27 @@ public class ImgWriterPGM extends ImgWriter {
 			BlkImgDataSrc imgSrc, int c) throws IOException{
         // Check that imgSrc is of the correct type
         // Check that the component index is valid
-        if( (c<0) || ( c>=imgSrc.getNumComps() ) || 
-            ( imgSrc.getNomRangeBits(c)>8 ) )
-            throw new IllegalArgumentException();
+        if(c<0 || c>=imgSrc.getNumComps()) {
+            throw new IllegalArgumentException("Invalid number of components");
+	}
+
+        // Check that imgSrc is of the correct type
+        if(imgSrc.getNomRangeBits(c)>8) {
+            FacilityManager.getMsgLogger().
+                println("Warning: Component "+c+" has nominal bitdepth "+
+                        imgSrc.getNomRangeBits(c)+". Pixel values will be "+
+                        "down-shifted to fit bitdepth of 8 for PGM file",8,8);
+	}
 
         // Initialize
-        if( out.exists() && !out.delete() ){
+        if(out.exists() && !out.delete()){
             throw new IOException("Could not reset file");
         }
         this.out = new RandomAccessFile(out,"rw");
         src = imgSrc;
         this.c = c;
-        w = imgSrc.getCompImgWidth(c);
-        h = imgSrc.getCompImgHeight(c);
+        w = imgSrc.getImgWidth();
+        h = imgSrc.getImgHeight();
         fb = imgSrc.getFixedPoint(c);
         levShift = 1<< (imgSrc.getNomRangeBits(c)-1);
 
@@ -138,14 +146,13 @@ public class ImgWriterPGM extends ImgWriter {
      *
      * @param fname The name of the file where to write the data
      *
-     * @param imgSrc The source from where to get the image data to
-     * write.
+     * @param imgSrc The source from where to get the image data to write.
      *
      * @param c The index of the component from where to get the data.
      * */
     public ImgWriterPGM(String fname, 
                         BlkImgDataSrc imgSrc, int c) throws IOException{
-        this(new File(fname), imgSrc, c);
+        this(new File(fname),imgSrc,c);
     }
               
     /**
@@ -159,11 +166,11 @@ public class ImgWriterPGM extends ImgWriter {
         int i;
         // Finish writing the file, writing 0s at the end if the data at end
         // has not been written.
-        if (out.length() != w*h+offset) {
+        if(out.length() != w*h+offset) {
             // Goto end of file
             out.seek(out.length());
             // Fill with 0s
-            for (i = offset+w*h-(int)out.length(); i >0; i--) {
+            for(i=offset+w*h-(int)out.length(); i>0; i--) {
                 out.writeByte(0);
             }
         }
@@ -179,8 +186,8 @@ public class ImgWriterPGM extends ImgWriter {
      * @exception IOException If an I/O error occurs.
      * */
     public void flush() throws IOException {
-        // No flush needed here since we are using a RandomAccessFile
-        // Get rid of line buffer (is this a good choice?)
+        // No flush needed here since we are using a RandomAccessFile Get rid
+        // of line buffer (is this a good choice?)
         buf = null;
     }
 
@@ -189,10 +196,12 @@ public class ImgWriterPGM extends ImgWriter {
      * relative to the current tile of the source. Before writing, the
      * coefficients are limited to the nominal range.
      *
-     * <P>This method may not be called concurrently from different threads.
+     * <p>This method may not be called concurrently from different
+     * threads.</p>
      *
-     * <P>If the data returned from the BlkImgDataSrc source is progressive,
-     * then it is requested over and over until it is not progressive anymore.
+     * <p>If the data returned from the BlkImgDataSrc source is progressive,
+     * then it is requested over and over until it is not progressive
+     * anymore.</p>
      *
      * @param ulx The horizontal coordinate of the upper-left corner of the
      * area to write, relative to the current tile.
@@ -206,7 +215,7 @@ public class ImgWriterPGM extends ImgWriter {
      *
      * @exception IOException If an I/O error occurs.
      * */
-    public void write(int ulx, int uly, int w, int h) throws IOException{
+    public void write(int ulx,int uly,int w,int h) throws IOException{
         int k,i,j;
         int fracbits = fb;     // In local variable for faster access
         int tOffx, tOffy;      // Active tile offset in the X and Y direction
@@ -217,12 +226,12 @@ public class ImgWriterPGM extends ImgWriter {
         db.w = w;
         db.h = h;
         // Get the current active tile offset
-        tOffx = src.getULX(c)-
-            (src.getImgULX()+src.getCompSubsX(c)-1)/src.getCompSubsX(c);
-        tOffy = src.getULY(c)-
-            (src.getImgULY()+src.getCompSubsY(c)-1)/src.getCompSubsY(c);
+        tOffx = src.getCompULX(c)-
+            (int)Math.ceil(src.getImgULX()/(double)src.getCompSubsX(c));
+        tOffy = src.getCompULY(c)-
+            (int)Math.ceil(src.getImgULY()/(double)src.getCompSubsY(c));
         // Check the array size
-        if (db.data != null && db.data.length < w*h) {
+        if(db.data!=null && db.data.length<w*h) {
             // A new one will be allocated by getInternCompData()
             db.data = null;
         }
@@ -230,35 +239,40 @@ public class ImgWriterPGM extends ImgWriter {
         // progressive
         do {
             db = (DataBlkInt)src.getInternCompData(db,c);
-        } while (db.progressive);
+        } while(db.progressive);
 
         // variables used during coeff saturation
-        int 
-            tmp, 
-            maxVal= (1<<src.getNomRangeBits(c))-1;
+        int tmp, maxVal= (1<<src.getNomRangeBits(c))-1;
+
+        // If nominal bitdepth greater than 8, calculate down shift
+        int downShift = src.getNomRangeBits(c) -8;
+        if(downShift<0) {
+            downShift = 0;
+	}
 
         // Check line buffer
-        if (buf == null || buf.length < w) {
+        if(buf==null || buf.length<w) {
             buf = new byte[w]; // Expand buffer
         }
 
         // Write line by line
-        for (i = 0; i < h; i++) {
+        for(i=0; i<h; i++) {
             // Skip to beggining of line in file
             out.seek(this.offset+this.w*(uly+tOffy+i)+ulx+tOffx);
             // Write all bytes in the line
-            if (fracbits == 0) {
-                for (k = db.offset+i*db.scanw+w-1, j = w-1; j >= 0; j--, k--) {
+            if(fracbits==0) {
+                for(k=db.offset+i*db.scanw+w-1, j=w-1; j>=0; j--, k--) {
                     tmp = db.data[k]+levShift;
-                    buf[j] = (byte)((tmp < 0) ? 0 : ((tmp > maxVal) ?
-                                                     maxVal : tmp));
+                    buf[j] = (byte)(((tmp < 0) ? 0 : 
+                                     ((tmp > maxVal) ?
+                                      maxVal : tmp))>>downShift);
                 }
-            }
-            else {
-                for (k = db.offset+i*db.scanw+w-1, j = w-1; j >= 0; j--, k--) {
+            } else {
+                for(k=db.offset+i*db.scanw+w-1, j=w-1; j>=0; j--, k--) {
                     tmp = (db.data[k]>>fracbits)+levShift;
-                    buf[j] = (byte)((tmp < 0) ? 0 : ((tmp > maxVal) ?
-                                                     maxVal : tmp));
+                    buf[j] = (byte)(((tmp<0) ? 0 : 
+                                     ((tmp>maxVal) ? 
+				      maxVal : tmp))>>downShift);
                 }
             }
             out.write(buf,0,w);
@@ -270,8 +284,9 @@ public class ImgWriterPGM extends ImgWriter {
      * issued to the source BlkImgDataSrc object are done by strips, in order
      * to reduce memory usage.
      *
-     * <P>If the data returned from the BlkImgDataSrc source is progressive,
-     * then it is requested over and over until it is not progressive anymore.
+     * <p>If the data returned from the BlkImgDataSrc source is progressive,
+     * then it is requested over and over until it is not progressive
+     * anymore.</p>
      *
      * @exception IOException If an I/O error occurs.
      *
@@ -279,10 +294,11 @@ public class ImgWriterPGM extends ImgWriter {
      * */
     public void write() throws IOException {
         int i;
-        int tw = src.getCompWidth(c);  // Tile width
-        int th = src.getCompHeight(c);  // Tile height
+        int tIdx = src.getTileIdx();
+        int tw = src.getTileCompWidth(tIdx,c);  // Tile width
+        int th = src.getTileCompHeight(tIdx,c);  // Tile height
         // Write in strips
-        for (i=0; i <th ; i+=DEF_STRIP_HEIGHT) {
+        for(i=0; i<th ; i+=DEF_STRIP_HEIGHT) {
             write(0,i,tw,(th-i < DEF_STRIP_HEIGHT) ? th-i : DEF_STRIP_HEIGHT);
         }
     }
@@ -318,7 +334,7 @@ public class ImgWriterPGM extends ImgWriter {
         // Write height in ASCII
         val=String.valueOf(h);
         byteVals=val.getBytes();
-        for(i=0;i<byteVals.length;i++){
+        for(i=0;i<byteVals.length;i++) {
             out.writeByte(byteVals[i]);
             offset++;
         }
@@ -339,7 +355,7 @@ public class ImgWriterPGM extends ImgWriter {
      * @return A string of information about the object.
      * */
     public String toString() {
-        return "ImgWriterPGM: WxH = " + w + "x" + h + ", Component = " +
-            c + "\nUnderlying RandomAccessFile:\n" + out.toString();
+        return "ImgWriterPGM: WxH = "+w+"x"+h+", Component="+
+            c+"\nUnderlying RandomAccessFile:\n"+out.toString();
     }
 }

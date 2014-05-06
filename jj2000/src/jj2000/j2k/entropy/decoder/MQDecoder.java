@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: MQDecoder.java,v 1.30 2000/09/05 09:23:14 grosbois Exp $
+ * $Id: MQDecoder.java,v 1.32 2001/10/17 16:58:00 grosbois Exp $
  *
  * Class:                   MQDecoder
  *
@@ -40,10 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.entropy.decoder;
 
 import jj2000.j2k.entropy.decoder.*;
@@ -57,8 +54,7 @@ import java.io.*;
  * the software conventions decoder for better performance (i.e. execution
  * time performance). The initial states for each context of the MQ-coder are
  * specified in the constructor.
- *
- */
+ * */
 
 // A trick to test for increased speed: merge the Qe and mPS into 1 thing by
 // using the sign bit of Qe to signal mPS (positive-or-0 is 0, negative is 1),
@@ -124,9 +120,9 @@ public class MQDecoder {
     final int initStates[];
 
     /**
-     * Instantiates a new MQ-decoder, with the specified number of contexts and
-     * initial states. The compressed bytestream is read from the 'iStream'
-     * object.
+     * Instantiates a new MQ-decoder, with the specified number of contexts
+     * and initial states. The compressed bytestream is read from the
+     * 'iStream' object.
      *
      * @param iStream the stream that contains the coded bits 
      *
@@ -135,11 +131,8 @@ public class MQDecoder {
      * @param initStates The initial state for each context. A reference is
      * kept to this array to reinitialize the contexts whenever 'reset()' or
      * 'resetCtxts()' is called.
-     *
-     *
-     *
-     */
-    public MQDecoder(ByteInputBuffer iStream, int nrOfContexts,
+     * */
+    public MQDecoder(ByteInputBuffer iStream,int nrOfContexts,
                      int initStates[]){ 
         in = iStream;
 
@@ -160,11 +153,11 @@ public class MQDecoder {
     /**
      * Decodes 'n' symbols from the bit stream using the same context
      * 'ctxt'. If possible the MQ-coder speedup mode will be used to speed up
-     * decoding. The speedup mode is used if Q (the LPS probability for 'ctxt' 
+     * decoding. The speedup mode is used if Q (the LPS probability for 'ctxt'
      * is low enough) and the A and C registers permit decoding several MPS
      * symbols without renormalization.
      *
-     * <P>Speedup mode should be used when decoding long runs of MPS with high 
+     * <P>Speedup mode should be used when decoding long runs of MPS with high
      * probability with the same context.
      *
      * <P>This methiod will return the decoded symbols differently if speedup 
@@ -184,8 +177,6 @@ public class MQDecoder {
      * @return True if speedup mode was used, false if not. If speedup mode
      * was used then all the decoded symbols are the same and its value is
      * returned in 'bits[0]' only (not in bits[1], bits[2], etc.).
-     *
-     *
      * */
     public final boolean fastDecodeSymbols(int[] bits, int ctxt, int n) {
         int q;   // LPS probability for context
@@ -221,16 +212,14 @@ public class MQDecoder {
                 bits[0] = mPS[ctxt];
                 return true; // Done, used speedup mode
             }
-        }
-        else { // Normal mode
+        } else { // Normal mode
             la = a; // cache A register
             for (i=0; i<n; i++) {
                 la -= q;
                 if ((c>>>16) < la) {
                     if(la >= 0x8000){
                         bits[i] = mPS[ctxt];
-                    }
-                    else {
+                    } else {
                         // -- MPS Exchange
                         if(la >= q){
                             bits[i] = mPS[ctxt];
@@ -244,8 +233,7 @@ public class MQDecoder {
                             c<<=1;
                             cT--;
                             // -- End renormalization
-                        }
-                        else{
+                        } else{
                             bits[i] = 1-mPS[ctxt];
                             if(switchLM[idx]==1)
                                 mPS[ctxt] = 1-mPS[ctxt];
@@ -253,19 +241,18 @@ public class MQDecoder {
                             q = qe[idx];
                             // I[ctxt] set at end of loop
                             // -- Renormalize
-                            do{
+                            do {
                                 if(cT==0)
                                     byteIn();
                                 la<<=1;
                                 c<<=1;
                                 cT--;
-                            }while(la < 0x8000);
+                            } while(la<0x8000);
                             // -- End renormalization
                         }
                         // -- End MPS Exchange
                     }
-                }
-                else {
+                } else {
                     c -= (la<<16);
                     // -- LPS Exchange
                     if(la < q){
@@ -281,8 +268,7 @@ public class MQDecoder {
                         c<<=1;
                         cT--;
                         // -- End renormalization
-                    }
-                    else {
+                    } else {
                         la = q;
                         bits[i] = 1-mPS[ctxt];
                         if(switchLM[idx] == 1)
@@ -291,7 +277,7 @@ public class MQDecoder {
                         q = qe[idx];
                         // I[ctxt] set at end of loop
                         // -- Renormalize
-                        do{
+                        do {
                             if(cT==0)
                                 byteIn();
                             la<<=1;
@@ -314,7 +300,7 @@ public class MQDecoder {
      * an array in which to put the decoded symbols and an array of contexts 
      * with which to decode them. 
      * 
-     * <P>Each context has a current MPS and an index describing what the 
+     * <P>Each context has a current MPS and an index describing what the
      * current probability is for the LPS. Each bit is decoded and if the
      * probability of the LPS exceeds .5, the MPS and LPS are switched.
      *
@@ -324,9 +310,7 @@ public class MQDecoder {
      * @param cX The context to use in decoding each symbol.
      *
      * @param n The number of symbols to decode
-     *
-     *
-     */
+     * */
     public final void decodeSymbols(int[] bits, int[] cX, int n){
         int q;
         int ctxt;
@@ -350,13 +334,12 @@ public class MQDecoder {
         
             a -= q;
             if ((c>>>16) < a) {
-                if(a >= 0x8000){
+                if(a >= 0x8000) {
                     bits[i] = mPS[ctxt];
-                }
-                else {
+                } else {
                     la = a;
                     // -- MPS Exchange
-                    if(la >= q){
+                    if(la >= q) {
                         bits[i] = mPS[ctxt];
                         I[ctxt] = nMPS[index];
                         // -- Renormalize (MPS: no need for while loop)
@@ -366,27 +349,25 @@ public class MQDecoder {
                         c<<=1;
                         cT--;
                         // -- End renormalization
-                    }
-                    else{
+                    } else {
                         bits[i] = 1-mPS[ctxt];
                         if(switchLM[index]==1)
                             mPS[ctxt] = 1-mPS[ctxt];
                         I[ctxt] = nLPS[index];
                         // -- Renormalize
-                        do{
+                        do {
                             if(cT==0)
                                 byteIn();
                             la<<=1;
                             c<<=1;
                             cT--;
-                        }while(la < 0x8000);
+                        } while(la < 0x8000);
                         // -- End renormalization
                     }
                     // -- End MPS Exchange
                     a = la;
                 }
-            }
-            else {
+            } else {
                 la = a;
                 c -= (la<<16);
                 // -- LPS Exchange
@@ -401,15 +382,14 @@ public class MQDecoder {
                     c<<=1;
                     cT--;
                     // -- End renormalization
-                }
-                else {
+                } else {
                     la = q;
                     bits[i] = 1-mPS[ctxt];
                     if(switchLM[index] == 1)
                         mPS[ctxt] = 1-mPS[ctxt];
                     I[ctxt] = nLPS[index];
                     // -- Renormalize
-                    do{
+                    do {
                         if(cT==0)
                             byteIn();
                         la<<=1;
@@ -430,16 +410,14 @@ public class MQDecoder {
      * Arithmetically decodes one symbol from the bit stream with the given
      * context and returns its decoded value.
      *
-     * <P>Each context has a current MPS and an index describing what the 
+     * <P>Each context has a current MPS and an index describing what the
      * current probability is for the LPS. Each bit is encoded and if the
      * probability of the LPS exceeds .5, the MPS and LPS are switched.
      *
      * @param context The context to use in decoding the symbol
      *
      * @return The decoded symbol, 0 or 1.
-     *
-     *
-     */
+     * */
     public final int decodeSymbol(int context){
         int q;
         int la;
@@ -618,13 +596,10 @@ public class MQDecoder {
     }
 
     /**
-     * This function gets one byte of compressed bits from the in-stream. 
-     * the byte is added to c. If the byte is 0xFF and the next byte is greater
+     * This function gets one byte of compressed bits from the in-stream.  the
+     * byte is added to c. If the byte is 0xFF and the next byte is greater
      * than 0x8F, the byte after 0xFF is a marker.
-     *
-     *
-     *
-     */
+     * */
     private void byteIn(){
         if(!markerFound){
             if(b==0xFF){
@@ -638,25 +613,23 @@ public class MQDecoder {
                     c += 0xFE00 - (b<<9);
                     cT=7;
                 }
-            }else{
+            } else {
                 b=in.read()&0xFF; // Convert EOFs (-1) to 0xFF
                 c += 0xFF00 - (b<<8);
                 cT=8;
             }
         }
-        else{
+        else {
             // software-convention decoder: c unchanged
             cT=8;
         }
     }
 
     /**
-      * Returns the number of contexts in the arithmetic coder.
-      *
-      * @return The number of contexts
-      *
-      *
-      **/
+     * Returns the number of contexts in the arithmetic coder.
+     *
+     * @return The number of contexts
+     **/
     public final int getNumCtxts(){
         return I.length;
     }
@@ -665,32 +638,26 @@ public class MQDecoder {
      * Resets a context to the original probability distribution.
      *
      * @param c The number of the context (it starts at 0).
-     *
-     *
-     *
-     */
+     * */
     public final void resetCtxt(int c){
         I[c] = initStates[c];
         mPS[c] = 0;
     }
 
     /**
-     * Resets a context to the original probability distribution. The
-     * original probability distribution depends on the actual
-     * implementation of the arithmetic coder or decoder.
+     * Resets a context to the original probability distribution. The original
+     * probability distribution depends on the actual implementation of the
+     * arithmetic coder or decoder.
      *
      * @param c The index of the context (it starts at 0).
-     *
-     *
-     *
-     */
+     * */
     public final void resetCtxts(){
         System.arraycopy(initStates,0,I,0,I.length);
         ArrayUtil.intArraySet(mPS,0);
     }
 
     /**
-     * Resets the MQ decoder to start a new segment. This is like recreating a 
+     * Resets the MQ decoder to start a new segment. This is like recreating a
      * new MQDecoder object with new input data.
      *
      * @param buf The byte array containing the MQ encoded data. If null the
@@ -702,8 +669,6 @@ public class MQDecoder {
      *
      * @param len The number of bytes in 'buf' to be decoded. Any subsequent
      * bytes are taken to be 0xFF.
-     *
-     *
      * */
     public final void nextSegment(byte buf[], int off, int len) {
         // Set the new input
@@ -713,11 +678,10 @@ public class MQDecoder {
     }
 
     /**
-     * Returns the underlying 'ByteInputBuffer' from where the MQ
-     * coded input bytes are read.
+     * Returns the underlying 'ByteInputBuffer' from where the MQ coded input
+     * bytes are read.
      *
      * @return The underlying ByteInputBuffer.
-     *
      * */
     public ByteInputBuffer getByteInputBuffer() {
         return in;
@@ -730,8 +694,6 @@ public class MQDecoder {
      *
      * <P>To have a complete reset of the MQ (as if a new MQDecoder object was
      * created) 'resetCtxts()' should be called after this method.
-     *
-     *
      * */
     private void init() {
         // --- INITDEC

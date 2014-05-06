@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ByteOutputBuffer.java,v 1.9 2000/09/21 16:13:00 dsanta Exp $
+ * $Id: ByteOutputBuffer.java,v 1.10 2001/05/17 15:21:16 grosbois Exp $
  *
  * Class:                   ByteOutputBuffer
  *
@@ -42,12 +42,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.entropy.encoder;
 
 import java.io.*;
@@ -56,11 +51,12 @@ import java.io.*;
  * This class provides a buffering output stream similar to
  * ByteArrayOutputStream, with some additional methods.
  *
- * <P>Once an array has been written to an output stream or to a byte
- * array, the object can be reused as a new stream if the reset()
- * method is called.
+ * <p>Once an array has been written to an output stream or to a byte array,
+ * the object can be reused as a new stream if the reset() method is
+ * called.</p>
  *
- * <P>Unlike the ByteArrayOutputStream class, this class is not thread safe.
+ * <p>Unlike the ByteArrayOutputStream class, this class is not thread
+ * safe.</p>
  *
  * @see #reset
  * */
@@ -81,20 +77,16 @@ public class ByteOutputBuffer {
     /**
      * Creates a new byte array output stream. The buffer capacity is
      * initially BUF_DEF_LEN bytes, though its size increases if necessary.
-     *
-     *
      * */
     public ByteOutputBuffer() {
         buf = new byte[BUF_DEF_LEN];
     }
 
     /**
-     * Creates a new byte array output stream, with a buffer capacity
-     * of the specified size, in bytes.
+     * Creates a new byte array output stream, with a buffer capacity of the
+     * specified size, in bytes.
      *
      * @param size the initial size.
-     *
-     *
      * */
     public ByteOutputBuffer(int size) {
         buf = new byte[size];
@@ -107,8 +99,6 @@ public class ByteOutputBuffer {
      * therefore not safe thread, but faster.
      *
      * @param b The byte to write
-     *
-     *
      * */
     public final void write(int b) {
         if (count == buf.length) { // Resize buffer
@@ -120,20 +110,16 @@ public class ByteOutputBuffer {
     }
 
     /**
-     * Copies the specified part of the stream to the 'outbuf' byte
-     * array.
+     * Copies the specified part of the stream to the 'outbuf' byte array.
      *
-     * @param off The index of the first element in the stream to
-     * copy.
+     * @param off The index of the first element in the stream to copy.
      *
      * @param len The number of elements of the array to copy
      *
      * @param outbuf The destination array
      *
-     * @param outoff The index of the first element in 'outbuf' where
-     * to write the data.
-     *
-     *
+     * @param outoff The index of the first element in 'outbuf' where to write
+     * the data.
      * */
     public void toByteArray(int off, int len, byte outbuf[], int outoff) {
         // Copy the data
@@ -145,7 +131,6 @@ public class ByteOutputBuffer {
      * variable).
      *
      * @return The number of bytes written to the buffer
-     *
      * */
     public int size() {
         return count;
@@ -154,7 +139,6 @@ public class ByteOutputBuffer {
     /**
      * Discards all the buffered data, by resetting the counter of written
      * bytes to 0.
-     *
      * */
     public void reset() {
         count = 0;
@@ -168,7 +152,6 @@ public class ByteOutputBuffer {
      * @param pos The position of the byte to return
      *
      * @return The value (betweeb 0-255) of the byte at position 'pos'.
-     *
      * */
     public int getByte(int pos) {
         if (pos >= count) {

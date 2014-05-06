@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CmdLnDecoder.java,v 1.40 2000/09/05 09:22:53 grosbois Exp $
+ * $Id: CmdLnDecoder.java,v 1.42 2001/07/17 12:27:32 grosbois Exp $
  *
  * Class:                   CmdLnDecoder
  *
@@ -39,12 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.decoder;
 
 import jj2000.j2k.util.*;
@@ -52,28 +47,26 @@ import jj2000.j2k.util.*;
 import java.io.*;
 
 /**
- * This class run the JJ2000's decoder from the command line
- * interface. It parses command-line arguments to fill a ParameterList
- * object which will be provided to an Decoder object.
+ * This class runs the JJ2000 decoder from the command line interface. It
+ * parses command-line arguments in order to fill a ParameterList object. Then
+ * this one is provided to a Decoder object.
  * */
 public class CmdLnDecoder{
 
-    /** The parameter list (arguments) */
+    /** The parameter list (with modules arguments) */
     private ParameterList pl;
 
-    /** The default parameter list (arguments) */
+    /** The default parameter list (with modules arguments) */
     private ParameterList defpl;
 
     /** The current Decoder object */
     private Decoder dec;
 
     /**
-     * The starting point of the program. It creates a CmdLnDecoder
-     * object, initializes it, and performs the decoding.
+     * The starting point of the program. It calls the constructor with the
+     * command line options in a String array.
      *
-     * @param argv The command line arguments
-     *
-     *
+     * @param argv The command line parameters
      * */
     public static void main(String argv[]) {
         if (argv.length == 0) {
@@ -88,18 +81,15 @@ public class CmdLnDecoder{
     }
 
     /**
-     * Instantiates a command line decoder object, width the 'argv'
-     * command line arguments. It also initializes the default
-     * parameters. If the argument list is empty an
-     * IllegalArgumentException is thrown. If an error occurs while
-     * parsing the arguments error messages are written to stderr and
-     * the run exit code is set to non-zero, see getExitCode()
+     * Instantiates a command line decoder object, width the 'argv' command
+     * line arguments. It also initializes the default parameters. If the
+     * argument list is empty an IllegalArgumentException is thrown. If an
+     * error occurs while parsing the arguments error messages are written to
+     * stderr and the run exit code is set to non-zero, see getExitCode()
      *
      * @exception IllegalArgumentException If 'argv' is empty
      *
      * @see Decoder#getExitCode
-     *
-     *
      * */
     public CmdLnDecoder(String argv[]) {
         // Initialize default parameters
@@ -154,8 +144,8 @@ public class CmdLnDecoder{
                 System.out.println("[WARNING]: Could not close the argument"+
 				   " file after reading");
             }
-            // Now reparse command line arguments so that
-            // they override file arguments
+            // Now reparse command line arguments so that they override file
+            // arguments
             try {
                 pl.parseArgs(argv);
             }
@@ -166,7 +156,7 @@ public class CmdLnDecoder{
             }
         }
 
-	// Instantiate encoder
+	// Instantiate the Decoder object
         dec = new Decoder(pl);
         if (dec.getExitCode() != 0) { // An error ocurred
             System.exit(dec.getExitCode());

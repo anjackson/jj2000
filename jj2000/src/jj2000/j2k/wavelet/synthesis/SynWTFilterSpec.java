@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: SynWTFilterSpec.java,v 1.14 2000/09/21 16:13:15 dsanta Exp $
+ * $Id: SynWTFilterSpec.java,v 1.15 2001/08/02 10:01:30 grosbois Exp $
  * 
  * Class:                   SynWTFilterSpec
  * 
@@ -39,10 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 import jj2000.j2k.util.*;
@@ -51,11 +48,10 @@ import jj2000.j2k.*;
 import java.util.*;
 
 /**
- * This class extends ModuleSpec class for synthesis filters
- * specification holding purpose.
+ * This class extends ModuleSpec class for synthesis filters specification
+ * holding purpose.
  *
  * @see ModuleSpec
- *
  * */
 public class SynWTFilterSpec extends ModuleSpec {
 
@@ -69,14 +65,13 @@ public class SynWTFilterSpec extends ModuleSpec {
      *
      * @param type the type of the specification module i.e. tile specific,
      * component specific or both.
-     *
      * */
     public SynWTFilterSpec(int nt, int nc, byte type){
         super(nt, nc, type);
     }
 
     /**
-     * Returns the data type used by the filters in this object, as defined in 
+     * Returns the data type used by the filters in this object, as defined in
      * the 'DataBlk' interface for specified tile-component.
      *
      * @param t Tile index
@@ -86,7 +81,6 @@ public class SynWTFilterSpec extends ModuleSpec {
      * @return The data type of the filters in this object
      *
      * @see jj2000.j2k.image.DataBlk
-     *
      * */
     public int getWTDataType(int t,int c){
 	SynWTFilter[][] an = (SynWTFilter[][])getSpec(t,c);
@@ -94,15 +88,15 @@ public class SynWTFilterSpec extends ModuleSpec {
     }
 
     /**
-     * Returns the horizontal analysis filters to be used in component 'n' and 
+     * Returns the horizontal analysis filters to be used in component 'n' and
      * tile 't'.
      *
-     * <P>The horizontal analysis filters are returned in an array of
+     * <p>The horizontal analysis filters are returned in an array of
      * SynWTFilter. Each element contains the horizontal filter for each
      * resolution level starting with resolution level 1 (i.e. the analysis
      * filter to go from resolution level 1 to resolution level 0). If there
      * are less elements than the maximum resolution level, then the last
-     * element is assumed to be repeated.
+     * element is assumed to be repeated.</p>
      *
      * @param t The tile index, in raster scan order
      *
@@ -110,8 +104,6 @@ public class SynWTFilterSpec extends ModuleSpec {
      *
      * @return The array of horizontal analysis filters for component 'n' and
      * tile 't'.
-     *
-     *
      * */
     public SynWTFilter[] getHFilters(int t, int c) {
 	SynWTFilter[][] an = (SynWTFilter[][])getSpec(t,c);
@@ -119,15 +111,15 @@ public class SynWTFilterSpec extends ModuleSpec {
     }
 
     /**
-     * Returns the vertical analysis filters to be used in component 'n' and 
+     * Returns the vertical analysis filters to be used in component 'n' and
      * tile 't'.
      *
-     * <P>The vertical analysis filters are returned in an array of
+     * <p>The vertical analysis filters are returned in an array of
      * SynWTFilter. Each element contains the vertical filter for each
      * resolution level starting with resolution level 1 (i.e. the analysis
      * filter to go from resolution level 1 to resolution level 0). If there
      * are less elements than the maximum resolution level, then the last
-     * element is assumed to be repeated.
+     * element is assumed to be repeated.</p>
      *
      * @param t The tile index, in raster scan order
      *
@@ -135,8 +127,6 @@ public class SynWTFilterSpec extends ModuleSpec {
      *
      * @return The array of horizontal analysis filters for component 'n' and
      * tile 't'.
-     *
-     *
      * */
     public SynWTFilter[] getVFilters(int t,int c) {
 	SynWTFilter[][] an = (SynWTFilter[][])getSpec(t,c);
@@ -178,11 +168,10 @@ public class SynWTFilterSpec extends ModuleSpec {
      * @param t The index of the tile
      *
      * @param c The index of the component
-     *
-     */
+     * */
     public boolean isReversible(int t,int c){
-	// Note: no need to buffer the result since this method is
-	// normally called once per tile-component.
+	// Note: no need to buffer the result since this method is normally
+	// called once per tile-component.
 	SynWTFilter[] 
 	    hfilter = getHFilters(t,c),
 	    vfilter = getVFilters(t,c);

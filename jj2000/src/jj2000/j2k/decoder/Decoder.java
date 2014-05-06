@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: Decoder.java,v 1.49 2001/02/16 14:54:39 qtxjoas Exp $
+ * $Id: Decoder.java,v 1.74 2002/08/08 14:09:35 grosbois Exp $
  *
  * Class:                   Decoder
  *
@@ -43,10 +43,10 @@
 package jj2000.j2k.decoder;
 
 import jj2000.j2k.quantization.dequantizer.*;
-import jj2000.j2k.wavelet.synthesis.*;
 import jj2000.j2k.image.invcomptransf.*;
 import jj2000.j2k.fileformat.reader.*;
 import jj2000.j2k.codestream.reader.*;
+import jj2000.j2k.wavelet.synthesis.*;
 import jj2000.j2k.entropy.decoder.*;
 import jj2000.j2k.image.output.*;
 import jj2000.j2k.codestream.*;
@@ -56,6 +56,9 @@ import jj2000.j2k.roi.*;
 import jj2000.j2k.io.*;
 import jj2000.disp.*;
 import jj2000.j2k.*;
+
+import colorspace.*;
+import icc.*;
 
 import java.awt.image.*;
 import java.awt.event.*;
@@ -69,14 +72,13 @@ import java.io.*;
  * objects and performs the decoding operations. It then writes the image to
  * the output file or displays it.
  *
- * <P>First the decoder should be initialized with a ParameterList object
+ * <p>First the decoder should be initialized with a ParameterList object
  * given through the constructor. The when the run() method is invoked and the
  * decoder executes. The exit code of the class can be obtained with the
  * getExitCode() method, after the constructor and after the run method. A
- * non-zero value indicates that an error has ocurred.
+ * non-zero value indicates that an error has ocurred.</p>
  *
- * <P>The decoding chain corresponds to the following sequence of
- * modules:
+ * <p>The decoding chain corresponds to the following sequence of modules:</p>
  *
  * <ul>
  * <li>BitstreamReaderAgent</li>
@@ -85,19 +87,20 @@ import java.io.*;
  * <li>Dequantizer</li>
  * <li>InverseWT</li>
  * <li>ImgDataConverter</li>
+ * <li>EnumratedColorSpaceMapper, SyccColorSpaceMapper or ICCProfiler</li>
  * <li>ComponentDemixer (if needed)</li>
  * <li>ImgDataAdapter (if ComponentDemixer is needed)</li>
  * <li>ImgWriter</li>
  * <li>BlkImgDataSrcImageProducer</li>
  * </ul>
  *
- * <P>The 2 last modules cannot be used at the same time and corresponds
+ * <p>The 2 last modules cannot be used at the same time and corresponds
  * respectively to the writing of decoded image into a file or the graphical
- * display of this same image.
+ * display of this same image.</p>
  *
- * The behaviour of each module may be modified according to the current
+ * <p>The behaviour of each module may be modified according to the current
  * tile-component. All the specifications are kept in modules extending
- * ModuleSpec and accessible through an instance of DecoderSpecs class.
+ * ModuleSpec and accessible through an instance of DecoderSpecs class.</p>
  *
  * @see BitstreamReaderAgent
  * @see EntropyDecoder
@@ -113,6 +116,10 @@ import java.io.*;
  * */
 public class Decoder implements Runnable {
 
+    /** Parses the inputstream to analyze the box structure of the JP2
+     * file. */
+    private ColorSpace csMap = null;
+
     /** Reference to the TitleUpdater instance. Only used when decoded image
      * is displayed */
     TitleUpdater title = null;
@@ -127,6 +134,9 @@ public class Decoder implements Runnable {
     /** The parameter list (arguments) */
     private ParameterList pl;
 
+    /** Information contained in the codestream's headers */
+    private HeaderInfo hi;
+
     /** The default parameter list (arguments) */
     private ParameterList defpl;
 
@@ -136,7 +146,9 @@ public class Decoder implements Runnable {
                                           ROIDeScaler.OPT_PREFIX,
                                           Dequantizer.OPT_PREFIX,
                                           InvCompTransf.OPT_PREFIX,
-                                          HeaderDecoder.OPT_PREFIX};
+                                          HeaderDecoder.OPT_PREFIX,
+					  ColorSpaceMapper.OPT_PREFIX
+    };
 
     /** Frame used to display decoded image */
     private Frame win = null;
@@ -167,15 +179,16 @@ public class Decoder implements Runnable {
           "considered as comments. This option is not recursive: any 'pfile' "+
           "argument appearing in the file is ignored.",null},
 	{ "res", "<resolution level index>",
-	  "Specifies the resolution level wanted for the decoded image"+
-	  " (0 means the lowest available resolution, the last resolution "+
-	  " level gives an image with original dimension). If given index"+
+          "The resolution level at which to reconstruct the image "+
+	  " (0 means the lowest available resolution whereas the maximum "+
+          "resolution level corresponds to the original image resolution). "+
+          "If the given index"+
 	  " is greater than the number of available resolution levels of the "+
-	  "compressed image, the decoded image has the lowest available "+
+	  "compressed image, the image is reconstructed at its highest "+
 	  "resolution (among all tile-components). Note that this option"+
           " affects only the inverse wavelet transform and not the number "+
           " of bytes read by the codestream parser: this number of bytes "+
-          "depends only on options '-nbytes' or '-rate'.",null},
+          "depends only on options '-nbytes' or '-rate'.", null},
         { "i", "<filename or url>",
           "The file containing the JPEG 2000 compressed data. This can be "+
           "either a JPEG 2000 codestream or a JP2 file containing a "+
@@ -201,10 +214,11 @@ public class Decoder implements Runnable {
         { "rate","<decoding rate in bpp>",
           "Specifies the decoding rate in bits per pixel (bpp) where the "+
           "number of pixels is related to the image's original size (Note:"+
-          " this number is not affected by the '-res' option). "+
+          " this number is not affected by the '-res' option). If it is equal"+
+          "to -1, the whole codestream is decoded. "+
           "The codestream is either parsed (default) or truncated depending "+
           "the command line option '-parsing'. To specify the decoding "+
-          "rate in bytes, use '-nbytes' options instead.","100"},
+          "rate in bytes, use '-nbytes' options instead.","-1"},
         { "nbytes","<decoding rate in bytes>",
           "Specifies the decoding rate in bytes. "+
           "The codestream is either parsed (default) or truncated depending "+
@@ -217,12 +231,40 @@ public class Decoder implements Runnable {
           "true, the decoder creates, truncates and decodes a virtual layer"+
           " progressive codestream with the same truncation points in each "+
           "code-block.","on"},
+        { "ncb_quit","<max number of code blocks>",
+          "Use the ncb and lbody quit conditions. If state information is "+
+          "found for more code blocks than is indicated with this option, "+
+          "the decoder "+
+          "will decode using only information found before that point. "+
+          "Using this otion implies that the 'rate' or 'nbyte' parameter "+
+          "is used to indicate the lbody parameter which is the number of "+
+          "packet body bytes the decoder will decode.","-1"},
+        { "l_quit","<max number of layers>",
+          "Specifies the maximum number of layers to decode for any code-"+
+          "block","-1"},
+        { "m_quit","<max number of bit planes>",
+          "Specifies the maximum number of bit planes to decode for any code"+
+          "-block","-1"},
+        { "poc_quit",null,
+          "Specifies the whether the decoder should only decode code-blocks "+
+          "included in the first progression order.","off"},
+        { "one_tp",null,
+          "Specifies whether the decoder should only decode the first "+
+          "tile part of each tile.","off"},
+        { "comp_transf",null,
+          "Specifies whether the component transform indicated in the "+
+          "codestream should be used.","on"},
         { "debug", null,
           "Print debugging messages when an error is encountered.","off"},
         { "cdstr_info", null,
           "Display information about the codestream. This information is: "+
           "\n- Marker segments value in main and tile-part headers,"+
-          "\n- Tile-part length and position within the code-stream.", "off"}
+          "\n- Tile-part length and position within the code-stream.", "off"},
+	{ "nocolorspace",null,
+	  "Ignore any colorspace information in the image.","off"},
+	{ "colorspace_debug", null,
+	  "Print debugging messages when an error is encountered in the"+
+	  " colorspace module.","off"}
     };
 
     /**
@@ -288,7 +330,6 @@ public class Decoder implements Runnable {
     public void run() {
         boolean verbose;
 	int res; // resolution level to reconstruct
-	int nComp; // number of components in the image
         String infile;
         RandomAccessIO in;
         FileFormatReader ff;
@@ -296,7 +337,7 @@ public class Decoder implements Runnable {
 	    outfile="",
 	    outbase="",
 	    outext="";
-        String out[];
+        String out[] = null;
         BitstreamReaderAgent breader;
         HeaderDecoder hd;
         EntropyDecoder entdec;
@@ -305,9 +346,13 @@ public class Decoder implements Runnable {
         InverseWT invWT;
         InvCompTransf ictransf;
         ImgWriter imwriter[] = null;
-	ImgDataConverter converter,converter2;
+	ImgDataConverter converter;
         DecoderSpecs decSpec = null;
-        int i;
+	BlkImgDataSrc palettized;
+	BlkImgDataSrc channels;
+	BlkImgDataSrc resampled;
+	BlkImgDataSrc color;
+	int i;
         int depth[];
         float rate;
         int nbytes;
@@ -322,7 +367,7 @@ public class Decoder implements Runnable {
             // **** Usage and version ****
             try {
                 // Do we print version information?
-                if (pl.getBooleanParameter("v")) {
+                if(pl.getBooleanParameter("v")) {
                     printVersionAndCopyright();
                 }
                 // Do we print usage information?
@@ -332,23 +377,21 @@ public class Decoder implements Runnable {
                 }
                 // Do we print info ?
                 verbose = pl.getBooleanParameter("verbose");
-            }
-            catch (StringFormatException e) {
+            } catch (StringFormatException e) {
                 error("An error occured while parsing the arguments:\n"+
                       e.getMessage(),1);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 error("An error occured while parsing the arguments:\n"+
                       e.getMessage(),1);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -357,12 +400,11 @@ public class Decoder implements Runnable {
             // **** Check parameters ****
             try {
                 pl.checkList(vprfxs,pl.toNameArray(pinfo));
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 error(e.getMessage(),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -370,31 +412,29 @@ public class Decoder implements Runnable {
 
             // Get input file
             infile = pl.getParameter("i");
-            if (infile == null) {
+            if(infile == null) {
                 error("Input file ('-i' option) has not been specified",1);
                 return;
             }
 
             // Get output files
             outfile = pl.getParameter("o");
-            if (outfile == null) {
+            if(outfile == null) {
 		disp = true;
-            }
-            else if (outfile.lastIndexOf('.') != -1) {
+            } else if(outfile.lastIndexOf('.') != -1) {
                 outext = outfile.substring(outfile.lastIndexOf('.'),
                                            outfile.length());
                 outbase = outfile.substring(0,outfile.lastIndexOf('.'));
-            }
-            else {
+            } else {
                 outbase = outfile;
                 outext = ".pgx";
             }
             
-            // **** Open input files ****
-            // Creater BEBufferedRandomAccessFIle for reading the file format
-            // and codestream data 
-            if (infile.indexOf("/") >= 1 &&
-                infile.charAt(infile.indexOf("/")-1) == ':') { // an URL
+            // **** Open input files **** 
+            // Creates a BEBufferedRandomAccessFile of a ISRandomAccessIO
+            // instance for reading the file format and codestream data
+            if(infile.indexOf("/") >= 1 &&
+	       infile.charAt(infile.indexOf("/")-1) == ':') { // an URL
                 URL inurl;
                 URLConnection conn;
                 int datalen;
@@ -404,9 +444,9 @@ public class Decoder implements Runnable {
                     inurl = new URL(infile);
                 } catch (MalformedURLException e) {
                     error("Malformed URL for input file "+infile,4);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
@@ -415,12 +455,12 @@ public class Decoder implements Runnable {
                     conn = inurl.openConnection();
                     conn.connect();
                 } catch (IOException e) {
-                    error("Could not open connection to "+infile+
+                    error("Cannot open connection to "+infile+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""), 4);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
@@ -428,22 +468,20 @@ public class Decoder implements Runnable {
                 datalen = conn.getContentLength();
                 try {
                     is = conn.getInputStream();
-                }
-                catch (IOException e) {
-                    error("Could not get data from connection to "+infile+
+                } catch (IOException e) {
+                    error("Cannot get data from connection to "+infile+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""), 4);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
                 }
-                if (datalen != -1) { // known length => initialize to length
+                if(datalen != -1) { // known length => initialize to length
                     in = new ISRandomAccessIO(is,datalen,1,datalen);
-                }
-                else { // unknown length => use defaults
+                } else { // unknown length => use defaults
                     in = new ISRandomAccessIO(is);
                 }
                 // HACK: to verify if the URL is valid try to read some data
@@ -451,27 +489,25 @@ public class Decoder implements Runnable {
                     in.read();
                     in.seek(0);
                 } catch (IOException e) {
-                    error("Could not get input data from "+infile+
+                    error("Cannot get input data from "+infile+
                           " Invalid URL?",4);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
                 }
-            }
-            else { // a normal file
+            } else { // a normal file
                 try {
                     in = new BEBufferedRandomAccessFile(infile,"r");
-                }
-                catch (IOException e) {
-                    error("Could not open input file "+
+                } catch (IOException e) {
+                    error("Cannot open input file "+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""), 4);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
@@ -483,58 +519,82 @@ public class Decoder implements Runnable {
             // file format wrapper
             ff = new FileFormatReader(in);
             ff.readFileFormat();
-            if(ff.JP2FFUsed)
+            if(ff.JP2FFUsed) {
                 in.seek(ff.getFirstCodeStreamPos());
+            }
             
+            // +----------------------------+
+            // | Instantiate decoding chain |
+            // +----------------------------+
+
             // **** Header decoder ****
             // Instantiate header decoder and read main header 
-	    try{
-		hd = new HeaderDecoder(in,verbose,pl);
-	    }
-	    catch(EOFException e){
+            hi = new HeaderInfo();
+	    try {
+		hd = new HeaderDecoder(in,pl,hi);
+	    } catch (EOFException e) {
 		error("Codestream too short or bad header, "+
                       "unable to decode.",2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
 		return;
 	    }
+
+	    int nCompCod = hd.getNumComps();
+            int nTiles = hi.siz.getNumTiles();
 	    decSpec = hd.getDecoderSpecs();
 
-            // **** Instantiate decoding chain ****
+            // Report information
+            if(verbose) {
+                String info = nCompCod+" component(s) in codestream, "+nTiles+
+		    " tile(s)\n";
+                info += "Image dimension: ";
+                for(int c=0; c<nCompCod; c++) {
+                    info += hi.siz.getCompImgWidth(c)+"x"+
+                        hi.siz.getCompImgHeight(c)+" ";
+                }
+                
+                if(nTiles!=1) {
+                    info += "\nNom. Tile dim. (in canvas): "+
+                        hi.siz.xtsiz+"x"+hi.siz.ytsiz;
+                }
+                FacilityManager.getMsgLogger().printmsg(MsgLogger.INFO,info);
+            }
+            if (pl.getBooleanParameter("cdstr_info")) {
+                FacilityManager.getMsgLogger().printmsg(MsgLogger.INFO,
+                                                        "Main header:\n"+hi.
+                                                        toStringMainHeader());
+            }
 
             // Get demixed bitdepths
-	    nComp = hd.getNumComps();
-            depth = new int[nComp];
-            for (i=0; i<nComp;i++) {
-                depth[i] = hd.getOriginalBitDepth(i);
-            }
+            depth = new int[nCompCod];
+            for(i=0; i<nCompCod;i++) { depth[i] = hd.getOriginalBitDepth(i); }
 
-            // **** Bitstream reader ****
+            // **** Bit stream reader ****
             try {
-                breader = BitstreamReaderAgent.createInstance(in,hd,
-                                                              pl,decSpec);
-            }
-            catch (IOException e) {
+                breader = BitstreamReaderAgent.
+                    createInstance(in,hd,pl,decSpec,
+                                   pl.getBooleanParameter("cdstr_info"),hi);
+            } catch (IOException e) {
                 error("Error while reading bit stream header or parsing "+
 		      "packets"+((e.getMessage() != null) ?
 				 (":\n"+e.getMessage()) : ""),4);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
-            }
-            catch (IllegalArgumentException e) {
-                error("Could not instantiate bit stream reader"+
+            } catch (IllegalArgumentException e) {
+                error("Cannot instantiate bit stream reader"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -543,46 +603,43 @@ public class Decoder implements Runnable {
             // **** Entropy decoder ****
             try {
                 entdec = hd.createEntropyDecoder(breader,pl);
-            }
-            catch (IllegalArgumentException e) {
-                error("Could not instantiate entropy decoder"+
+            } catch (IllegalArgumentException e) {
+                error("Cannot instantiate entropy decoder"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
             }
+            
             // **** ROI de-scaler ****
             try {
-                roids = hd.createROIDeScaler(entdec,pl);
-            }
-            catch (IllegalArgumentException e) {
-                error("Could not instantiate roi de-scaler."+
+                roids = hd.createROIDeScaler(entdec,pl,decSpec);
+            } catch (IllegalArgumentException e) {
+                error("Cannot instantiate roi de-scaler."+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
             }
                 
-
             // **** Dequantizer ****
             try {
-                deq = hd.createDequantizer(roids,depth);
-            }
-            catch (IllegalArgumentException e) {
-                error("Could not instantiate dequantizer"+
+                deq = hd.createDequantizer(roids,depth,decSpec);
+            } catch (IllegalArgumentException e) {
+                error("Cannot instantiate dequantizer"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -592,41 +649,86 @@ public class Decoder implements Runnable {
             try {
                // full page inverse wavelet transform
                invWT = InverseWT.createInstance(deq,decSpec);
-            }
-            catch (IllegalArgumentException e) {
-                error("Could not instantiate inverse wavelet transform"+
+            } catch (IllegalArgumentException e) {
+                error("Cannot instantiate inverse wavelet transform"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
             }
+
 	    res = breader.getImgRes();
-	    int mrl = decSpec.dls.getMin();
             invWT.setImgResLevel(res);
 
 	    // **** Data converter **** (after inverse transform module)
 	    converter = new ImgDataConverter(invWT,0);
 
             // **** Inverse component transformation **** 
-            ictransf = new InvCompTransf(converter,decSpec,depth);
-	    
+            ictransf = new InvCompTransf(converter,decSpec,depth,pl);
+
+	    // **** Color space mapping ****
+	    if(ff.JP2FFUsed && pl.getParameter("nocolorspace").equals("off")) {
+		try {
+		    csMap = new ColorSpace(in,hd,pl);
+		    channels = hd.
+			createChannelDefinitionMapper(ictransf,csMap);
+		    resampled  = hd.createResampler (channels,csMap);
+		    palettized = hd.
+			createPalettizedColorSpaceMapper (resampled,csMap);
+		    color = hd.createColorSpaceMapper(palettized,csMap);
+                     
+		    if(csMap.debugging()) {
+			FacilityManager.getMsgLogger().
+			    printmsg(MsgLogger.ERROR,""+csMap);
+			FacilityManager.getMsgLogger().
+			    printmsg(MsgLogger.ERROR,""+channels);
+			FacilityManager.getMsgLogger().
+			    printmsg(MsgLogger.ERROR,""+resampled);
+			FacilityManager.getMsgLogger().
+			    printmsg(MsgLogger.ERROR,""+palettized);
+			FacilityManager.getMsgLogger().
+			    printmsg(MsgLogger.ERROR,""+color); 
+		    }
+		} catch (IllegalArgumentException e) {
+		    error("Could not instantiate ICC profiler"+
+			  ((e.getMessage() != null) ?
+			   (":\n"+e.getMessage()) : ""),1,e);
+		    return; 
+		} catch (ColorSpaceException e) {
+		    error("error processing jp2 colorspace information"+
+			  ((e.getMessage() != null) ?
+			   (": "+e.getMessage()) : "    "),1,e);
+		    return; }
+	    } else { // Skip colorspace mapping
+                 color = ictransf; 
+	    }
+                 
+	    // This is the last image in the decoding chain and should be
+	    // assigned by the last transformation:
+	    BlkImgDataSrc decodedImage = color;
+	    if(color==null) {
+		decodedImage = ictransf;
+	    }
+	    int nCompImg = decodedImage.getNumComps();
+
             // **** Create image writers/image display ****
-	    if(disp){ // No output file has been specified. Display
+	    if(disp) { // No output file has been specified. Display
 		// decoded image
 		
 		// Set up the display elements
 
 		btitle = "JJ2000: "+(new File(infile)).getName()+" "+
-		    ictransf.getImgWidth()+"x"+ictransf.getImgHeight();
-                if (isp == null) {
+		    decodedImage.getImgWidth()+"x"+decodedImage.getImgHeight();
+                if(isp==null) {
                     win = new Frame(btitle+" @ (0,0) : 1");
                     win.setBackground(Color.white);
                     win.addWindowListener(new ExitHandler(this));
-                    isp = new ImgScrollPane(ImgScrollPane.SCROLLBARS_AS_NEEDED);
+                    isp = new ImgScrollPane(ImgScrollPane.
+                                            SCROLLBARS_AS_NEEDED);
                     win.add(isp,BorderLayout.CENTER);
                     isp.addKeyListener(new ImgKeyListener(isp,this));
                     // HACK to make it work under Windows: for some reason
@@ -634,26 +736,27 @@ public class Decoder implements Runnable {
                     // and not to the ImgScrollPane.
                     win.addKeyListener(new ImgKeyListener(isp,this));
                     // END HACK
-                }
-                else {
+                } else {
                     win = null;
                 }
                 
                 // Get the window dimension to use, do not use more
                 // than 8/10 of the screen size, in either dimension.
-                if (win != null) {
+                if(win!=null) {
                     win.addNotify();  // Instantiate peer to get insets
                     ins = win.getInsets();
-                    winDim =
-                        new Dimension(ictransf.getImgWidth()+ins.left+ins.right,
-                                      ictransf.getImgHeight()+ins.top+
-                                      ins.bottom);
+                    int subX = decodedImage.getCompSubsX(0);
+                    int subY = decodedImage.getCompSubsY(0);
+                    int w = (decodedImage.getImgWidth()+subX-1)/subX;
+                    int h = (decodedImage.getImgHeight()+subY-1)/subY;
+                    winDim = new Dimension(w+ins.left+ins.right,
+					   h+ins.top+ins.bottom);
                     scrnDim = win.getToolkit().getScreenSize();
-                    if (winDim.width > scrnDim.width*8/10f) {
+                    if(winDim.width>scrnDim.width*8/10f) {
                         // Width too large for screen
                         winDim.width = (int)(scrnDim.width*8/10f);
                     }
-                    if (winDim.height > scrnDim.height*8/10f) {
+                    if(winDim.height>scrnDim.height*8/10f) {
                         // Height too large for screen
                         winDim.height = (int)(scrnDim.height*8/10f);
                     }
@@ -665,152 +768,152 @@ public class Decoder implements Runnable {
                     title = new TitleUpdater(isp,win,btitle);
                     tu = new Thread(title);
                     tu.start();
-                }
-                else {
+                } else {
                     title = null;
                 }
-	    }
-	    else{ // Write decoded image to specified output file
+	    } else { // Write decoded image to specified output file
 
 		// Create output file names
-		if (outext.equalsIgnoreCase(".PPM") &&
-		    (nComp != 3 ||
-		     ictransf.getNomRangeBits(0) > 8 ||
-		     ictransf.getNomRangeBits(1) > 8 ||
-		     ictransf.getNomRangeBits(2) > 8 ||
-		     hd.isOriginalSigned(0) || hd.isOriginalSigned(1) ||
-		     hd.isOriginalSigned(2))) {
-		    error("Specified PPM output file but compressed image is "+
-                          "not of the correct format for PPM or limited "+
-                          "decoded components to less than 3.",1);
-		    return;
+		if(csMap!=null) {
+		    if(outext.equalsIgnoreCase(".PPM") &&
+		       (nCompImg!=3 || decodedImage.getNomRangeBits(0)>8 ||
+			decodedImage.getNomRangeBits(1)>8 ||
+			decodedImage.getNomRangeBits(2)>8 ||
+			csMap.isOutputSigned(0) || csMap.isOutputSigned(1) ||
+			csMap.isOutputSigned(2))) {
+			error("Specified PPM output file but compressed image"+
+			      " is not of the correct format for PPM or "+
+			      "limited decoded components to less than 3.",1);
+			return;
+		    }
+		} else {
+		    if(outext.equalsIgnoreCase(".PPM") &&
+		       (nCompImg!=3 || decodedImage.getNomRangeBits(0)>8 ||
+			decodedImage.getNomRangeBits(1)>8 ||
+			decodedImage.getNomRangeBits(2)>8 ||
+			hd.isOriginalSigned(0) || hd.isOriginalSigned(1) ||
+			hd.isOriginalSigned(2))) {
+			error("Specified PPM output file but compressed image"+
+			      " is not of the correct format for PPM or "+
+			      "limited decoded components to less than 3.",1);
+			return;
+		    }
 		}
-		out = new String[nComp];
-		if (nComp > 1 &&
-		    !outext.equalsIgnoreCase(".PPM")) { // Multiple output files
+		out = new String[nCompImg];
+                // initiate all strings to keep compiler happy
+                for(i=0; i<nCompImg; i++) {
+                    out[i] = "";
+                }
+		if(nCompImg>1 &&
+		   !outext.equalsIgnoreCase(".PPM")) { // Multiple file output
+                    // files 
 		    // If PGM verify bitdepth and if signed
-		    if (outext.equalsIgnoreCase(".PGM")) {
-			for (i=0;i<nComp; i++) {
-			    if (ictransf.getNomRangeBits(i) > 8 ||
-				hd.isOriginalSigned(i)) {
-				error("Specified PGM output file but "+
-                                      "compressed image is not of the "+
-				      "correct "+
-                                      "format for PGM.",1);
-				return;
+		    if(outext.equalsIgnoreCase(".PGM")) {
+			for(i=0;i<nCompImg; i++) {
+			    if(csMap!=null) {
+				if(csMap.isOutputSigned(i)) {
+				    error("Specified PGM output file but "+
+					  "compressed image is not of the "+
+					  "correct "+
+					  "format for PGM.",1);
+				    return;
+				}
+			    } else {
+				if(hd.isOriginalSigned(i)) {
+				    error("Specified PGM output file but "+
+					  "compressed image is not of the "+
+					  "correct "+
+					  "format for PGM.",1);
+				    return;
+				}
 			    }
 			}
 		    }
 		    // Open multiple output files
-		    for (i=0; i<nComp; i++) {
+		    for(i=0; i<nCompImg; i++) {
 			out[i] = outbase + "-" + (i+1) +  outext;
 		    }
-		}
-		else { // Single output file
+		} else { // Single output file
 		    out[0] = outbase + outext;
 		}
 		// Now get the image writers
-		if (outext.equalsIgnoreCase(".PPM")) {
+		if(outext.equalsIgnoreCase(".PPM")) {
 		    imwriter = new ImgWriter[1];
 		    try {
-			imwriter[0] = new ImgWriterPPM(out[0],ictransf,
+			imwriter[0] = new ImgWriterPPM(out[0],decodedImage,
 						       0,1,2);
-		    }
-		    catch (IOException e) {
-			error("Could not write PPM header or open output file" 
+		    } catch (IOException e) {
+			error("Cannot write PPM header or open output file" 
 			      + i + ((e.getMessage() != null) ?
 				     (":\n"+e.getMessage()) : ""),2);
-                        if(pl.getParameter("debug").equals("on"))
+                        if(pl.getParameter("debug").equals("on")) {
                             e.printStackTrace();
-                        else {
+                        } else {
                             error("Use '-debug' option for more details",2);
                         }
 			return;
 		    }
-		    
-		}
-		else if (outext.equalsIgnoreCase(".PGM")) {
-		    imwriter = new ImgWriter[nComp];
-		    try {
-			for (i=0;i<nComp;i++) {
-			    imwriter[i] = new ImgWriterPGM(out[i],ictransf,i);
-			}
-		    }
-		    catch (IOException e) {
-			error("Could not write PGM header or open output file "+
-			      "for component " 
-			      + i + ((e.getMessage() != null) ?
-				     (":\n"+e.getMessage()) : ""),2);
-                        if(pl.getParameter("debug").equals("on"))
-                            e.printStackTrace();
-                        else {
-                            error("Use '-debug' option for more details",2);
-                        }
-			return;
-		    }
-		}
-		else { // PGX
-		    imwriter = new ImgWriter[nComp];
-		    try {
-			for (i=0;i<nComp;i++) {
-			    imwriter[i] =
-				new ImgWriterPGX(out[i],ictransf,i,
-						 hd.isOriginalSigned(i));
-			}
-		    }
-		    catch (IOException e) {
-			error("Could not write PGX header or open output file "+
-			      "for component " 
-			      + i + ((e.getMessage() != null) ?
-				     (":\n"+e.getMessage()) : ""),2);
-                        if(pl.getParameter("debug").equals("on"))
-                            e.printStackTrace();
-                        else {
-                            error("Use '-debug' option for more details",2);
-                        }
-			return;
-		    }
+		} else { // PGX or PGM
+		    imwriter = new ImgWriter[nCompImg];
 		}
 
                 // If 3 (originally) unsigned components with depths less than
                 // 8 bits and a component transformation is used in at least
                 // one tile, ImgWriterPPM is better than ImgWriterPGM (the
                 // image is entirely decoded 3 times).
-                if(imwriter.length==3 && 
-                   ictransf.getNomRangeBits(0)<=8 &&
-                   ictransf.getNomRangeBits(1)<=8 &&
-                   ictransf.getNomRangeBits(2)<=8 &&
-                   !hd.isOriginalSigned(0) && !hd.isOriginalSigned(1)
-                   && !hd.isOriginalSigned(2) &&
-                   decSpec.cts.isCompTransfUsed()){
-                    warning("JJ2000 is quicker with one PPM output "+
-                            "file than with 3 PGM output files when a"+
-                            " component transformation is applied.");
-                }
+		if(csMap!=null) {
+		    if(imwriter.length==3 && 
+		       decodedImage.getNomRangeBits(0)<=8 &&
+		       decodedImage.getNomRangeBits(1)<=8 &&
+		       decodedImage.getNomRangeBits(2)<=8 &&
+		       !csMap.isOutputSigned(0) && !csMap.isOutputSigned(1)
+		       && !csMap.isOutputSigned(2) &&
+		       decSpec.cts.isCompTransfUsed()){
+			warning("JJ2000 is quicker with one PPM output "+
+				"file than with 3 PGM/PGX output files when a"+
+				" component transformation is applied.");
+		    }
+		} else {
+		    if(imwriter.length==3 && 
+		       decodedImage.getNomRangeBits(0)<=8 &&
+		       decodedImage.getNomRangeBits(1)<=8 &&
+		       decodedImage.getNomRangeBits(2)<=8 &&
+		       !hd.isOriginalSigned(0) && !hd.isOriginalSigned(1)
+		       && !hd.isOriginalSigned(2) &&
+		       decSpec.cts.isCompTransfUsed()){
+			warning("JJ2000 is quicker with one PPM output "+
+				"file than with 3 PGM/PGX output files when a"+
+				" component transformation is applied.");
+		    }
+		}
 	    }
 	    
 	    // **** Report info ****
-	    
-	    if(verbose){
-		if(mrl!=res)
+	    int mrl = decSpec.dls.getMin();
+	    if(verbose) {
+		if(mrl!=res) {
 		    FacilityManager.getMsgLogger().
 			println("Reconstructing resolution "+res+" on "+
 				mrl+" ("+breader.getImgWidth(res)+"x"+
 				breader.getImgHeight(res)+")",8,8);
-		FacilityManager.getMsgLogger().
-		    println("Target rate = "+breader.getTargetRate()+" bpp ("+
-                            breader.getTargetNbytes()+" bytes)",8,8);
+                }
+                if(pl.getFloatParameter("rate")!=-1) {
+                    FacilityManager.getMsgLogger().
+                        println("Target rate = "+breader.getTargetRate()+
+                                " bpp ("+
+                                breader.getTargetNbytes()+" bytes)",8,8);
+                }
 	    }
 		
 	    // **** Decode and write/display result ****
-	    if(disp){
+	    if(disp) {
 		// Now create the image and decode. Use a low priority for
 		// this so as not to block other threads.
 		Thread.currentThread().setPriority(Thread.MIN_PRIORITY+1);
-		img = BlkImgDataSrcImageProducer.createImage(ictransf,isp);
+		img = BlkImgDataSrcImageProducer.createImage(decodedImage,isp);
 		isp.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 // HACK for JDK 1.1.x under Windows
-                if (win != null) {
+                if (win!=null) {
                     win.setCursor(Cursor.
                                   getPredefinedCursor(Cursor.WAIT_CURSOR));
                 }
@@ -819,79 +922,115 @@ public class Decoder implements Runnable {
 		isp.setCursor(Cursor.
                               getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 // HACK for JDK 1.1.x under Windows
-                if (win != null) {
+                if (win!=null) {
                     win.setCursor(Cursor.
                                   getPredefinedCursor(Cursor.DEFAULT_CURSOR));
                 }
                 // END HACK
 		
 		// Check the image status, every 100ms, until it is finished.
-                if (win != null) {
+                if(win!=null) {
                     int status;
                     do {
                         status = isp.checkImage(img,null);
-                        if ((status & ImageObserver.ERROR) != 0) {
+                        if((status & ImageObserver.ERROR) != 0) {
                             FacilityManager.getMsgLogger().
                                 printmsg(MsgLogger.ERROR,
                                          "An unknown error occurred while "+
                                          "producing the image");
                             return;
-                        }
-                        else if ((status & ImageObserver.ABORT) != 0) {
+                        } else if((status & ImageObserver.ABORT) != 0) {
                             FacilityManager.getMsgLogger().
                                 printmsg(MsgLogger.ERROR,
                                          "Image production was aborted for "+
                                          "some unknown reason");
-                        }
-                        else if ((status & ImageObserver.ALLBITS) != 0) {
+                        } else if((status & ImageObserver.ALLBITS) != 0) {
                             ImgMouseListener iml = new ImgMouseListener(isp);
                             isp.addMouseListener(iml);
                             isp.addMouseMotionListener(iml);
-                        }
-                        else { // Check again in 100 ms
+                        } else { // Check again in 100 ms
                             try {
                                 Thread.currentThread().sleep(100);
-                            } catch (InterruptedException e) {
-                            }
+                            } catch (InterruptedException e) { }
                         }
-                    } while ((status &
-                              (ImageObserver.ALLBITS|
-                               ImageObserver.ABORT|
-                               ImageObserver.ERROR)) == 0);
+                    } while((status &
+			     (ImageObserver.ALLBITS | ImageObserver.ABORT |
+			      ImageObserver.ERROR)) == 0);
                 }
-	    }
-	    else{
+	    } else {
 		// Need to optimize! If no component mixer is used and PGM
 		// files are written need to write blocks in parallel
 		// (otherwise decodes 3 times)
 		
 		// Now write the image to the file (decodes as needed)
-		for (i=0; i<imwriter.length; i++) {
+		for(i=0; i<imwriter.length; i++) {
+                    if(outext.equalsIgnoreCase(".PGM")) { 
+                        try {
+                            imwriter[i] = new ImgWriterPGM(out[i],decodedImage,
+							   i);
+                        } catch (IOException e) {
+		    	    error("Cannot write PGM header or open output "+
+                                  "file for component " 
+                                  + i + ((e.getMessage() != null) ?
+                                         (":\n"+e.getMessage()) : ""),2);
+                            if(pl.getParameter("debug").equals("on")) {
+                                e.printStackTrace();
+                            } else {
+                                error("Use '-debug' option for more "+
+                                      "details",2);
+                            }
+                            return;
+                        }
+                    } else if(outext.equalsIgnoreCase(".PGX")) { 
+                        // Not PGM and not PPM means PGX used
+                        try {
+			    if(csMap!=null) {
+				imwriter[i] =
+				    new ImgWriterPGX(out[i],decodedImage,i,
+						     csMap.isOutputSigned(i));
+			    } else {
+				imwriter[i] =
+				    new ImgWriterPGX(out[i],decodedImage,i,
+						     hd.isOriginalSigned(i));
+			    }
+                        } catch (IOException e) {
+                            error("Cannot write PGX header or open output "+
+                                  "file for component " 
+                                  + i + ((e.getMessage() != null) ?
+                                         (":\n"+e.getMessage()) : ""),2);
+                            if(pl.getParameter("debug").equals("on")) {
+                                e.printStackTrace();
+                            } else {
+                                error("Use '-debug' option for more "+
+                                      "details",2);
+                            }
+                            return;
+                        }
+		    }
+
 		    try {
 			imwriter[i].writeAll();
-		    }
-		    catch (IOException e) {
+		    } catch (IOException e) {
 			error("I/O error while writing output file" +
 			      ((e.getMessage() != null) ?
 			       (":\n"+e.getMessage()) : ""),2);
-                        if(pl.getParameter("debug").equals("on"))
+                        if(pl.getParameter("debug").equals("on")) {
                             e.printStackTrace();
-                        else {
+                        } else {
                             error("Use '-debug' option for more details",2);
                         }
 			return;
 		    }
 		    try {
 			imwriter[i].close();
-		    }
-		    catch (IOException e) {
+		    } catch (IOException e) {
 			error("I/O error while closing output file (data may "+
                               "be corrupted" + ((e.getMessage() != null) ?
                                                 (":\n"+e.getMessage()) : ""),
 			      2);
-                        if(pl.getParameter("debug").equals("on"))
+                        if(pl.getParameter("debug").equals("on")) {
                             e.printStackTrace();
-                        else {
+                        } else {
                             error("Use '-debug' option for more details",2);
                         }
 			return;
@@ -900,7 +1039,7 @@ public class Decoder implements Runnable {
 	    }
 
 	    // **** Print some resulting info ****
-	    if (verbose) {
+	    if(verbose) {
 		// Print actually read bitrate
                 // if file format used add the read file format bytes
                 float bitrate = breader.getActualRate();
@@ -908,67 +1047,67 @@ public class Decoder implements Runnable {
                 if(ff.JP2FFUsed){
                     int imageSize =(int)((8.0f*numBytes)/bitrate);
                     numBytes +=ff.getFirstCodeStreamPos(); 
-                    bitrate = (numBytes*8.0f)/
-                        imageSize;
+                    bitrate = (numBytes*8.0f)/imageSize;
                 } 
 
-		FacilityManager.getMsgLogger().
-		    println("Actual bitrate = "+bitrate+
-			    " bpp (i.e. "+numBytes+
-			    " bytes)",8,8);
+                if(pl.getIntParameter("ncb_quit") == -1) {
+                    FacilityManager.getMsgLogger().
+                        println("Actual bitrate = "+bitrate+
+                                " bpp (i.e. "+numBytes+" bytes)",8,8);
+		} else {
+                    FacilityManager.getMsgLogger().
+                        println("Number of packet body bytes read = "+numBytes,
+                                8,8);
+		}
+		FacilityManager.getMsgLogger().flush();
 	    }
 		
-        }
-	catch(IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
 	    error(e.getMessage(),2);
             if(pl.getParameter("debug").equals("on"))
                 e.printStackTrace();
 	    return;
-	}
-        catch (Error e) {
-            if(e.getMessage()!=null)
+	} catch (Error e) {
+            if(e.getMessage()!=null) {
                 error(e.getMessage(),2);
-            else {
+            } else {
                 error("An error has occured during decoding.",2);
             }
 
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
             return;
-        }
-        catch (RuntimeException e) {
-            if(e.getMessage()!=null)
+        } catch (RuntimeException e) {
+            if(e.getMessage()!=null) {
                 error("An uncaught runtime exception has occurred:\n"+
                       e.getMessage(),2);
-            else {
+            } else {
                 error("An uncaught runtime exception has occurred.",2);
             }
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
             return;
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             error("An uncaught exception has occurred.",2);
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
             return;
         }
-
     }
 
     /**
      * Prints the error message 'msg' to standard err, prepending "ERROR" to
      * it, and sets the exitCode to 'code'. An exit code different than 0
-     * indicates that there where problems.
+     * indicates that there where problems. 
      *
      * @param msg The error message
      *
@@ -977,6 +1116,47 @@ public class Decoder implements Runnable {
     private void error(String msg, int code) {
         exitCode = code;
         FacilityManager.getMsgLogger().printmsg(MsgLogger.ERROR,msg);
+    }
+
+    /**
+     * Prints the error message 'msg' to standard err, prepending
+     * "ERROR" to it, and sets the exitCode to 'code'. An exit code
+     * different than 0 indicates that there where problems. Either
+     * the stacktrace or a "details" message is output depending on
+     * the data of the "debug" parameter.
+     *
+     * @param msg The error message
+     *
+     * @param code The exit code to set
+     *
+     * @param ex The exception associated with the call
+     * */
+    private void error(String msg, int code, Throwable ex) {
+	exitCode = code;
+	FacilityManager.getMsgLogger().printmsg(MsgLogger.ERROR,msg);
+	if(pl.getParameter("debug").equals("on")) {
+	    ex.printStackTrace();
+	} else {
+	    error("Use '-debug' option for more details",2); 
+	}
+    }
+ 
+    /** 
+     * Return the information found in the COM marker segments encountered in
+     * the decoded codestream. 
+     * */
+    public String[] getCOMInfo() {
+        if(hi==null) { // The codestream has not been read yet
+            return null;
+        }
+
+        int nCOMMarkers = hi.getNumCOM();
+        Enumeration com = hi.com.elements();
+        String[] infoCOM = new String[nCOMMarkers];
+        for(int i=0; i<nCOMMarkers; i++) {
+            infoCOM[i] = com.nextElement().toString();
+        }
+        return infoCOM;
     }
 
     /** 
@@ -988,49 +1168,37 @@ public class Decoder implements Runnable {
      *
      * @see #getParameterInfo 
      * */
-    public static String[][] getAllParameters(){
+    public static String[][] getAllParameters() {
 	Vector vec = new Vector();
+	int i;
 
 	String[][] str = BitstreamReaderAgent.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = EntropyDecoder.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = ROIDeScaler.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = Dequantizer.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = InvCompTransf.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = HeaderDecoder.getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
+
+	str = ICCProfiler.getParameterInfo();
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = getParameterInfo();
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		vec.addElement(str[i]);
+	if(str!=null) for(i=str.length-1; i>=0; i--) vec.addElement(str[i]);
 
 	str = new String[vec.size()][4];
-
-	if(str!=null)
-	    for(int i=str.length-1; i>=0; i--)
-		str[i] = (String[])vec.elementAt(i);
+	if(str!=null) for(i=str.length-1; i>=0; i--)
+	    str[i] = (String[])vec.elementAt(i);
 
 	return str;
     }
@@ -1109,8 +1277,7 @@ public class Decoder implements Runnable {
                 out.println("-" + pinfo[i][0] +
                          ((pinfo[i][1] != null) ? " "+pinfo[i][1]+" " : " ") +
                          "(default = "+defval+")",4,8);
-            }
-            else { // There is no default value
+            } else { // There is no default value
                 out.println("-" + pinfo[i][0] +
                          ((pinfo[i][1] != null) ? " "+pinfo[i][1] : ""),4,8);
             }
@@ -1124,15 +1291,14 @@ public class Decoder implements Runnable {
     /** 
      * Exit the decoding process according to the isChildProcess variable
      **/
-    public void exit(){
-        if(isChildProcess){
+    public void exit() {
+        if(isChildProcess) {
             if(win!=null)
                 win.dispose();
             if(title!=null)
                 title.done = true;
             return;
-        }
-        else{
+        } else {
             System.exit(0);
         }
     }
@@ -1142,7 +1308,7 @@ public class Decoder implements Runnable {
      *
      * @param b The boolean value
      * */
-    public void setChildProcess(boolean b){
+    public void setChildProcess(boolean b) {
         isChildProcess = b;
     }
 }

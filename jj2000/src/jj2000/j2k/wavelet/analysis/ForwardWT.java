@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ForwardWT.java,v 1.58 2001/02/12 10:45:05 grosbois Exp $
+ * $Id: ForwardWT.java,v 1.60 2001/09/14 09:54:53 grosbois Exp $
  *
  * Class:                   ForwardWT
  *
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.wavelet.analysis;
 
 import jj2000.j2k.codestream.writer.*;
@@ -51,8 +51,8 @@ import jj2000.j2k.image.*;
 import jj2000.j2k.util.*;
 import jj2000.j2k.*;
 
-import java.io.*;
 import java.util.*;
+import java.io.*;
 
 /**
  * This abstract class represents the forward wavelet transform functional
@@ -61,10 +61,10 @@ import java.util.*;
  * returned as the functional block that performs the forward wavelet
  * transform.
  *
- * <P>This class assumes that data is transferred in code-blocks, as defined
+ * <p>This class assumes that data is transferred in code-blocks, as defined
  * by the 'CBlkWTDataSrc' interface. The internal calculation of the wavelet
  * transform may be done differently but a buffering class should convert to
- * that type of transfer.
+ * that type of transfer.</p>
  * */
 public abstract class ForwardWT extends ImgDataAdapter
     implements ForwWT, CBlkWTDataSrc {
@@ -89,6 +89,11 @@ public abstract class ForwardWT extends ImgDataAdapter
           "Specifies the wavelet transform to be used. Possible value is: "+
           "'full' (full page). The value 'full' performs a normal DWT.",
           "full"},
+        { "Wcboff", "<x y>", 
+          "Code-blocks partition offset in the reference grid. Allowed for "+
+          "<x> and <y> are 0 and 1.\n"+
+          "Note: This option is defined in JPEG 2000 part 2 and may not"+
+          " be supported by all JPEG 2000 decoders.", "0 0" }
     };
 
     /**
@@ -134,9 +139,8 @@ public abstract class ForwardWT extends ImgDataAdapter
      * @exception IllegalArgumentException If mandatory parameters are missing 
      * or if invalid values are given.
      * */
-    public static ForwardWT createInstance(BlkImgDataSrc src,
-                                           ParameterList pl,
-                                           EncoderSpecs encSpec){
+    public static ForwardWT createInstance(BlkImgDataSrc src,ParameterList pl,
+                                           EncoderSpecs encSpec) {
         int defdec,deflev;
         String decompstr;
         String wtstr;
@@ -150,12 +154,51 @@ public abstract class ForwardWT extends ImgDataAdapter
 
         deflev = ((Integer)encSpec.dls.getDefault()).intValue();
 
-        // partition reference point
-        prefx = 0;
-        prefy = 0;
+        // Code-block partition origin
+        String str = "";
+        if(pl.getParameter("Wcboff")==null) {
+            throw new Error("You must specify an argument to the '-Wcboff' "+
+                            "option. See usage with the '-u' option");
+        }
+        StringTokenizer stk = new StringTokenizer(pl.getParameter("Wcboff"));
+        if(stk.countTokens()!=2) {
+            throw new IllegalArgumentException("'-Wcboff' option needs two"+
+                                               " arguments. See usage with "+
+                                               "the '-u' option.");
+        }
+        int cb0x = 0;
+        str = stk.nextToken();
+        try {
+            cb0x = (new Integer(str)).intValue();
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Bad first parameter for the "+
+                                               "'-Wcboff' option: "+str);
+        }
+        if(cb0x<0 || cb0x>1) {
+            throw new IllegalArgumentException("Invalid horizontal "+
+                                               "code-block partition origin.");
+        }
+        int cb0y = 0;
+        str = stk.nextToken();
+        try {
+            cb0y = (new Integer(str)).intValue();
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Bad second parameter for the "+
+                                               "'-Wcboff' option: "+str);
+        }
+        if(cb0y<0 || cb0y>1) {
+            throw new IllegalArgumentException("Invalid vertical "+
+                                               "code-block partition origin.");
+        }
+        if(cb0x!=0 || cb0y!=0) {
+            FacilityManager.getMsgLogger().
+                printmsg(MsgLogger.WARNING,"Code-blocks partition origin is "+
+                         "different from (0,0). This is defined in JPEG 2000"+
+                         " part 2 and may be not supported by all JPEG 2000 "+
+                         "decoders.");
+        }
         
-        return new ForwWTFull(src,encSpec,prefx,prefy);
-        
+        return new ForwWTFull(src,encSpec,cb0x,cb0y);
     }
 
 }

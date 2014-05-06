@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: EntropyDecoder.java,v 1.36 2000/11/27 14:52:39 grosbois Exp $
+ * $Id: EntropyDecoder.java,v 1.38 2001/09/20 12:48:01 grosbois Exp $
  *
  * Class:                   EntropyDecoder
  *
@@ -39,7 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
+ * */
 package jj2000.j2k.entropy.decoder;
 
 import jj2000.j2k.quantization.dequantizer.*;
@@ -58,14 +58,14 @@ import java.io.*;
  * concept of a current tile and all operations are performed on the current
  * tile.
  *
- * <P>Default implementations of the methods in 'MultiResImgData' are provided
- * through the 'MultiResImgDataAdapter' abstract class.
+ * <p>Default implementations of the methods in 'MultiResImgData' are provided
+ * through the 'MultiResImgDataAdapter' abstract class.</p>
  *
- * <P>Sign magnitude representation is used (instead of two's complement) for
+ * <p>Sign magnitude representation is used (instead of two's complement) for
  * the output data. The most significant bit is used for the sign (0 if
  * positive, 1 if negative). Then the magnitude of the quantized coefficient
  * is stored in the next most significat bits. The most significant magnitude
- * bit corresponds to the most significant bit-plane and so on.
+ * bit corresponds to the most significant bit-plane and so on.</p
  *
  * @see MultiResImgData
  * @see MultiResImgDataAdapter
@@ -119,34 +119,24 @@ public abstract class EntropyDecoder extends MultiResImgDataAdapter
      *
      * @return The root of the tree structure.
      * */
-    public SubbandSyn getSubbandTree(int t,int c) {
-        return src.getSubbandTree(t,c);
+    public SubbandSyn getSynSubbandTree(int t,int c) {
+        return src.getSynSubbandTree(t,c);
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal code-block partition origin. Allowable values
+     * are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical code-block partition origin. Allowable values are
+     * 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ParameterList.java,v 1.16 2001/01/25 10:49:08 grosbois Exp $
+ * $Id: ParameterList.java,v 1.18 2001/07/17 16:21:35 grosbois Exp $
  *
  * Class:                   ParameterList
  *
@@ -45,42 +45,42 @@ package jj2000.j2k.util;
 import java.util.*;
 
 /**
- * This class serves to store parameters for the different modules of the
- * coder or decoder. Each parameter has a name and its associated value is
- * stored as a string.
+ * This class holds modules options and parameters as they are provided to the
+ * encoder or the decoder. Each option and its associated parameters are
+ * stored as strings.
  *
- * <P>This class builds up on the standard Java Properties class and thus
- * there are facilities to load and write parameters from/to a file. Also a
- * parameter list can have a default parameter list provided for default
- * values.
+ * <p>This class is built on the standard Java Properties class. Consequently,
+ * it offers facilities to load and write parameters from/to a file. In the
+ * meantime, a ParameterList object can also handle default parameters for
+ * each option.</p>
  *
- * <P>Each parameter can be retrieved as a string or as an specific primitive
- * type (int, float, etc).
+ * <p>Each parameter can be retrieved as a string or as an specific primitive
+ * type (int, float, etc).</p>
  *
- * <P>For more details see the Properties class.
+ * <p>For more details see the Properties class.</p>
  *
- * <P>Note that this class does not support multiple occurrences of parameters
+ * <p>Note that this class does not support multiple occurrences of parameters
  * (for a parameter name, only one value is possible). Also there is no
- * particular order of the parameters.
+ * particular order of the parameters.</p>
  *
  * @see Properties
  * */
 public class ParameterList extends Properties {
 
     /**
-     * Constructs an empty parameter list. It can then be completed by adding
-     * elements one by one, load them from a file, or initialize them from an
-     * argument string.
+     * Constructs an empty ParameterList object. It can be later completed by
+     * adding elements one by one, by loading them from a file, or by
+     * initializing them from an argument string.
      * */
     public ParameterList() {
         super();
     }
 
     /**
-     * Constructs an empty parameter list with the provided parameter list for
-     * defaulst. The parameter list can then be completed by adding elements
-     * one by one, load them from a file, or initialize them from an argument
-     * string.
+     * Constructs an empty ParameterList object with the provided default
+     * parameters. The list can be later updated by adding elements one by
+     * one, by loading them from a file, or by initializing them from an
+     * argument string.
      *
      * @param def The defaults parameters
      * */
@@ -93,7 +93,7 @@ public class ParameterList extends Properties {
      *
      * @return Default ParameterList
      * */
-    public ParameterList getDefaultParameterList(){
+    public ParameterList getDefaultParameterList() {
 	return (ParameterList)defaults;
     }
 
@@ -101,7 +101,7 @@ public class ParameterList extends Properties {
      * Parses the parameters from an argument list, such as as the one in the
      * command line, and integrates them in this parameter list.
      *
-     * <P>All options must be preceded by '-' and then followed by one or more
+     * <p>All options must be preceded by '-' and then followed by one or more
      * words, which constitues the values. The name of the options constitute
      * the name of the parameters. The only exception is for boolean options,
      * in which case if they are preceded by '-' they will be turned on, and
@@ -110,23 +110,22 @@ public class ParameterList extends Properties {
      * can not precede any word which would be a value for an option unless
      * they are numeric values (otherwise it would be considered as a boolean
      * option). Note also that the name of an option can not start with a
-     * number.
+     * number.</p>
      *
-     * <P>No option can appear more than once. If so happens an exception is
-     * thrown.
+     * <p>No option can appear more than once. If so happens an exception is
+     * thrown.</p>
      *
-     * <P>For instance the string:
+     * <p>For instance the string:
      *
-     * <QUOTE>
-     *    "-Ffilters w5x3 -Wlev 5 -Qtype reversible
-     * </QUOTE>
+     * <quote> "-Ffilters w5x3 -Wlev 5 -Qtype reversible </quote>
      *
-     * <P>will create the following parameter list:
-     * <PRE>
+     * <p>will create the following parameter list:
+     *
+     * <pre>
      * Ffilers  w5x3
      * Wlev     5
      * Qtype    reversible
-     * </PRE>
+     * </pre></p>
      *
      * @param argv The argument list.
      *
@@ -278,7 +277,8 @@ public class ParameterList extends Properties {
         String s = (String) getParameter(pname);
 
         if (s == null) {
-            throw new IllegalArgumentException("No parameter with name "+pname);
+            throw new IllegalArgumentException("No parameter with name "+
+                                               pname);
         }
         else if (s.equals("on")) {
             return true;
@@ -313,7 +313,8 @@ public class ParameterList extends Properties {
         String s = (String) getParameter(pname);
 
         if (s == null) {
-            throw new IllegalArgumentException("No parameter with name "+pname);
+            throw new IllegalArgumentException("No parameter with name "+
+                                               pname);
         }
         else {
             try {
@@ -348,12 +349,13 @@ public class ParameterList extends Properties {
         String s = (String) getParameter(pname);
 
         if (s == null) {
-            throw new IllegalArgumentException("No parameter with name "+pname);
+            throw new IllegalArgumentException("No parameter with name "+
+                                               pname);
         }
         else {
             try {
-                // Unfortunately there is no method to convert from
-                // a string directly to a float
+                // Unfortunately there is no method to convert from a string
+                // directly to a float
                 return (new Float(s)).floatValue();
             }
             catch (NumberFormatException e) {

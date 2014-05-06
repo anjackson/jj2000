@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: TagTreeDecoder.java,v 1.6 2000/09/05 09:22:28 grosbois Exp $
+ * $Id: TagTreeDecoder.java,v 1.7 2001/08/23 08:04:48 grosbois Exp $
  *
  * Class:                   TagTreeDecoder
  *
@@ -39,32 +39,28 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.codestream.reader;
 
-import jj2000.j2k.io.*;
 import jj2000.j2k.util.*;
+import jj2000.j2k.io.*;
+
 import java.io.*;
 
 /**
- * This class implements the tag tree decoder. A tag tree codes a 2D
- * matrix of integer elements in an efficient way. The decoding
- * procedure 'update()' updates a value of the matrix from a stream of
- * coded data, given a threshold. This procedure decodes enough
- * information to identify whether or not the value is greater than
- * or equal to the threshold, and updates the value accordingly.
+ * This class implements the tag tree decoder. A tag tree codes a 2D matrix of
+ * integer elements in an efficient way. The decoding procedure 'update()'
+ * updates a value of the matrix from a stream of coded data, given a
+ * threshold. This procedure decodes enough information to identify whether or
+ * not the value is greater than or equal to the threshold, and updates the
+ * value accordingly.
  *
- * <P>In general the decoding procedure must follow the same sequence
- * of elements and thresholds as the encoding one. The encoder is
- * implemented by the TagTreeEncoder class.
+ * <p>In general the decoding procedure must follow the same sequence of
+ * elements and thresholds as the encoding one. The encoder is implemented by
+ * the TagTreeEncoder class.</p>
  *
- * <P>Tag trees that have one dimension, or both, as 0 are allowed for
- * convenience. Of course no values can be set or coded in such cases.
+ * <p>Tag trees that have one dimension, or both, as 0 are allowed for
+ * convenience. Of course no values can be set or coded in such cases.</p>
  *
  * @see jj2000.j2k.codestream.writer.TagTreeEncoder
  * */
@@ -79,31 +75,28 @@ public class TagTreeDecoder {
     /** The number of levels in the tag tree */
     protected int lvls;
 
-    /** The tag tree values. The first index is the level,
-     * starting at level 0 (leafs). The second index is the element
-     * within the level, in lexicographical order. */
+    /** The tag tree values. The first index is the level, starting at level 0
+     * (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeV[][];
 
-    /** The tag tree state. The first index is the level, starting at
-     * level 0 (leafs). The second index is the element within the
-     * level, in lexicographical order. */
+    /** The tag tree state. The first index is the level, starting at level 0
+     * (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeS[][];
 
     /**
-     * Creates a tag tree decoder with 'w' elements along the
-     * horizontal dimension and 'h' elements along the vertical
-     * direction. The total number of elements is thus 'vdim' x
-     * 'hdim'.
+     * Creates a tag tree decoder with 'w' elements along the horizontal
+     * dimension and 'h' elements along the vertical direction. The total
+     * number of elements is thus 'vdim' x 'hdim'.
      *
-     * <P>The values of all elements are initialized to
-     * Integer.MAX_VALUE (i.e. no information decoded so far). The
-     * states are initialized all to 0.
+     * <p>The values of all elements are initialized to Integer.MAX_VALUE
+     * (i.e. no information decoded so far). The states are initialized all to
+     * 0.</p>
      *
      * @param h The number of elements along the vertical direction.
      *
      * @param w The number of elements along the horizontal direction.
-     *
-     *
      * */
     public TagTreeDecoder(int h, int w) {
         int i;
@@ -118,8 +111,7 @@ public class TagTreeDecoder {
         // Calculate the number of levels
         if (w == 0 || h == 0) {
             lvls = 0; // Empty tree
-        }
-        else {
+        } else {
             lvls = 1;
             while (h != 1 || w != 1) { // Loop until we reach root
                 w = (w+1)>>1;
@@ -148,8 +140,6 @@ public class TagTreeDecoder {
      * Returns the number of leafs along the horizontal direction.
      *
      * @return The number of leafs along the horizontal direction.
-     *
-     *
      * */
     public final int getWidth() {
         return w;
@@ -159,19 +149,16 @@ public class TagTreeDecoder {
      * Returns the number of leafs along the vertical direction.
      *
      * @return The number of leafs along the vertical direction.
-     *
-     *
      * */
     public final int getHeight() {
         return h;
     }
 
     /**
-     * Decodes information for the specified element of the tree,
-     * given the threshold, and updates its value. The information
-     * that can be decoded is whether or not the value of the element
-     * is greater than, or equal to, the value of the
-     * threshold.
+     * Decodes information for the specified element of the tree, given the
+     * threshold, and updates its value. The information that can be decoded
+     * is whether or not the value of the element is greater than, or equal
+     * to, the value of the threshold.
      *
      * @param m The vertical index of the element.
      *
@@ -183,13 +170,10 @@ public class TagTreeDecoder {
      *
      * @return The updated value at position (m,n).
      *
-     * @exception IOException If an I/O error occurs while reading
-     * from 'in'.
+     * @exception IOException If an I/O error occurs while reading from 'in'.
      *
-     * @exception EOFException If the ned of the 'in' stream is
-     * reached before getting all the necessary data.
-     *
-     *
+     * @exception EOFException If the ned of the 'in' stream is reached before
+     * getting all the necessary data.
      * */
     public int update(int m, int n, int t, PktHeaderBitReader in)
         throws IOException {
@@ -219,14 +203,12 @@ public class TagTreeDecoder {
                     if (in.readBit() == 0) { // '0' bit
                         // We know that 'value' > treeS[k][idx]
                         ts++;
-                    }
-                    else { // '1' bit
+                    } else { // '1' bit
                         // We know that 'value' = treeS[k][idx]
                         tv = ts++;
                     }
                     // Increment of treeS[k][idx] done above
-                }
-                else { // We are done, we can set ts and get out
+                } else { // We are done, we can set ts and get out
                     ts = t;
                     break; // get out of this while
                 }
@@ -240,8 +222,7 @@ public class TagTreeDecoder {
                 k--;
                 // Index of element for next iteration
                 idx = (m>>k)*((w+(1<<k)-1)>>k)+(n>>k);
-            }
-            else {
+            } else {
                 // Return the updated value
                 return tv;
             }
@@ -259,8 +240,6 @@ public class TagTreeDecoder {
      * @return The current value of the element.
      *
      * @see #update
-     *
-     *
      * */
     public int getValue(int m, int n) {
         // Check arguments

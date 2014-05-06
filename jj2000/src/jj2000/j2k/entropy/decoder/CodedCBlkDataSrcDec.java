@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CodedCBlkDataSrcDec.java,v 1.16 2001/02/14 17:33:53 grosbois Exp $
+ * $Id: CodedCBlkDataSrcDec.java,v 1.17 2001/09/14 09:26:23 grosbois Exp $
  * 
  * Class:                   CodedCBlkDataSrcDec
  * 
@@ -52,11 +52,11 @@ import jj2000.j2k.image.*;
  * transfer it in a code-block by code-block basis. In each call to
  * 'geCodeBlock()' a specified coded code-block is returned.
  *
- * <P>This interface is the source of data for the entropy decoder. See the
- * 'EntropyDecoder' class.
+ * <p>This interface is the source of data for the entropy decoder. See the
+ * 'EntropyDecoder' class.</p>
  *
- * <P>For each coded-code-block the entropy-coded data is returned along with
- * its truncation point information in a 'DecLyrdCBlk' object.
+ * <p>For each coded-code-block the entropy-coded data is returned along with
+ * its truncation point information in a 'DecLyrdCBlk' object.</p>
  *
  * @see EntropyDecoder
  *
@@ -67,48 +67,31 @@ import jj2000.j2k.image.*;
 public interface CodedCBlkDataSrcDec extends InvWTData {
 
     /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param c The component where the subband is.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int c, Coord co);
-
-    /**
      * Returns the specified coded code-block, for the specified component, in
      * the current tile. The first layer to return is indicated by 'fl'. The
      * number of layers that is returned depends on 'nl' and the amount of
      * data available.
      *
-     * <P>The argument 'fl' is to be used by subsequent calls to this method
+     * <p>The argument 'fl' is to be used by subsequent calls to this method
      * for the same code-block. In this way supplamental data can be retrieved
      * at a later time. The fact that data from more than one layer can be
      * returned means that several packets from the same code-block, of the
-     * same component, and the same tile, have been concatenated.
+     * same component, and the same tile, have been concatenated.</p>
      *
-     * <P>The returned compressed code-block can have its progressive
+     * <p>The returned compressed code-block can have its progressive
      * attribute set. If this attribute is set it means that more data can be
      * obtained by subsequent calls to this method (subject to transmission
      * delays, etc). If the progressive attribute is not set it means that the
      * returned data is all the data that can be obtained for the specified
-     * subblock.
+     * subblock.</p>
      *
-     * <P>The compressed code-block is uniquely specified by the current tile,
+     * <p>The compressed code-block is uniquely specified by the current tile,
      * the component (identified by 'c'), the subband (indentified by 'sb')
-     * and the code-bock vertical and horizontal indexes 'm' and 'n'.
+     * and the code-bock vertical and horizontal indexes 'm' and 'n'.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DecLyrdCBlk' object
+     * <p>The 'ulx' and 'uly' members of the returned 'DecLyrdCBlk' object
      * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * respect to the tile, not the subband.</p>
      *
      * @param c The index of the component, from 0 to N-1.
      *

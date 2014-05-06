@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: StdEntropyCoder.java,v 1.34 2001/02/14 17:35:20 grosbois Exp $
+ * $Id: StdEntropyCoder.java,v 1.41 2002/07/04 15:53:32 grosbois Exp $
  * 
  * Class:                   StdEntropyCoder
  * 
@@ -74,21 +74,21 @@ import java.util.*;
  * multi-threaded implementation currently assumes that the vast majority of
  * consecutive calls to 'getNextCodeBlock()' will be done on the same
  * component. If this is not the case, the speed-up that can be expected on
- * multiprocessor machines might be significantly decreased.
+ * multiprocessor machines might be significantly decreased.</p>
  *
  * <p>The code-blocks are rectangular, with dimensions which must be powers of
  * 2. Each dimension has to be no smaller than 4 and no larger than 256. The
  * product of the two dimensions (i.e. area of the code-block) may not exceed
- * 4096.
+ * 4096.</p>
  *
  * <p>Context 0 of the MQ-coder is used as the uniform one (uniform,
  * non-adaptive probability distribution). Context 1 is used for RLC
  * coding. Contexts 2-10 are used for zero-coding (ZC), contexts 11-15 are
  * used for sign-coding (SC) and contexts 16-18 are used for
- * magnitude-refinement (MR).
+ * magnitude-refinement (MR).</p>
  *
- * <p>This implementation buffers the symbols and calls the MQ coder only once 
- * per stripe and per coding pass, to reduce the method call overhead.
+ * <p>This implementation buffers the symbols and calls the MQ coder only once
+ * per stripe and per coding pass, to reduce the method call overhead.</p>
  *
  * <p>This implementation also provides some timing features. They can be
  * enabled by setting the 'DO_TIMING' constant of this class to true and
@@ -99,11 +99,11 @@ import java.util.*;
  * to find the total used time (i.e. some time might be counted in several
  * places). When timing is disabled ('DO_TIMING' is false) there is no penalty
  * if the compiler performs some basic optimizations. Even if not the penalty
- * should be negligeable.
+ * should be negligeable.</p>
  *
  * <p>The source module must implement the CBlkQuantDataSrcEnc interface and
  * code-block's data is received in a CBlkWTData instance. This modules sends
- * code-block's information in a CBlkRateDistStats instance.
+ * code-block's information in a CBlkRateDistStats instance.</p>
  *
  * @see CBlkQuantDataSrcEnc
  * @see CBlkWTData
@@ -166,14 +166,37 @@ public class StdEntropyCoder extends EntropyCoder
     /** The output stream used, for each thread */
     private ByteOutputBuffer outT[];
 
-    /** The encoder specifications */
-    private EncoderSpecs encSpec;
+    /** The code-block size specifications */
+    private CBlkSizeSpec cblks;
 
-    /** The options that are turned on, as flag bits. One element for
-     * each tile-component. The options are 'OPT_REG_TERM',
-     * 'OPT_RESET_MQ', 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS' and
-     * 'OPT_SEG_MARKERS' as defined in the StdEntropyCoderOptions
-     * interface
+    /** The precinct partition specifications */
+    private PrecinctSizeSpec pss;
+    
+    /** By-pass mode specifications */
+    public StringSpec bms;
+
+    /** MQ reset specifications */
+    public StringSpec mqrs;
+
+    /** Regular termination specifications */
+    public StringSpec rts;
+
+    /** Causal stripes specifications */
+    public StringSpec css;
+
+    /** Error resilience segment symbol use specifications */
+    public StringSpec sss;
+
+    /** The length calculation specifications */
+    public StringSpec lcs;
+
+    /** The termination type specifications */
+    public StringSpec tts;
+
+    /** The options that are turned on, as flag bits. One element for each
+     * tile-component. The options are 'OPT_TERM_PASS', 'OPT_RESET_MQ',
+     * 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS' and 'OPT_SEG_SYMBOLS' as defined in
+     * the StdEntropyCoderOptions interface
      *
      * @see StdEntropyCoderOptions
      * */
@@ -241,12 +264,12 @@ public class StdEntropyCoder extends EntropyCoder
     private static final int MQ_INIT[] = {46, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0,
                                           0, 0, 0, 0, 0, 0, 0, 0};
 
-    /** The 4 symbol segmentation marker (1010) */
-    private static final int SEG_MARKERS[] = {1,0,1,0};
+    /** The 4 bits of the error resilience segmentation symbol (1010) */
+    private static final int SEG_SYMBOLS[] = {1,0,1,0};
 
-    /** The 4 contexts for the segmentation marker (always the UNIFORM context,
-     * UNIF_CTXT) */
-    private static final int SEG_MARK_CTXTS[] = {UNIF_CTXT, UNIF_CTXT,
+    /** The 4 contexts for the error resilience segmentation symbol (always
+     * the UNIFORM context, UNIF_CTXT) */
+    private static final int SEG_SYMB_CTXTS[] = {UNIF_CTXT, UNIF_CTXT,
                                                  UNIF_CTXT, UNIF_CTXT};
 
     /**
@@ -260,7 +283,7 @@ public class StdEntropyCoder extends EntropyCoder
      * size of the state array is increased by 1 on each side (top, bottom,
      * left, right) to handle boundary conditions without any special logic.
      *
-     * <P>The state of a coefficient is stored in the following way in the
+     * <p>The state of a coefficient is stored in the following way in the
      * lower 16 bits, where bit 0 is the least significant bit. Bit 15 is the
      * significance of a coefficient (0 if non-significant, 1 otherwise). Bit
      * 14 is the visited state (i.e. if a coefficient has been coded in the
@@ -274,13 +297,13 @@ public class StdEntropyCoder extends EntropyCoder
      * and down neighbors (1 for significant, 0 for non significant). Bits 3
      * to 0 store the significance of the diagonal coefficients (up-left,
      * up-right, down-left and down-right; 1 for significant, 0 for non
-     * significant).
+     * significant).</p>
      *
-     * <P>The upper 16 bits the state is stored as in the lower 16 bits,
-     * but with the bits shifted up by 16.
+     * <p>The upper 16 bits the state is stored as in the lower 16 bits, but
+     * with the bits shifted up by 16.</p>
      *
-     * <P>The lower 16 bits are referred to as "row 1" ("R1") while the upper
-     * 16 bits are referred to as "row 2" ("R2").
+     * <p>The lower 16 bits are referred to as "row 1" ("R1") while the upper
+     * 16 bits are referred to as "row 2" ("R2").</p>
      * */
     private int stateT[][];
 
@@ -600,8 +623,7 @@ public class StdEntropyCoder extends EntropyCoder
                 long t = time[c];
                 time[c] = 0L;
                 return t;
-            }
-            else {
+            } else {
                 return 0L;
             } 
         }
@@ -860,26 +882,53 @@ public class StdEntropyCoder extends EntropyCoder
      * Instantiates a new entropy coder engine, with the specified source of
      * data, nominal block width and height.
      *
-     * <P>If the 'OPT_ER_TERM' option is given then the MQ termination must be 
-     * 'TERM_PRED_ER' or an exception is thrown.
+     * <p>If the 'OPT_PRED_TERM' option is given then the MQ termination must
+     * be 'TERM_PRED_ER' or an exception is thrown.</p>
      *
      * @param src The source of data
      *
-     * @param encSpec The encoder specifications
+     * @param cbks Code-block size specifications
+     *
+     * @param pss Precinct partition specifications
+     *
+     * @param bms By-pass mode specifications
+     *
+     * @param mqrs MQ-reset specifications
+     *
+     * @param rts Regular termination specifications
+     *
+     * @param css Causal stripes specifications
+     *
+     * @param sss Error resolution segment symbol use specifications
+     *
+     * @param lcs Length computation specifications
+     *
+     * @param tts Termination type specifications
      *
      * @see MQCoder
      * */
-    public StdEntropyCoder(CBlkQuantDataSrcEnc src, EncoderSpecs encSpec) {
+    public StdEntropyCoder(CBlkQuantDataSrcEnc src,CBlkSizeSpec cblks,
+                           PrecinctSizeSpec pss,StringSpec bms,StringSpec mqrs,
+                           StringSpec rts,StringSpec css,StringSpec sss,
+                           StringSpec lcs,StringSpec tts) {
         super(src);
-        this.encSpec = encSpec;
+        this.cblks = cblks;
+        this.pss = pss;
+        this.bms = bms;
+        this.mqrs = mqrs;
+        this.rts = rts;
+        this.css = css;
+        this.sss = sss;
+        this.lcs = lcs;
+        this.tts = tts;
         int maxCBlkWidth, maxCBlkHeight;
         int i;      // Counter
         int nt;     // The number of threads
         int tsl;    // Size for thread structures
 
         // Get the biggest width/height for the code-blocks
-        maxCBlkWidth = encSpec.cblks.getMaxCBlkWidth();
-        maxCBlkHeight = encSpec.cblks.getMaxCBlkHeight();
+        maxCBlkWidth = cblks.getMaxCBlkWidth();
+        maxCBlkHeight = cblks.getMaxCBlkHeight();
 
         // Get the number of threads to use, or default to one
         try {
@@ -919,8 +968,7 @@ public class StdEntropyCoder extends EntropyCoder
 	    for (i=0; i<nt; i++) {
 		idleComps.push(new StdEntropyCoder.Compressor(i));
 	    }
-        }
-        else {
+        } else {
             tsl = 1;
             tPool = null;
 	    idleComps = null;
@@ -947,26 +995,19 @@ public class StdEntropyCoder extends EntropyCoder
         precinctPartition = new boolean [src.getNumComps()][src.getNumTiles()];
         
         // Create the subband description for each component and each tile
-        int numComp, numTileX, numTileY;
         Subband sb = null;
         Coord numTiles = null;
+        int nc = getNumComps();
         numTiles = src.getNumTiles(numTiles);
-        initTileComp(encSpec.nTiles,encSpec.nComp);
+        initTileComp(getNumTiles(),nc);
         
-        for ( numComp=0 ; numComp<src.getNumComps() ; numComp++ ) {
-            for ( numTileY=0 ; numTileY<numTiles.y ; numTileY++ ) {
-                for ( numTileX=0 ; numTileX<numTiles.x ; numTileX++ ) { 
-                    // forces the creation of the subband tree for the tile
-                    // (numTileX,numTileY)
-                    setTile(numTileX, numTileY);
-                    sb = getSubbandTree(tIdx,numComp);
-                    // initialise the code-block dimension for each resolution
-                    precinctPartition[numComp][tIdx] = false;
-                    initCBlkDim(numComp, sb);
+        for (int c=0; c<nc; c++) {
+            for (int tY=0; tY<numTiles.y; tY++) {
+                for (int tX=0; tX<numTiles.x; tX++) { 
+                    precinctPartition[c][tIdx] = false;
                 }
             }
         }
-        setTile(0,0);
     }
 
     /**
@@ -990,8 +1031,7 @@ public class StdEntropyCoder extends EntropyCoder
                 }
                 FacilityManager.getMsgLogger().
                     printmsg(MsgLogger.INFO,sb.toString());
-            }
-            else { // Multithreaded implementation
+            } else { // Multithreaded implementation
                 Compressor compr;
                 MsgLogger msglog = FacilityManager.getMsgLogger();
 
@@ -1027,23 +1067,6 @@ public class StdEntropyCoder extends EntropyCoder
     }
 
     /**
-     * Returns the number of code-blocks in a subband, along the
-     * horizontal and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandAn sb,Coord co) {
-        return src.getNumCodeBlocks(sb,co);
-    }
-
-    /**
      * Returns the code-block width for the specified tile and component.
      *
      * @param t The tile index
@@ -1053,7 +1076,7 @@ public class StdEntropyCoder extends EntropyCoder
      * @return The code-block width for the specified tile and component
      * */
     public int getCBlkWidth(int t, int c) {
-        return encSpec.cblks.getCBlkWidth(ModuleSpec.SPEC_TILE_COMP, t, c);
+        return cblks.getCBlkWidth(ModuleSpec.SPEC_TILE_COMP,t,c);
     }
 
     /**
@@ -1065,8 +1088,8 @@ public class StdEntropyCoder extends EntropyCoder
      *
      * @return The code-block height for the specified tile and component.
      * */
-    public int getCBlkHeight(int t, int c) {
-        return encSpec.cblks.getCBlkHeight(ModuleSpec.SPEC_TILE_COMP, t, c);
+    public int getCBlkHeight(int t,int c) {
+        return cblks.getCBlkHeight(ModuleSpec.SPEC_TILE_COMP,t,c);
     }
 
     /**
@@ -1078,13 +1101,13 @@ public class StdEntropyCoder extends EntropyCoder
      * the code-blocks have been returned for the current tile calls to this
      * method will return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
-     * any problems after being returned.
+     * any problems after being returned.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -1114,9 +1137,7 @@ public class StdEntropyCoder extends EntropyCoder
                 boutT[0] = new BitToByteOutput(outT[0]);
             }
             // Initialize output code-block
-            if (ccb == null) {
-                ccb = new CBlkRateDistStats();
-            }
+            if (ccb == null) { ccb = new CBlkRateDistStats(); }
             // Compress code-block
             compressCodeBlock(c,ccb,srcblkT[0],mqT[0],boutT[0],outT[0],
                               stateT[0],distbufT[0],ratebufT[0],
@@ -1126,8 +1147,7 @@ public class StdEntropyCoder extends EntropyCoder
             if (DO_TIMING) time[c] += System.currentTimeMillis()-stime;
             // Return result
             return ccb;
-        }
-        else { // Use multiple threaded implementation
+        } else { // Use multiple threaded implementation
             int cIdx;           // Compressor idx
             Compressor compr;   // Compressor
 
@@ -1158,8 +1178,7 @@ public class StdEntropyCoder extends EntropyCoder
                     ccb = null;
                     // Send compressor to execution in thread pool
 		    tPool.runTarget(compr,completedComps[c]);
-                }
-                else {
+                } else {
                     // We finished with all the code-blocks in the current
                     // tile component
                     idleComps.push(compr);
@@ -1195,8 +1214,7 @@ public class StdEntropyCoder extends EntropyCoder
                     if (DO_TIMING) time[c] += System.currentTimeMillis()-stime;
                     return compr.ccb;
                 }
-            }
-            else {
+            } else {
                 // Check targets error condition
                 tPool.checkTargetErrors();
                 // Printing timing info if necessary
@@ -1209,33 +1227,32 @@ public class StdEntropyCoder extends EntropyCoder
 
     /**
      * Changes the current tile, given the new indexes. An
-     * IllegalArgumentException is thrown if the indexes do not
-     * correspond to a valid tile.
+     * IllegalArgumentException is thrown if the indexes do not correspond to
+     * a valid tile.
      *
-     * <P>This default implementation just changes the tile in the
-     * source.
+     * <p>This default implementation just changes the tile in the source.</p>
      *
      * @param x The horizontal index of the tile.
      *
      * @param y The vertical index of the new tile.
      * */
     public void setTile(int x, int y) {
-        // Reset the tilespecific variables
+        super.setTile(x,y);
+        // Reset the tile specific variables
         if (finishedTileComponent != null) {
             for (int c=src.getNumComps()-1; c>=0; c--) {
                 finishedTileComponent[c] = false;
             }
         }
-        super.setTile(x,y);
     }
 
     /**
-     * Advances to the next tile, in standard scan-line order (by rows
-     * then columns). An NoNextElementException is thrown if the
-     * current tile is the last one (i.e. there is no next tile).
+     * Advances to the next tile, in standard scan-line order (by rows then
+     * columns). An NoNextElementException is thrown if the current tile is
+     * the last one (i.e. there is no next tile).
      *
-     * <P>This default implementation just advances to the next tile
-     * in the source.
+     * <p>This default implementation just advances to the next tile in the
+     * source.</p>
      * */
     public void nextTile() {
         // Reset the tilespecific variables
@@ -1319,9 +1336,8 @@ public class StdEntropyCoder extends EntropyCoder
         double totdist;// The total cumulative distortion decrease
         int ltpidx;    // The index of the last pass which is terminated
 
-
         // Check error-resilient termination
-        if ((options & OPT_ER_TERM) != 0 && tType != MQCoder.TERM_PRED_ER) {
+        if ((options & OPT_PRED_TERM)!=0 && tType!=MQCoder.TERM_PRED_ER) {
             throw
                 new IllegalArgumentException("Embedded error-resilient info "+
                                              "in MQ termination option "+
@@ -1334,9 +1350,9 @@ public class StdEntropyCoder extends EntropyCoder
         mq.setTermType(tType);
 
         lmb = 30-srcblk.magbits+1;
-        // If there are are more bit-planes to code than the implementation
-        // bitdepth set lmb to 0
-        lmb = (lmb < 0) ? 0:lmb;
+        // If there are more bit-planes to code than the implementation
+        // bit-depth set lmb to 0
+        lmb = (lmb<0) ? 0 : lmb;
 
         // Reset state
         ArrayUtil.intArraySet(state,0);
@@ -1357,7 +1373,7 @@ public class StdEntropyCoder extends EntropyCoder
         }
 
         // Choose correct ZC lookup table for global orientation
-        switch (srcblk.sb.gOrient) {
+        switch (srcblk.sb.orientation) {
         case Subband.WT_ORIENT_HL:
             zc_lut = ZC_LUT_HL;
             break;
@@ -1381,16 +1397,17 @@ public class StdEntropyCoder extends EntropyCoder
         totdist = 0f;
         npass = 0;
         ltpidx = -1;
+        
         // First significant bit-plane has only the pass pass
-        if (curbp >= lmb) {
+        if (curbp>=lmb) {
             // Do we need the "lossless" 'fs' table ?
-            if (rev && curbp == lmb) {
+            if (rev && curbp==lmb) {
                 fs = FM_LOSSLESS;
             }
             // We terminate if regular termination, last bit-plane, or next
             // bit-plane is "raw".
-            istermbuf[npass] = (options & OPT_REG_TERM) != 0 || curbp == lmb ||
-                ((options & OPT_BYPASS) != 0 &&
+            istermbuf[npass] = (options & OPT_TERM_PASS)!=0 || 
+                curbp==lmb || ((options & OPT_BYPASS)!=0 &&
                  (31-NUM_NON_BYPASS_MS_BP-skipbp)>=curbp);
             totdist += cleanuppass(srcblk,mq,istermbuf[npass],curbp,state,
                                    fs,zc_lut,symbuf,ctxtbuf,ratebuf,
@@ -1402,24 +1419,24 @@ public class StdEntropyCoder extends EntropyCoder
             curbp--;
         }
         // Other bit-planes have all passes
-        while (curbp >= lmb) {
+        while (curbp>=lmb) {
             // Do we need the "lossless" 'fs' and 'fm' tables ?
-            if (rev && curbp == lmb) {
+            if (rev && curbp==lmb) {
                 fs = FS_LOSSLESS;
                 fm = FM_LOSSLESS;
             }
 
             // Do the significance propagation pass
             // We terminate if regular termination only
-            istermbuf[npass] = (options & OPT_REG_TERM) != 0;
-            if ((options & OPT_BYPASS) == 0 ||
+            istermbuf[npass] = (options & OPT_TERM_PASS) != 0;
+            if ((options & OPT_BYPASS)==0 ||
                 (31-NUM_NON_BYPASS_MS_BP-skipbp<=curbp)) { // No bypass coding
                 totdist += sigProgPass(srcblk,mq,istermbuf[npass],curbp,
                                        state,fs,zc_lut,
                                        symbuf,ctxtbuf,ratebuf,
                                        npass,ltpidx,options)*msew;
-            }
-            else { // Bypass ("raw") coding
+            } else { // Bypass ("raw") coding
+                bout.setPredTerm((options & OPT_PRED_TERM)!=0);
                 totdist += rawSigProgPass(srcblk,bout,istermbuf[npass],curbp,
                                           state,fs,ratebuf,npass,ltpidx,
                                           options)*msew;
@@ -1430,7 +1447,7 @@ public class StdEntropyCoder extends EntropyCoder
                 
             // Do the magnitude refinement pass
             // We terminate if regular termination or bypass ("raw") coding
-            istermbuf[npass] = (options & OPT_REG_TERM) != 0 ||
+            istermbuf[npass] = (options & OPT_TERM_PASS) != 0 ||
                 ((options & OPT_BYPASS) != 0 &&
                  (31-NUM_NON_BYPASS_MS_BP-skipbp>curbp));
             if ((options & OPT_BYPASS) == 0 ||
@@ -1438,8 +1455,8 @@ public class StdEntropyCoder extends EntropyCoder
                 totdist += magRefPass(srcblk,mq,istermbuf[npass],curbp,state,
                                       fm,symbuf,ctxtbuf,ratebuf,
                                       npass,ltpidx,options)*msew;
-            }
-            else { // Bypass ("raw") coding
+            } else { // Bypass ("raw") coding
+                bout.setPredTerm((options & OPT_PRED_TERM)!=0);
                 totdist += rawMagRefPass(srcblk,bout,istermbuf[npass],curbp,
                                          state,fm,ratebuf,
                                          npass,ltpidx,options)*msew;
@@ -1451,13 +1468,14 @@ public class StdEntropyCoder extends EntropyCoder
             // Do the clenup pass
             // We terminate if regular termination, last bit-plane, or next
             // bit-plane is "raw".
-            istermbuf[npass] = (options & OPT_REG_TERM) != 0 || curbp == lmb ||
-                ((options & OPT_BYPASS) != 0 &&
+            istermbuf[npass] = (options & OPT_TERM_PASS) != 0 || 
+                curbp == lmb || ((options & OPT_BYPASS) != 0 &&
                  (31-NUM_NON_BYPASS_MS_BP-skipbp)>=curbp);
             totdist += cleanuppass(srcblk,mq,istermbuf[npass],curbp,state,
                                    fs,zc_lut,symbuf,ctxtbuf,ratebuf,
                                    npass,ltpidx,options)*msew;
             distbuf[npass] = totdist;
+
             if (istermbuf[npass]) ltpidx = npass;
             npass++;
 
@@ -1471,14 +1489,13 @@ public class StdEntropyCoder extends EntropyCoder
         out.toByteArray(0,out.size(),ccb.data,0);
         checkEndOfPassFF(ccb.data,ratebuf,istermbuf,npass);
         ccb.selectConvexHull(ratebuf,distbuf,
-                             (options&(OPT_BYPASS|OPT_REG_TERM))!=0?istermbuf:
+                             (options&(OPT_BYPASS|OPT_TERM_PASS))!=0?istermbuf:
                              null,npass,rev);
 
         // Reset MQ coder and bit output for next code-block
         mq.reset();
         if (bout != null) bout.reset();
 
-        // Done
     }
 
     /**
@@ -1502,7 +1519,7 @@ public class StdEntropyCoder extends EntropyCoder
         int msbp;
         int l;
 
-        data = (int[]) cblk.getData();
+        data = (int[])cblk.getData();
         w = cblk.w;
         h = cblk.h;
 
@@ -1510,15 +1527,15 @@ public class StdEntropyCoder extends EntropyCoder
         maxmag = 0;
         // Consider only magnitude bits that are in non-fractional bit-planes.
         mask = 0x7FFFFFFF&(~((1<<lmb)-1));
-        for (l=h-1, k=cblk.offset; l>=0; l--) {
-            for (kmax = k+w; k<kmax; k++) {
+        for(l=h-1, k=cblk.offset; l>=0; l--) {
+            for(kmax = k+w; k<kmax; k++) {
                 mag = data[k]&mask;
                 if (mag > maxmag) maxmag = mag;
             }
             k += cblk.scanw-w;
         }
-        // Now calculate the number of all zero most significant bit-planes for 
-        // the maximum magnitude.
+        // Now calculate the number of all zero most significant
+        // bit-planes for the maximum magnitude.
         msbp = 30;
         do {
             if (((1<<msbp)&maxmag)!=0) break;
@@ -1579,7 +1596,7 @@ public class StdEntropyCoder extends EntropyCoder
                                    int options) {
         int j,sj;        // The state index for line and stripe
         int k,sk;        // The data index for line and stripe
-        int nsym;        // Symbol counter for symbol and context buffers
+        int nsym = 0;        // Symbol counter for symbol and context buffers
         int dscanw;      // The data scan-width
         int sscanw;      // The state and packed state scan-width
         int jstep;       // Stripe to stripe step for 'sj'
@@ -1627,12 +1644,12 @@ public class StdEntropyCoder extends EntropyCoder
         // Code stripe by stripe
         sk = srcblk.offset;
         sj = sscanw+1;
-        for (s = nstripes-1; s >= 0; s--, sk+=kstep, sj+=jstep) {
-            sheight = (s != 0) ? STRIPE_HEIGHT :
+        for (s=nstripes-1; s>=0; s--,sk+=kstep,sj+=jstep) {
+            sheight = (s!=0) ? STRIPE_HEIGHT : 
                 srcblk.h-(nstripes-1)*STRIPE_HEIGHT;
             stopsk = sk+srcblk.w;
             // Scan by set of 1 stripe column at a time
-            for (nsym = 0; sk < stopsk; sk++, sj++) {
+            for (nsym=0; sk<stopsk; sk++,sj++) {
                 // Do half top of column
                 j = sj;
                 csj = state[j];
@@ -1684,8 +1701,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (!causal) {
@@ -1704,8 +1720,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1747,8 +1762,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1763,8 +1777,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1812,8 +1825,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -1828,8 +1840,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1871,8 +1882,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1887,8 +1897,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1898,7 +1907,6 @@ public class StdEntropyCoder extends EntropyCoder
             // Code all buffered symbols
             mq.codeSymbols(symbuf,ctxtbuf,nsym);
         }
-
         // Reset the MQ context states if we need to
         if ((options & OPT_RESET_MQ) != 0) {
             mq.resetCtxts();
@@ -1907,8 +1915,7 @@ public class StdEntropyCoder extends EntropyCoder
         // Terminate the MQ bit stream if we need to
         if (doterm) {
             ratebuf[pidx] = mq.terminate(); // Termination has special length
-        }
-        else { // Use normal length calculation
+        } else { // Use normal length calculation
             ratebuf[pidx] = mq.getNumCodedBytes();
         }
         // Add length of previous segments, if any
@@ -1931,10 +1938,10 @@ public class StdEntropyCoder extends EntropyCoder
      * neighbors already significant, using the ZC and SC primitives as
      * needed. It toggles the "visited" state bit to 1 for all those samples.
      *
-     * <P>In this method, the arithmetic coder is bypassed, and raw bits are
+     * <p>In this method, the arithmetic coder is bypassed, and raw bits are
      * directly written in the bit stream (useful when distribution are close
      * to uniform, for intance, at high bit-rates and at lossless
-     * compression).
+     * compression).</p>
      *
      * @param srcblk The code-block data to code
      *
@@ -1977,6 +1984,7 @@ public class StdEntropyCoder extends EntropyCoder
         int stopsk;      // The loop limit on the variable sk
         int csj;         // Local copy (i.e. cached) of 'state[j]'
         int mask;        // The mask for the current bit-plane
+        int nsym = 0;    // Number of symbol
         int sym;         // The symbol to code
         int data[];      // The data buffer
         int dist;        // The distortion reduction for this pass
@@ -2036,11 +2044,13 @@ public class StdEntropyCoder extends EntropyCoder
                         // Apply zero coding
                         sym = (data[k]&mask)>>>bp;
                         bout.writeBit(sym);
+                        nsym++;
                         if (sym != 0) {
                             // Became significant
                             // Apply sign coding
                             sym = data[k]>>>31;
                             bout.writeBit(sym);
+                            nsym++;
                             // Update state information (significant bit,
                             // visited bit, neighbor significant bit of
                             // neighbors, non zero context of neighbors, sign
@@ -2072,8 +2082,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (!causal) {
@@ -2092,8 +2101,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -2108,11 +2116,13 @@ public class StdEntropyCoder extends EntropyCoder
                         // Apply zero coding
                         sym = (data[k]&mask)>>>bp;
                         bout.writeBit(sym);
+                        nsym++;
                         if (sym != 0) {
                             // Became significant
                             // Apply sign coding
                             sym = data[k]>>>31;
                             bout.writeBit(sym);
+                            nsym++;
                             // Update state information (significant bit,
                             // visited bit, neighbor significant bit of
                             // neighbors, non zero context of neighbors, sign
@@ -2134,8 +2144,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2150,8 +2159,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -2171,11 +2179,13 @@ public class StdEntropyCoder extends EntropyCoder
                         STATE_NZ_CTXT_R1) {
                         sym = (data[k]&mask)>>>bp;
                         bout.writeBit(sym);
+                        nsym++;
                         if (sym != 0) {
                             // Became significant
                             // Apply sign coding
                             sym = data[k]>>>31;
                             bout.writeBit(sym);
+                            nsym++;
                             // Update state information (significant bit,
                             // visited bit, neighbor significant bit of
                             // neighbors, non zero context of neighbors, sign
@@ -2197,8 +2207,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -2213,8 +2222,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -2222,17 +2230,19 @@ public class StdEntropyCoder extends EntropyCoder
                         state[j] = csj;
                         continue;
                     }
-                     if ((csj & (STATE_SIG_R2|STATE_NZ_CTXT_R2)) ==
+                    if ((csj & (STATE_SIG_R2|STATE_NZ_CTXT_R2)) ==
                         STATE_NZ_CTXT_R2) {
                         k += dscanw;
                         // Apply zero coding
                         sym = (data[k]&mask)>>>bp;
                         bout.writeBit(sym);
+                        nsym++;
                         if (sym != 0) {
                             // Became significant
                             // Apply sign coding
                             sym = data[k]>>>31;
                             bout.writeBit(sym);
+                            nsym++;
                             // Update state information (significant bit,
                             // visited bit, neighbor significant bit of
                             // neighbors, non zero context of neighbors, sign
@@ -2254,8 +2264,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2270,8 +2279,7 @@ public class StdEntropyCoder extends EntropyCoder
                             // Update distortion
                             normval = (data[k] >> downshift) << upshift;
                             dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -2281,8 +2289,11 @@ public class StdEntropyCoder extends EntropyCoder
         }
 
         // Get length and terminate if needed
-        ratebuf[pidx] = bout.length();
-        if (doterm) bout.terminate();
+        if (doterm) {
+            ratebuf[pidx] = bout.terminate();
+        } else {
+            ratebuf[pidx] = bout.length();
+        }
         // Add length of previous segments, if any
         if (ltpidx >=0) {
             ratebuf[pidx] += ratebuf[ltpidx];
@@ -2331,13 +2342,14 @@ public class StdEntropyCoder extends EntropyCoder
      * @return The decrease in distortion for this pass, in the fixed-point
      * normalized representation of the 'FS_LOSSY' and 'FS_LOSSLESS' tables.
      * */
-    static private int magRefPass(CBlkWTData srcblk, MQCoder mq, boolean doterm,
+    static private int magRefPass(CBlkWTData srcblk, MQCoder mq, 
+                                  boolean doterm,
                                   int bp, int state[], int fm[], int symbuf[],
                                   int ctxtbuf[], int ratebuf[], int pidx,
                                   int ltpidx, int options) {
         int j,sj;        // The state index for line and stripe
         int k,sk;        // The data index for line and stripe
-        int nsym;        // Symbol counter for symbol and context buffers
+        int nsym = 0;        // Symbol counter for symbol and context buffers
         int dscanw;      // The data scan-width
         int sscanw;      // The state scan-width
         int jstep;       // Stripe to stripe step for 'sj'
@@ -2469,8 +2481,7 @@ public class StdEntropyCoder extends EntropyCoder
         // Terminate the MQ bit stream if we need to
         if (doterm) {
             ratebuf[pidx] = mq.terminate(); // Termination has special length
-        }
-        else { // Use normal length calculation
+        } else { // Use normal length calculation
             ratebuf[pidx] = mq.getNumCodedBytes();
         }
         // Add length of previous segments, if any
@@ -2493,12 +2504,12 @@ public class StdEntropyCoder extends EntropyCoder
      * turned on, using the MR primitive. The "visited" state bit is not
      * mofified for any samples.
      *
-     * <P>In this method, the arithmetic coder is bypassed, and raw bits are
+     * <p>In this method, the arithmetic coder is bypassed, and raw bits are
      * directly written in the bit stream (useful when distribution are close
      * to uniform, for intance, at high bit-rates and at lossless
      * compression). The 'STATE_PREV_MR_R1' and 'STATE_PREV_MR_R2' bits are
      * not set because they are used only when the arithmetic coder is not
-     * bypassed.
+     * bypassed.</p>
      *
      * @param srcblk The code-block data to code
      *
@@ -2550,6 +2561,7 @@ public class StdEntropyCoder extends EntropyCoder
         int s;           // The stripe index
         int nstripes;    // The number of stripes in the code-block
         int sheight;     // Height of the current stripe
+        int nsym = 0;
 
         // Initialize local variables
         dscanw = srcblk.scanw;
@@ -2587,6 +2599,7 @@ public class StdEntropyCoder extends EntropyCoder
                         STATE_SIG_R1) {
                         // Code bit "raw"
                         bout.writeBit((data[k]&mask)>>>bp);
+                        nsym++;
                         // No need to set STATE_PREV_MR_R1 since all magnitude 
                         // refinement passes to follow are "raw"
                         // Update distortion
@@ -2600,6 +2613,7 @@ public class StdEntropyCoder extends EntropyCoder
                         k += dscanw;
                         // Code bit "raw"
                         bout.writeBit((data[k]&mask)>>>bp);
+                        nsym++;
                         // No need to set STATE_PREV_MR_R2 since all magnitude 
                         // refinement passes to follow are "raw"
                         // Update distortion
@@ -2620,6 +2634,7 @@ public class StdEntropyCoder extends EntropyCoder
                         STATE_SIG_R1) {
                         // Code bit "raw"
                         bout.writeBit((data[k]&mask)>>>bp);
+                        nsym++;
                         // No need to set STATE_PREV_MR_R1 since all magnitude 
                         // refinement passes to follow are "raw"
                         // Update distortion
@@ -2633,6 +2648,7 @@ public class StdEntropyCoder extends EntropyCoder
                         k += dscanw;
                         // Code bit "raw"
                         bout.writeBit((data[k]&mask)>>>bp);
+                        nsym++;
                         // No need to set STATE_PREV_MR_R2 since all magnitude 
                         // refinement passes to follow are "raw"
                         // Update distortion
@@ -2644,8 +2660,12 @@ public class StdEntropyCoder extends EntropyCoder
         }
 
         // Get length and terminate if needed
-        ratebuf[pidx] = bout.length();
-        if (doterm) bout.terminate();
+        if (doterm) {
+            ratebuf[pidx] = bout.terminate();
+        } else {
+            ratebuf[pidx] = bout.length();
+        }
+
         // Add length of previous segments, if any
         if (ltpidx >=0) {
             ratebuf[pidx] += ratebuf[ltpidx];
@@ -2708,7 +2728,7 @@ public class StdEntropyCoder extends EntropyCoder
         // should be reviewed for optimization opportunities.
         int j,sj;        // The state index for line and stripe
         int k,sk;        // The data index for line and stripe
-        int nsym;        // Symbol counter for symbol and context buffers
+        int nsym = 0;        // Symbol counter for symbol and context buffers
         int dscanw;      // The data scan-width
         int sscanw;      // The state scan-width
         int jstep;       // Stripe to stripe step for 'sj'
@@ -2732,7 +2752,7 @@ public class StdEntropyCoder extends EntropyCoder
         int sheight;     // Height of the current stripe
         int off_ul,off_ur,off_dr,off_dl; // offsets
 
-        // Initialize local variables
+       // Initialize local variables
         dscanw = srcblk.scanw;
         sscanw = srcblk.w+2;
         jstep = sscanw*STRIPE_HEIGHT/2-srcblk.w;
@@ -2757,40 +2777,36 @@ public class StdEntropyCoder extends EntropyCoder
         // Code stripe by stripe
         sk = srcblk.offset;
         sj = sscanw+1;
-        for (s = nstripes-1; s >= 0; s--, sk+=kstep, sj+=jstep) {
-            sheight = (s != 0) ? STRIPE_HEIGHT :
+        for (s=nstripes-1; s>=0; s--,sk+=kstep,sj+=jstep) {
+            sheight = (s!=0) ? STRIPE_HEIGHT :
                 srcblk.h-(nstripes-1)*STRIPE_HEIGHT;
             stopsk = sk+srcblk.w;
             // Scan by set of 1 stripe column at a time
-            for (nsym = 0; sk < stopsk; sk++, sj++) {
+            for (nsym=0; sk<stopsk; sk++,sj++) {
                 // Start column
                 j = sj;
                 csj = state[j];
             top_half:
                 {
                     // Check for RLC: if all samples are not significant, not
-                    // visited and do not have a non-zero context, and column is
-                    // full height, we do RLC.
-                    if (csj == 0 && state[j+sscanw] == 0 &&
-                        sheight == STRIPE_HEIGHT) {
+                    // visited and do not have a non-zero context, and column
+                    // is full height, we do RLC.
+                    if (csj==0 && state[j+sscanw]==0 && 
+                        sheight==STRIPE_HEIGHT) {
                         k = sk;
                         if ((data[k]&mask) != 0) {
                             rlclen = 0;
-                        }
-                        else if ((data[k+=dscanw]&mask) != 0) {
+                        } else if ((data[k+=dscanw]&mask) != 0) {
                             rlclen = 1;
-                        }
-                        else if ((data[k+=dscanw]&mask) != 0) {
+                        } else if ((data[k+=dscanw]&mask) != 0) {
                             rlclen = 2;
                             j += sscanw;
                             csj = state[j];
-                        }
-                        else if ((data[k+=dscanw]&mask) != 0) {
+                        } else if ((data[k+=dscanw]&mask) != 0) {
                             rlclen = 3;
                             j += sscanw;
                             csj = state[j];
-                        }
-                        else {
+                        } else {
                             // Code insignificant RLC
                             symbuf[nsym] = 0;
                             ctxtbuf[nsym++] = RLC_CTXT;
@@ -2849,8 +2865,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (rlclen != 0 || !causal) {
@@ -2874,16 +2889,15 @@ public class StdEntropyCoder extends EntropyCoder
                             }
                             // Otherwise sample that became significant is in
                             // top half of column => continue on top half
-                        }
-                        else {
+                        } else {
                             // Sample that became significant is second row of
                             // its column half
                             ctxt = SC_LUT[(csj>>>SC_SHIFT_R2)&SC_MASK];
                             symbuf[nsym] = sym ^ (ctxt>>>SC_SPRED_SHIFT);
                             ctxtbuf[nsym++] = ctxt & SC_LUT_MASK;
                             // Update state information (significant bit,
-                            // neighbor significant bit of neighbors, 
-                            // non zero context of neighbors, sign of neighbors)
+                            // neighbor significant bit of neighbors, non zero
+                            // context of neighbors, sign of neighbors)
                             state[j+off_dl] |= STATE_NZ_CTXT_R1|STATE_D_UR_R1;
                             state[j+off_dr] |= STATE_NZ_CTXT_R1|STATE_D_UL_R1;
                             // Update sign state information of neighbors
@@ -2900,8 +2914,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_NZ_CTXT_R1|
                                     STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2977,8 +2990,7 @@ public class StdEntropyCoder extends EntropyCoder
                                         STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                         STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                         STATE_D_UR_R2;
-                                }
-                                else {
+                                } else {
                                     csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                         STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                     if (!causal) {
@@ -2996,7 +3008,8 @@ public class StdEntropyCoder extends EntropyCoder
                                 }
                                 // Update distortion
                                 normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
+                                dist += 
+                                    fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
                             }
                         }
                         if (sheight < 2) {
@@ -3039,8 +3052,7 @@ public class StdEntropyCoder extends EntropyCoder
                                         STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                         STATE_D_DR_R1|
                                         STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                                }
-                                else {
+                                } else {
                                     csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                         STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                     state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -3054,7 +3066,8 @@ public class StdEntropyCoder extends EntropyCoder
                                 }
                                 // Update distortion
                                 normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
+                                dist += 
+                                    fs[normval & ((1<<(MSE_LKP_BITS-1))-1)];
                             }
                         }
                     }
@@ -3104,8 +3117,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -3162,8 +3174,7 @@ public class StdEntropyCoder extends EntropyCoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -3188,9 +3199,9 @@ public class StdEntropyCoder extends EntropyCoder
             if (nsym > 0) mq.codeSymbols(symbuf,ctxtbuf,nsym);
         }
 
-        // Insert a segment marker if we need to
-        if ((options & OPT_SEG_MARKERS) != 0) {
-            mq.codeSymbols(SEG_MARKERS,SEG_MARK_CTXTS,SEG_MARKERS.length);
+         // Insert a segment marker if we need to
+        if ((options & OPT_SEG_SYMBOLS) != 0) {
+            mq.codeSymbols(SEG_SYMBOLS,SEG_SYMB_CTXTS,SEG_SYMBOLS.length);
         }
 
         // Reset the MQ context states if we need to
@@ -3201,19 +3212,17 @@ public class StdEntropyCoder extends EntropyCoder
         // Terminate the MQ bit stream if we need to
         if (doterm) {
             ratebuf[pidx] = mq.terminate(); // Termination has special length
-        }
-        else { // Use normal length calculation
+        } else { // Use normal length calculation
             ratebuf[pidx] = mq.getNumCodedBytes();
         }
         // Add length of previous segments, if any
-        if (ltpidx >=0) {
+        if (ltpidx>=0) {
             ratebuf[pidx] += ratebuf[ltpidx];
         }
         // Finish length calculation if needed
         if (doterm) {
             mq.finishLengthCalculation(ratebuf,pidx);
         }
-
         // Return the reduction in distortion
         return dist;
     }
@@ -3222,22 +3231,22 @@ public class StdEntropyCoder extends EntropyCoder
      * Ensures that at the end of a non-terminated coding pass there is not a
      * 0xFF byte, modifying the stored rates if necessary.
      *
-     * <P>Due to error resiliance reasons, a coding pass should never have its 
+     * <p>Due to error resiliance reasons, a coding pass should never have its
      * last byte be a 0xFF, since that can lead to the emulation of a resync
      * marker. This method checks if that is the case, and reduces the rate
-     * for a given pass if necessary. The ommitted 0xFF will be synthetized by 
+     * for a given pass if necessary. The ommitted 0xFF will be synthetized by
      * the decoder if necessary, as required by JPEG 2000. This method should
-     * only be called once that the entire code-block is coded.
+     * only be called once that the entire code-block is coded.</p>
      *
-     * <P>Passes that are terminated are not checked for the 0xFF byte, since
+     * <p>Passes that are terminated are not checked for the 0xFF byte, since
      * it is assumed that the termination procedure does not output any
-     * trailing 0xFF. Checking the terminated segments would involve much more 
-     * than just modifying the stored rates.
+     * trailing 0xFF. Checking the terminated segments would involve much more
+     * than just modifying the stored rates.</p>
      *
-     * <P>NOTE: It is assumed by this method that the coded data does not
+     * <p>NOTE: It is assumed by this method that the coded data does not
      * contain consecutive 0xFF bytes, as is the case with the MQ and
      * 'arithemetic coding bypass' bit stuffing policy. However, the
-     * termination policies used should also respect this requirement.
+     * termination policies used should also respect this requirement.</p>
      *
      * @param data The coded data for the code-block
      *
@@ -3266,8 +3275,7 @@ public class StdEntropyCoder extends EntropyCoder
                     rates[n]--;
                 }
             }
-        }
-        else {
+        } else {
             for (n--; n>=0; n--) {
                 if (!isterm[n]) {
                     dp = rates[n]-1;
@@ -3279,70 +3287,9 @@ public class StdEntropyCoder extends EntropyCoder
         }
     }
     
-    /** 
-     * Initialises the subbandtree such that the nomCBlkW and nomCBlkH fields
-     * are set i.e. code-blocks dimensions for each resolution level.
-     *
-     * @param c the component
-     *
-     * @param sb the subband tree to be initialised.
-     * */
-    private void initCBlkDim(int c, Subband sb) {
-        int lvl = sb.level-1;
-        Vector[] v;
-        int ppx, ppy;
-        int ppxExp, ppyExp, cbwExp, cbhExp;
-        int cbw, cbh;
-
-        cbw = getCBlkWidth(tIdx, c);
-        cbh = getCBlkHeight(tIdx, c);
-
-        if ( !sb.isNode ) {
-            ppx = encSpec.pss.getPPX(tIdx, c, sb.resLvl);
-            ppy = encSpec.pss.getPPY(tIdx, c, sb.resLvl);
-                
-            if ( ppx != Markers.PRECINCT_PARTITION_DEF_SIZE
-                 || ppy != Markers.PRECINCT_PARTITION_DEF_SIZE ) {
-                precinctPartition[c][tIdx] = true;
-                
-                ppxExp = MathUtil.log2(ppx);
-                ppyExp = MathUtil.log2(ppy);
-                cbwExp = MathUtil.log2(cbw);
-                cbhExp = MathUtil.log2(cbh);
-                
-                // Precinct partition is used
-                switch (sb.resLvl) {
-                    case 0:
-                        sb.nomCBlkW = ( cbwExp<ppxExp ? 
-                            (1<<cbwExp) : (1<<ppxExp) );
-                        sb.nomCBlkH = ( cbhExp<ppyExp ? 
-                            (1<<cbhExp) : (1<<ppyExp) );
-                        break;
-                        
-                    default:
-                        sb.nomCBlkW = ( cbwExp<ppxExp-1 ? 
-                            (1<<cbwExp) : (1<<(ppxExp-1)) );
-                        sb.nomCBlkH = ( cbhExp<ppyExp-1 ? 
-                            (1<<cbhExp) : (1<<(ppyExp-1)) );
-                        break;
-                }
-            }
-            else {
-                sb.nomCBlkW = cbw;
-                sb.nomCBlkH = cbh;
-            }
-        }
-        else {
-            initCBlkDim(c, (Subband)sb.getLL());
-            initCBlkDim(c, (Subband)sb.getHL());
-            initCBlkDim(c, (Subband)sb.getLH());
-            initCBlkDim(c, (Subband)sb.getHH());
-        }
-    }
-
     /**
-     * Load options, length calculation type and termination type for
-     * each tile-component.
+     * Load options, length calculation type and termination type for each
+     * tile-component.
      *
      * @param nt The number of tiles
      *
@@ -3359,77 +3306,67 @@ public class StdEntropyCoder extends EntropyCoder
                 opts[t][c] = 0;
                 
                 // Bypass coding mode ?
-                if( ((String)encSpec.bms.getTileCompVal(t,c)).
-                    equalsIgnoreCase("on")) {
+                if( ((String)bms.getTileCompVal(t,c)).equalsIgnoreCase("on")) {
                     opts[t][c] |= OPT_BYPASS;
                 }
                 // MQ reset after each coding pass ?
-                if( ((String)encSpec.mqrs.getTileCompVal(t,c)).
-                    equalsIgnoreCase("on")) {
+                if(((String)mqrs.getTileCompVal(t,c)).equalsIgnoreCase("on")) {
                     opts[t][c] |= OPT_RESET_MQ;
                 }
                 // MQ termination after each arithmetically coded coding pass ?
-                if(  ((String)encSpec.rts.getTileCompVal(t,c)).
-                     equalsIgnoreCase("on") ) {
-                    opts[t][c] |= OPT_REG_TERM;
+                if(((String)rts.getTileCompVal(t,c)).equalsIgnoreCase("on") ) {
+                    opts[t][c] |= OPT_TERM_PASS;
                 }
                 // Vertically stripe-causal context mode ?
-                if(  ((String)encSpec.css.getTileCompVal(t,c)).
-                     equalsIgnoreCase("on") ) {
+                if(((String)css.getTileCompVal(t,c)).equalsIgnoreCase("on") ) {
                     opts[t][c] |= OPT_VERT_STR_CAUSAL;
                 }
                 // Error resilience segmentation symbol insertion ?
-                if(  ((String)encSpec.sss.getTileCompVal(t,c)).
-                     equalsIgnoreCase("on")) {
-                    opts[t][c] |= OPT_SEG_MARKERS;
+                if(((String)sss.getTileCompVal(t,c)).equalsIgnoreCase("on")) {
+                    opts[t][c] |= OPT_SEG_SYMBOLS;
                 }
                 
                 // Set length calculation type of the MQ coder
-                String lCalcType = (String)encSpec.lcs.getTileCompVal(t,c);
+                String lCalcType = (String)lcs.getTileCompVal(t,c);
                 if(lCalcType.equals("near_opt")){
                     lenCalc[t][c] = MQCoder.LENGTH_NEAR_OPT;
-                }
-                else if(lCalcType.equals("lazy_good")){
+                } else if(lCalcType.equals("lazy_good")){
                     lenCalc[t][c] = MQCoder.LENGTH_LAZY_GOOD;
-                }
-                else if(lCalcType.equals("lazy")){
+                } else if(lCalcType.equals("lazy")){
                     lenCalc[t][c] = MQCoder.LENGTH_LAZY;
-                }
-                else {
+                } else {
                     throw new IllegalArgumentException("Unrecognized or "+
                                                        "unsupported MQ "+
                                                        "length calculation.");
                 }
 
                 // Set termination type of MQ coder
-                String termType = (String)encSpec.tts.getTileCompVal(t,c);
+                String termType = (String)tts.getTileCompVal(t,c);
                 if(termType.equalsIgnoreCase("easy")){
                     tType[t][c] = MQCoder.TERM_EASY;
-                }
-                else if(termType.equalsIgnoreCase("full")){
+                } else if(termType.equalsIgnoreCase("full")){
                     tType[t][c] = MQCoder.TERM_FULL;
-                }
-                else if(termType.equalsIgnoreCase("near_opt")){
+                } else if(termType.equalsIgnoreCase("near_opt")){
                     tType[t][c] = MQCoder.TERM_NEAR_OPT;
-                }
-                else if (termType.equalsIgnoreCase("predict")) {
+                } else if (termType.equalsIgnoreCase("predict")) {
                     tType[t][c] = MQCoder.TERM_PRED_ER;
-                    opts[t][c] |= OPT_ER_TERM;
-                    if ((opts[t][c] & (OPT_REG_TERM|OPT_BYPASS)) == 0) {
+                    opts[t][c] |= OPT_PRED_TERM;
+                    if ((opts[t][c] & (OPT_TERM_PASS|OPT_BYPASS)) == 0) {
                         FacilityManager.getMsgLogger().
                             printmsg(MsgLogger.INFO,"Using error resilient MQ"+
                                      " termination, but terminating only at "+
 				     "the end of code-blocks. The error "+
 				     "protection offered by this option will"+
-				     " be very weak. Specify the 'Creg_term' "+
+				     " be very weak. Specify the "+
+                                     "'Cterminate' "+
                                      "and/or 'Cbypass' option for "+
                                      "increased error resilience.");
                     }
-                }
-                else{
+                } else{
                     throw new IllegalArgumentException("Unrecognized or "+
                                                        "unsupported "+
-                                                       "MQ coder termination.");
+                                                       "MQ coder "+
+                                                       "termination.");
                 }
                 
             } // End loop on components
@@ -3437,8 +3374,8 @@ public class StdEntropyCoder extends EntropyCoder
     }
     
     /**
-     * Returns the precinct partition width for the specified
-     * component, tile and resolution level.
+     * Returns the precinct partition width for the specified component, tile
+     * and resolution level.
      *
      * @param t the tile index
      *
@@ -3446,16 +3383,16 @@ public class StdEntropyCoder extends EntropyCoder
      *
      * @param rl the resolution level
      *
-     * @return The precinct partition width for the specified
-     * component, tile and resolution level
+     * @return The precinct partition width for the specified component, tile
+     * and resolution level
      * */
-    public int getPPX(int t, int c, int rl) {
-        return encSpec.pss.getPPX(t, c, rl);
+    public int getPPX(int t,int c,int rl) {
+        return pss.getPPX(t,c,rl);
     }
     
     /**
-     * Returns the precinct partition height for the specified
-     * component, tile and resolution level.
+     * Returns the precinct partition height for the specified component, tile
+     * and resolution level.
      *
      * @param t the tile index
      *
@@ -3463,23 +3400,23 @@ public class StdEntropyCoder extends EntropyCoder
      *
      * @param rl the resolution level
      *
-     * @return The precinct partition height for the specified
-     * component, tile and resolution level
+     * @return The precinct partition height for the specified component, tile
+     * and resolution level
      * */
-    public int getPPY(int t, int c, int rl) {
-        return encSpec.pss.getPPY(t, c, rl);
+    public int getPPY(int t,int c,int rl) {
+        return pss.getPPY(t,c,rl);
     }
     
     /** 
-     * Returns true if precinct partition is used for the specified
-     * component and tile, returns false otherwise.
+     * Returns true if precinct partition is used for the specified component
+     * and tile, returns false otherwise.
      *
      * @param c The component
      *
      * @param t The tile 
      *
-     * @return True if precinct partition is used for the specified
-     * component and tile, returns false otherwise.
+     * @return True if precinct partition is used for the specified component
+     * and tile, returns false otherwise.
      * */
     public boolean precinctPartitionUsed(int c, int t) {
         return precinctPartition[c][t];

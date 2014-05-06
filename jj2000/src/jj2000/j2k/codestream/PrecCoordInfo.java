@@ -1,13 +1,11 @@
 /*
  * CVS identifier:
  *
- * $Id: PrecCoordInfo.java,v 1.8 2001/02/12 09:32:21 grosbois Exp $
+ * $Id: PrecCoordInfo.java,v 1.9 2001/09/14 09:33:22 grosbois Exp $
  *
  * Class:                   PrecCoordInfo
  *
  * Description:             Used to store the coordinates precincts.
- *
- *
  *
  * COPYRIGHT:
  * 
@@ -60,7 +58,7 @@ public class PrecCoordInfo extends CoordInfo {
      *
      * @param uly Vertical upper left coordinate in the subband
      *
-     * @param w Precint's width
+     * @param w Precinct's width
      *
      * @param h Precinct's height
      *
@@ -68,9 +66,8 @@ public class PrecCoordInfo extends CoordInfo {
      *
      * @param yref The vertical coordinate on the reference grid 
      * */
-    public PrecCoordInfo(int ulx, int uly, int w, int h, 
-                        int xref, int yref) {
-        super(ulx, uly, w, h);
+    public PrecCoordInfo(int ulx,int uly,int w,int h,int xref,int yref) {
+        super(ulx,uly,w,h);
         this.xref = xref;
         this.yref = yref;
     }

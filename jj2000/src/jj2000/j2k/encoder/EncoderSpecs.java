@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: EncoderSpecs.java,v 1.32 2000/12/22 12:48:26 grosbois Exp $
+ * $Id: EncoderSpecs.java,v 1.35 2001/05/08 16:10:40 grosbois Exp $
  *
  * Class:                   EncoderSpecs
  *
@@ -119,7 +119,7 @@ public class EncoderSpecs{
     public CBlkSizeSpec cblks;
 
     /** Progression/progression changes specification */
-    public ProgressionSpec ps;
+    public ProgressionSpec pocs;
 
     /** The number of tiles within the image */
     public int nTiles;
@@ -139,8 +139,7 @@ public class EncoderSpecs{
      *
      * @param pl The ParameterList instance
      * */
-    public EncoderSpecs(int nt, int nc, BlkImgDataSrc imgsrc, 
-                       ParameterList pl){
+    public EncoderSpecs(int nt,int nc,BlkImgDataSrc imgsrc,ParameterList pl) {
         nTiles = nt;
         nComp  = nc;
 
@@ -167,14 +166,14 @@ public class EncoderSpecs{
                              "Clen_calc",strLcs,pl);
         String[] strTerm = {"near_opt","easy","predict","full"};
         tts = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,
-                             "Cterm",strTerm,pl);
+                             "Cterm_type",strTerm,pl);
         String[] strBoolean = {"on","off"};
         sss = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,
                              "Cseg_symbol",strBoolean,pl);
         css = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,
                              "Ccausal",strBoolean,pl);
         rts = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,
-                             "Creg_term",strBoolean,pl);
+                             "Cterminate",strBoolean,pl);
         mqrs = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,
                               "CresetMQ",strBoolean,pl);
         bms = new StringSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP,

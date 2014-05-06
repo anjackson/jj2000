@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: PostCompRateAllocator.java,v 1.50 2001/02/19 11:18:48 grosbois Exp $
+ * $Id: PostCompRateAllocator.java,v 1.53 2001/08/28 09:24:47 grosbois Exp $
  *
  * Class:                   PostCompRateAllocator
  *
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.entropy.encoder;
 
 import jj2000.j2k.codestream.writer.*;
@@ -60,14 +60,13 @@ import java.io.*;
  * 'CodedCBlkDataSrcEnc' which delivers entropy coded blocks with
  * rate-distortion statistics.
  *
- * <P>The post compression rate allocator implementation should create the
+ * <p>The post compression rate allocator implementation should create the
  * layers, according to a rate allocation policy, and send the packets to a
  * CodestreamWriter. Since the rate allocator sends the packets to the bit
  * stream then it should output the packets to the bit stream in the order
- * imposed by the bit stream profiles.
+ * imposed by the bit stream profiles.</p>
  *
  * @see CodedCBlkDataSrcEnc
- *
  * @see jj2000.j2k.codestream.writer.CodestreamWriter
  * */
 public abstract class PostCompRateAllocator extends ImgDataAdapter {
@@ -104,7 +103,7 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
           "for the rest of the tile/image. Several progression order changes "+
           "can be specified, one after the other."
           , null},
-        { "Alayers", "<rate> [+<layers>] [<rate [+<layers>] [...]]",
+        { "Alayers", "[<rate> [+<layers>] [<rate [+<layers>] [...]] | sl]",
           "Explicitly specifies the codestream layer formation parameters. "+
           "The <rate> parameter specifies the bitrate to which the first "+
           "layer should be optimized. The <layers> parameter, if present, "+
@@ -122,7 +121,11 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
           " parameters "+
           "must appear in increasing order. The rate allocation algorithm "+
           "ensures that all coded layers have a minimal reasonable size, if "+
-          "not these layers are silently ignored.","0.015 +20 2.0 +10"}
+          "not these layers are silently ignored.\n"+
+          "If the 'sl' (i.e. 'single layer') argument is specified, the "+
+          "generated codestream will"+
+          " only contain one layer (with a bit rate specified thanks to the"+
+          " '-rate' or 'nbytes' options).","0.015 +20 2.0 +10"}
     };
 
     /** The source of entropy coded data */
@@ -238,29 +241,19 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
                                                        float rate,
                                                        CodestreamWriter bw,
                                                        EncoderSpecs encSpec){
-        String lyropt = pl.getParameter("Alayers");
-        if (lyropt == null) {
-            if(pl.getParameter("Rroi") == null) {
-                lyropt = "res";
-            }
-            else {
-                lyropt = "layer";
-            }
-        }
-
         // Check parameters
         pl.checkList(OPT_PREFIX,pl.toNameArray(pinfo));
 
-        // Construct the layer specification from the Alayers option
-        LayersInfo lyrs = parseAlayers(lyropt,rate);
+        // Construct the layer specification from the 'Alayers' option
+        LayersInfo lyrs = parseAlayers(pl.getParameter("Alayers"),rate);
 
 	int nTiles = encSpec.nTiles;
 	int nComp = encSpec.nComp;
 	int numLayers = lyrs.getTotNumLayers();
 
         // Parse the progressive type
-	encSpec.ps = new ProgressionSpec(nTiles,nComp,numLayers,encSpec.dls,
-					 ModuleSpec.SPEC_TYPE_TILE_COMP,pl);
+	encSpec.pocs = new ProgressionSpec(nTiles,nComp,numLayers,encSpec.dls,
+                                           ModuleSpec.SPEC_TYPE_TILE_COMP,pl);
 
         return new EBCOTRateAllocator(src,lyrs,bw,encSpec,pl);
     }
@@ -274,7 +267,7 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
      *
      * @return The layer specification.
      * */
-    private static LayersInfo parseAlayers(String params, float rate) {
+    private static LayersInfo parseAlayers(String params,float rate) {
         LayersInfo lyrs;
         StreamTokenizer stok;
         boolean islayer,ratepending;
@@ -286,8 +279,7 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
 
         try {
             stok.nextToken();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new Error("An IOException has ocurred where it "+
                             "should never occur");
         }
@@ -300,21 +292,19 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
                 if (islayer) { // layer parameter
                     try {
                         lyrs.addOptPoint(r,(int)stok.nval);
-                    }
-                    catch (IllegalArgumentException e) {
+                    } catch (IllegalArgumentException e) {
                         throw new
                             IllegalArgumentException("Error in 'Alayers' "+
-                                                     "option: "+e.getMessage());
+                                                     "option: "+
+                                                     e.getMessage());
                     }
                     ratepending = false;
                     islayer = false;
-                }
-                else { // rate parameter
+                } else { // rate parameter
                     if (ratepending) { // Add pending rate parameter
                         try {
                             lyrs.addOptPoint(r,0);
-                        }
-                        catch (IllegalArgumentException e) {
+                        } catch (IllegalArgumentException e) {
                             throw new
                                 IllegalArgumentException("Error in 'Alayers' "+
                                                          "option: "+
@@ -335,14 +325,27 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
                 }
                 islayer = true; // Next number is layer parameter
                 break;
+            case StreamTokenizer.TT_WORD:
+                try {
+                    stok.nextToken();
+                } catch(IOException e) {
+                    throw new Error("An IOException has ocurred where it "+
+                                    "should never occur");
+                }
+                if (stok.ttype != stok.TT_EOF) {
+                    throw new 
+                        IllegalArgumentException("'sl' argument of "+
+                                                 "'-Alayers' option must be "+
+                                                 "used alone.");
+                }
+                break;
             default:
                 throw new IllegalArgumentException("Error parsing 'Alayers' "+
                                                    "option");
             }
             try {
                 stok.nextToken();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new Error("An IOException has ocurred where it "+
                                 "should never occur");
             }
@@ -354,8 +357,7 @@ public abstract class PostCompRateAllocator extends ImgDataAdapter {
         if (ratepending) {
             try {
                 lyrs.addOptPoint(r,0);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 throw new
                     IllegalArgumentException("Error in 'Alayers' "+
                                              "option: "+

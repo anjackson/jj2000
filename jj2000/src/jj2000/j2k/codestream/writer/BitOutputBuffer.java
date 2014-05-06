@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: BitOutputBuffer.java,v 1.8 2001/02/14 17:31:26 grosbois Exp $
+ * $Id: BitOutputBuffer.java,v 1.9 2002/07/19 12:40:05 grosbois Exp $
  *
  * Class:                   BitOutputBuffer
  *
@@ -109,19 +109,17 @@ public class BitOutputBuffer {
      * */
     public final void writeBit(int bit) {
         buf[curbyte] |= bit << --avbits;
-        if (avbits > 0) {
+        if(avbits > 0) {
             // There is still place in current byte for next bit
             return;
-        }
-        else { // End of current byte => goto next
-            if (buf[curbyte] != (byte) 0xFF) { // We don't need bit stuffing
+        } else { // End of current byte => goto next
+            if(buf[curbyte] != (byte) 0xFF) { // We don't need bit stuffing
                 avbits = 8;
-            }
-            else { // We need to stuff a bit (next MSBit is 0)
+            } else { // We need to stuff a bit (next MSBit is 0)
                 avbits = 7;
             }
             curbyte++;
-            if (curbyte == buf.length) {
+            if(curbyte==buf.length) {
                 // We are at end of 'buf' => extend it
                 byte oldbuf[] = buf;
                 buf = new byte[oldbuf.length+SZ_INCR];
@@ -156,41 +154,38 @@ public class BitOutputBuffer {
             // new bits plus the ones to come after
         }
         // Now write the bits
-        if (n >= avbits) {
+        if(n>=avbits) {
             // Complete the current byte
             n -= avbits;
             buf[curbyte] |= bits >> n;
             if (buf[curbyte] != (byte) 0xFF) { // We don't need bit stuffing
                 avbits = 8;
-            }
-            else { // We need to stuff a bit (next MSBit is 0)
+            } else { // We need to stuff a bit (next MSBit is 0)
                 avbits = 7;
             }
             curbyte++;
             // Write whole bytes
-            while (n >= avbits) {
+            while(n>=avbits) {
                 n -= avbits;
                 buf[curbyte] |= (bits >> n) & (~(1 << avbits));
-                if (buf[curbyte] != (byte) 0xFF) { // We don't need bit
+                if(buf[curbyte] != (byte) 0xFF) { // We don't need bit
                     // stuffing
                     avbits = 8;
-                }
-                else { // We need to stuff a bit (next MSBit is 0)
+                } else { // We need to stuff a bit (next MSBit is 0)
                     avbits = 7;
                 }
                 curbyte++;
             }
         }
         // Finish last byte (we know that now n < avbits)
-        if (n > 0) {
+        if(n>0) {
             avbits -= n;
             buf[curbyte] |= (bits & ((1<<n)-1)) << avbits;
         }
-        if (avbits == 0) { // Last byte is full
-            if (buf[curbyte] != (byte) 0xFF) { // We don't need bit stuffing
+        if(avbits==0) { // Last byte is full
+            if(buf[curbyte] != (byte) 0xFF) { // We don't need bit stuffing
                 avbits = 8;
-            }
-            else { // We need to stuff a bit (next MSBit is 0)
+            } else { // We need to stuff a bit (next MSBit is 0)
                 avbits = 7;
             }
             curbyte++; // We already ensured that we have enough place
@@ -205,10 +200,9 @@ public class BitOutputBuffer {
      * @return The currebt length of the buffer in bytes.
      * */
     public final int getLength() {
-        if (avbits == 8) { // A integral number of bytes
+        if(avbits==8) { // A integral number of bytes
             return curbyte;
-        }
-        else { // Some bits in last byte
+        } else { // Some bits in last byte
             return curbyte+1;
         }
     }
@@ -239,7 +233,7 @@ public class BitOutputBuffer {
      * @return The byte buffer data.
      * */
     public byte[] toByteArray(byte data[]) {
-        if (data == null) {
+        if(data==null) {
             data = new byte[(avbits==8)?curbyte:curbyte+1];
         }
         System.arraycopy(buf,0,data,0,(avbits==8)?curbyte:curbyte+1);

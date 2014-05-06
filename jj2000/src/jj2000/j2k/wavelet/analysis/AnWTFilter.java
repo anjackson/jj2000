@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: AnWTFilter.java,v 1.14 2000/09/21 16:13:13 dsanta Exp $
+ * $Id: AnWTFilter.java,v 1.15 2001/05/08 16:14:52 grosbois Exp $
  *
  * Class:                   AnWTFilter
  *
@@ -39,10 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.wavelet.analysis;
 
 import jj2000.j2k.codestream.writer.*;
@@ -54,45 +51,42 @@ import java.util.*;
 import java.io.*;
 
 /**
- * This abstract class defines the methods of all analysis wavelet
- * filters. Specialized abstract classes that work on particular data
- * types (int, float) provide more specific method calls while
- * retaining the generality of this one. See the AnWTFilterInt
- * and AnWTFilterFloat classes. Implementations of analysis
- * filters should inherit from one of those classes.
+ * <p>This abstract class defines the methods of all analysis wavelet
+ * filters. Specialized abstract classes that work on particular data types
+ * (int, float) provide more specific method calls while retaining the
+ * generality of this one. See the AnWTFilterInt and AnWTFilterFloat
+ * classes. Implementations of analysis filters should inherit from one of
+ * those classes.</p>
  *
- * <P>All analysis wavelet filters should follow the following conventions:
+ * All analysis wavelet filters should follow the following conventions:
  *
- * <P>- The first sample to filter is the low-pass one. As a
- * consequence, if the input signal is of odd-length then the low-pass
- * output signal is one sample longer than the high-pass output
- * one. Therefore, if the length of input signal is N, the low-pass
- * output signal is of length N/2 if N is even and N/2+1/2 if N is
- * odd, while the high-pass output signal is of length N/2 if N is
- * even and N/2-1/2 if N is odd.
+ * <ul>
+ * <li>The first sample to filter is the low-pass one. As a consequence, if
+ * the input signal is of odd-length then the low-pass output signal is one
+ * sample longer than the high-pass output one. Therefore, if the length of
+ * input signal is N, the low-pass output signal is of length N/2 if N is even
+ * and N/2+1/2 if N is odd, while the high-pass output signal is of length N/2
+ * if N is even and N/2-1/2 if N is odd.</li>
  *
- * <P>- The normalization is 1 for the DC gain and 2 for the Nyquist
- * gain (Type I normalization), for both reversible and non-reversible
- * filters.
+ * <li>The normalization is 1 for the DC gain and 2 for the Nyquist gain (Type
+ * I normalization), for both reversible and non-reversible filters.</li>
  *
- * <P>If the length of input signal is N, the low-pass output signal
- * is of length N/2 if N is even and N/2+1/2 if N is odd, while the
- * high-pass output sample is of length N/2 if N is even and N/2-1/2
- * if N is odd.
+ * <li>If the length of input signal is N, the low-pass output signal is of
+ * length N/2 if N is even and N/2+1/2 if N is odd, while the high-pass output
+ * sample is of length N/2 if N is even and N/2-1/2 if N is odd.</li>
  *
- * <P>The analyze method may seem very complicated, but is designed to
- * minimize the amount of data copying and redundant calculations when
- * used for block-based or line-based wavelet transform
- * implementations, while being applicable to full-frame transforms as
- * well.
+ * <li>The analyze method may seem very complicated, but is designed to
+ * minimize the amount of data copying and redundant calculations when used
+ * for block-based or line-based wavelet transform implementations, while
+ * being applicable to full-frame transforms as well.</li>
  *
- * <P>All filters should implement the equals() method of the Object
+ * <li>All filters should implement the equals() method of the Object
  * class. The call x.equals(y) should test if the 'x' and 'y' filters are the
  * same or not, in what concerns the bit stream header syntax (two filters are
- * the same if the same filter code should be output to the bit stream).
+ * the same if the same filter code should be output to the bit stream).</li>
+ * </ul>
  *
  * @see AnWTFilterInt
- *
  * @see AnWTFilterFloat
  * */
 public abstract class AnWTFilter implements WaveletFilter{
@@ -105,112 +99,105 @@ public abstract class AnWTFilter implements WaveletFilter{
     private final static String [][] pinfo = {
         { "Ffilters", "[<tile-component idx>] <id> "+
           "[ [<tile-component idx>] <id> ...]",
-          "Specifies which filters to use for specified tile-component.\n"+
+          "Specifies which filters to use for specified tile-component. "+
+          "If this option is not used, the encoder choses the filters "+
+          " of the tile-components according to their quantization  type."+
+          " If this option is used, a component transformation is applied "+
+          "to the three first components.\n"+
           "<tile-component idx>: see general note\n"+
           "<id>: ',' separates horizontal and vertical filters, ':' separates"+
-          " decomposition levels filters. JPEG 2000 part I only supports w5x3"+
+          " decomposition levels filters. JPEG 2000 part 1 only supports w5x3"+
           " and w9x7 filters.",null},
     };
 
     /**
-     * Filters the input signal by this analysis filter, decomposing
-     * it in a low-pass and a high-pass signal. This method performs
-     * the filtering and the subsampling with the low pass first 
-     * filtering convention.
+     * Filters the input signal by this analysis filter, decomposing it in a
+     * low-pass and a high-pass signal. This method performs the filtering and
+     * the subsampling with the low pass first filtering convention.
      *
-     * <P>The input signal resides in the inSig array. The index of
-     * the first sample to filter (i.e. that will generate the first
-     * low-pass output sample) is given by inOff. The number of
-     * samples to filter is given by inLen. This array must be of the
-     * same type as the one for which the particular implementation
-     * works with (which is returned by the getDataType() method).
+     * <p>The input signal resides in the inSig array. The index of the first
+     * sample to filter (i.e. that will generate the first low-pass output
+     * sample) is given by inOff. The number of samples to filter is given by
+     * inLen. This array must be of the same type as the one for which the
+     * particular implementation works with (which is returned by the
+     * getDataType() method).</p>
      *
-     * <P>The input signal can be interleaved with other signals in
-     * the same inSig array, and this is determined by the inStep
-     * argument. This means that the first sample of the input signal
-     * is inSig[inOff], the second is inSig[inOff+inStep], the third
-     * is inSig[inOff+2*inStep], and so on. Therefore if inStep is 1
-     * there is no interleaving. This feature allows to filter columns
-     * of a 2-D signal, when it is stored in a line by line order in
-     * inSig, without having to copy the data, in this case the inStep
-     * argument should be the line width.
+     * <p>The input signal can be interleaved with other signals in the same
+     * inSig array, and this is determined by the inStep argument. This means
+     * that the first sample of the input signal is inSig[inOff], the second
+     * is inSig[inOff+inStep], the third is inSig[inOff+2*inStep], and so
+     * on. Therefore if inStep is 1 there is no interleaving. This feature
+     * allows to filter columns of a 2-D signal, when it is stored in a line
+     * by line order in inSig, without having to copy the data, in this case
+     * the inStep argument should be the line width.</p>
      *
-     * <P>This method also allows to apply the analysis wavelet filter
-     * by parts in the input signal using an overlap and thus
-     * producing the same coefficients at the output. The tailOvrlp
-     * argument specifies how many samples in the input signal, before
-     * the first one to be filtered, can be used for overlap. Then,
-     * the filter instead of extending the input signal will use those
-     * samples to calculate the first output samples. The argument
-     * tailOvrlp can be 0 for no overlap, or some value that provides
-     * partial or full overlap. There should be enough samples in the
-     * input signal, before the first sample to be filtered, to
-     * support the overlap. The headOvrlp provides the same
-     * functionality but at the end of the input signal. The inStep
-     * argument also applies to samples used for overlap. This overlap
-     * feature can be used for line-based wavelet transforms (in which
-     * case it will only be used when filtering the columns) or for
-     * overlapping block-based wavelet transforms (in which case it
-     * will be used when filtering lines and columns).
+     * <p>This method also allows to apply the analysis wavelet filter by
+     * parts in the input signal using an overlap and thus producing the same
+     * coefficients at the output. The tailOvrlp argument specifies how many
+     * samples in the input signal, before the first one to be filtered, can
+     * be used for overlap. Then, the filter instead of extending the input
+     * signal will use those samples to calculate the first output
+     * samples. The argument tailOvrlp can be 0 for no overlap, or some value
+     * that provides partial or full overlap. There should be enough samples
+     * in the input signal, before the first sample to be filtered, to support
+     * the overlap. The headOvrlp provides the same functionality but at the
+     * end of the input signal. The inStep argument also applies to samples
+     * used for overlap. This overlap feature can be used for line-based
+     * wavelet transforms (in which case it will only be used when filtering
+     * the columns) or for overlapping block-based wavelet transforms (in
+     * which case it will be used when filtering lines and columns).</p>
      *
-     * <P>The low-pass output signal is placed in the lowSig
-     * array. The lowOff and lowStep arguments are analogous to the
-     * inOff and inStep ones, but they apply to the lowSig array. The
-     * lowSig array must be long enough to hold the low-pass output
-     * signal.
+     * <p>The low-pass output signal is placed in the lowSig array. The lowOff
+     * and lowStep arguments are analogous to the inOff and inStep ones, but
+     * they apply to the lowSig array. The lowSig array must be long enough to
+     * hold the low-pass output signal.</p>
      *
-     * <P>The high-pass output signal is placed in the highSig
-     * array. The highOff and highStep arguments are analogous to the
-     * inOff and inStep ones, but they apply to the highSig array. The
-     * highSig array must be long enough to hold the high-pass output
-     * signal.
+     * <p>The high-pass output signal is placed in the highSig array. The
+     * highOff and highStep arguments are analogous to the inOff and inStep
+     * ones, but they apply to the highSig array. The highSig array must be
+     * long enough to hold the high-pass output signal.</p>
      *
-     * @param inSig This is the array that contains the input
-     * signal. It must be of the correct type (e.g., it must be int[]
-     * if getDataType() returns TYPE_INT).
+     * @param inSig This is the array that contains the input signal. It must
+     * be of the correct type (e.g., it must be int[] if getDataType() returns
+     * TYPE_INT).
      *
-     * @param inOff This is the index in inSig of the first sample to
+     * @param inOff This is the index in inSig of the first sample to filter.
+     *
+     * @param inLen This is the number of samples in the input signal to
      * filter.
      *
-     * @param inLen This is the number of samples in the input signal
-     * to filter.
+     * @param inStep This is the step, or interleave factor, of the input
+     * signal samples in the inSig array. See above.
      *
-     * @param inStep This is the step, or interleave factor, of the
-     * input signal samples in the inSig array. See above.
+     * @param tailOvrlp This is the number of samples in the input signal
+     * before the first sample to filter that can be used for overlap. See
+     * above.
      *
-     * @param tailOvrlp This is the number of samples in the input
-     * signal before the first sample to filter that can be used for
-     * overlap. See above.
+     * @param headOvrlp This is the number of samples in the input signal
+     * after the last sample to filter that can be used for overlap. See
+     * above.
      *
-     * @param headOvrlp This is the number of samples in the input
-     * signal after the last sample to filter that can be used for
-     * overlap. See above.
+     * @param lowSig This is the array where the low-pass output signal is
+     * placed. It must be of the same type as inSig and it should be long
+     * enough to contain the output signal.
      *
-     * @param lowSig This is the array where the low-pass output
-     * signal is placed. It must be of the same type as inSig and it
-     * should be long enough to contain the output signal.
+     * @param lowOff This is the index in lowSig of the element where to put
+     * the first low-pass output sample.
      *
-     * @param lowOff This is the index in lowSig of the element where
-     * to put the first low-pass output sample.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * output samples in the lowSig array. See above.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass output samples in the lowSig array. See above.
+     * @param highSig This is the array where the high-pass output signal is
+     * placed. It must be of the same type as inSig and it should be long
+     * enough to contain the output signal.
      *
-     * @param highSig This is the array where the high-pass output
-     * signal is placed. It must be of the same type as inSig and it
-     * should be long enough to contain the output signal.
-     *
-     * @param highOff This is the index in highSig of the element where
-     * to put the first high-pass output sample.
+     * @param highOff This is the index in highSig of the element where to put
+     * the first high-pass output sample.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass output samples in the highSig array. See above.
      *
      * @see WaveletFilter#getDataType
-     *
-     *
-     *
-     *
      * */
     public abstract 
         void analyze_lpf(Object inSig, int inOff, int inLen, int inStep,
@@ -218,78 +205,69 @@ public abstract class AnWTFilter implements WaveletFilter{
                      Object highSig, int highOff, int highStep);
                      
     /**
-     * Filters the input signal by this analysis filter, decomposing
-     * it in a low-pass and a high-pass signal. This method performs
-     * the filtering and the subsampling with the high pass first filtering 
-     * convention.
+     * Filters the input signal by this analysis filter, decomposing it in a
+     * low-pass and a high-pass signal. This method performs the filtering and
+     * the subsampling with the high pass first filtering convention.
      *
-     * <P>The input signal resides in the inSig array. The index of
-     * the first sample to filter (i.e. that will generate the first
-     * high-pass output sample) is given by inOff. The number of
-     * samples to filter is given by inLen. This array must be of the
-     * same type as the one for which the particular implementation
-     * works with (which is returned by the getDataType() method).
+     * <p>The input signal resides in the inSig array. The index of the first
+     * sample to filter (i.e. that will generate the first high-pass output
+     * sample) is given by inOff. The number of samples to filter is given by
+     * inLen. This array must be of the same type as the one for which the
+     * particular implementation works with (which is returned by the
+     * getDataType() method).</p>
      *
-     * <P>The input signal can be interleaved with other signals in
-     * the same inSig array, and this is determined by the inStep
-     * argument. This means that the first sample of the input signal
-     * is inSig[inOff], the second is inSig[inOff+inStep], the third
-     * is inSig[inOff+2*inStep], and so on. Therefore if inStep is 1
-     * there is no interleaving. This feature allows to filter columns
-     * of a 2-D signal, when it is stored in a line by line order in
-     * inSig, without having to copy the data, in this case the inStep
-     * argument should be the line width.
+     * <p>The input signal can be interleaved with other signals in the same
+     * inSig array, and this is determined by the inStep argument. This means
+     * that the first sample of the input signal is inSig[inOff], the second
+     * is inSig[inOff+inStep], the third is inSig[inOff+2*inStep], and so
+     * on. Therefore if inStep is 1 there is no interleaving. This feature
+     * allows to filter columns of a 2-D signal, when it is stored in a line
+     * by line order in inSig, without having to copy the data, in this case
+     * the inStep argument should be the line width.</p>
      *
-     * <P>The low-pass output signal is placed in the lowSig
-     * array. The lowOff and lowStep arguments are analogous to the
-     * inOff and inStep ones, but they apply to the lowSig array. The
-     * lowSig array must be long enough to hold the low-pass output
-     * signal.
+     * <p>The low-pass output signal is placed in the lowSig array. The lowOff
+     * and lowStep arguments are analogous to the inOff and inStep ones, but
+     * they apply to the lowSig array. The lowSig array must be long enough to
+     * hold the low-pass output signal.</p>
      *
-     * <P>The high-pass output signal is placed in the highSig
-     * array. The highOff and highStep arguments are analogous to the
-     * inOff and inStep ones, but they apply to the highSig array. The
-     * highSig array must be long enough to hold the high-pass output
-     * signal.
+     * <p>The high-pass output signal is placed in the highSig array. The
+     * highOff and highStep arguments are analogous to the inOff and inStep
+     * ones, but they apply to the highSig array. The highSig array must be
+     * long enough to hold the high-pass output signal.</p>
      *
-     * @param inSig This is the array that contains the input
-     * signal. It must be of the correct type (e.g., it must be int[]
-     * if getDataType() returns TYPE_INT).
+     * @param inSig This is the array that contains the input signal. It must
+     * be of the correct type (e.g., it must be int[] if getDataType() returns
+     * TYPE_INT).
      *
-     * @param inOff This is the index in inSig of the first sample to
+     * @param inOff This is the index in inSig of the first sample to filter.
+     *
+     * @param inLen This is the number of samples in the input signal to
      * filter.
      *
-     * @param inLen This is the number of samples in the input signal
-     * to filter.
+     * @param inStep This is the step, or interleave factor, of the input
+     * signal samples in the inSig array. See above.
      *
-     * @param inStep This is the step, or interleave factor, of the
-     * input signal samples in the inSig array. See above.
+     * @param lowSig This is the array where the low-pass output signal is
+     * placed. It must be of the same type as inSig and it should be long
+     * enough to contain the output signal.
      *
-     * @param lowSig This is the array where the low-pass output
-     * signal is placed. It must be of the same type as inSig and it
-     * should be long enough to contain the output signal.
+     * @param lowOff This is the index in lowSig of the element where to put
+     * the first low-pass output sample.
      *
-     * @param lowOff This is the index in lowSig of the element where
-     * to put the first low-pass output sample.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * output samples in the lowSig array. See above.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass output samples in the lowSig array. See above.
+     * @param highSig This is the array where the high-pass output signal is
+     * placed. It must be of the same type as inSig and it should be long
+     * enough to contain the output signal.
      *
-     * @param highSig This is the array where the high-pass output
-     * signal is placed. It must be of the same type as inSig and it
-     * should be long enough to contain the output signal.
-     *
-     * @param highOff This is the index in highSig of the element where
-     * to put the first high-pass output sample.
+     * @param highOff This is the index in highSig of the element where to put
+     * the first high-pass output sample.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass output samples in the highSig array. See above.
      *
      * @see WaveletFilter#getDataType
-     *
-     *
-     *
-     *
      * */
     public abstract 
         void analyze_hpf(Object inSig, int inOff, int inLen, int inStep, 
@@ -297,124 +275,103 @@ public abstract class AnWTFilter implements WaveletFilter{
                      Object highSig, int highOff, int highStep);
                      
     /**
-     * Returns the time-reversed low-pass synthesis waveform of the
-     * filter, which is the low-pass filter. This is the time-reversed
-     * impulse response of the low-pass synthesis filter. It is used
-     * to calculate the L2-norm of the synthesis basis functions for a
-     * particular subband (also called energy weight).
+     * Returns the time-reversed low-pass synthesis waveform of the filter,
+     * which is the low-pass filter. This is the time-reversed impulse
+     * response of the low-pass synthesis filter. It is used to calculate the
+     * L2-norm of the synthesis basis functions for a particular subband (also
+     * called energy weight).
      *
-     * <P>The returned array may not be modified (i.e. a reference to
-     * the internal array may be returned by the implementation of
-     * this method).
+     * <p>The returned array may not be modified (i.e. a reference to the
+     * internal array may be returned by the implementation of this
+     * method).</p>
      *
-     * @return The time-reversed low-pass synthesis waveform of the
-     * filter.
-     *
-     *
+     * @return The time-reversed low-pass synthesis waveform of the filter.
      * */
     public abstract float[] getLPSynthesisFilter();
 
     /**
-     * Returns the time-reversed high-pass synthesis waveform of the
-     * filter, which is the high-pass filter. This is the
-     * time-reversed impulse response of the high-pass synthesis
-     * filter. It is used to calculate the L2-norm of the synthesis
-     * basis functions for a particular subband (also called energy
-     * weight).
+     * Returns the time-reversed high-pass synthesis waveform of the filter,
+     * which is the high-pass filter. This is the time-reversed impulse
+     * response of the high-pass synthesis filter. It is used to calculate the
+     * L2-norm of the synthesis basis functions for a particular subband (also
+     * called energy weight).
      *
-     * <P>The returned array may not be modified (i.e. a reference to
-     * the internal array may be returned by the implementation of
-     * this method).
+     * <p>The returned array may not be modified (i.e. a reference to the
+     * internal array may be returned by the implementation of this
+     * method).</p>
      *
-     * @return The time-reversed high-pass synthesis waveform of the
-     * filter.
-     *
-     *
+     * @return The time-reversed high-pass synthesis waveform of the filter.
      * */
     public abstract float[] getHPSynthesisFilter();
 
     /**
-     * Returns the equivalent low-pass synthesis waveform of a cascade
-     * of filters, given the syhthesis waveform of the previous
-     * stage. This is the result of upsampling 'in' by 2, and
-     * concolving it with the low-pass synthesis waveform of the
-     * filter. The length of the returned signal is 2*in_l+lp_l-2,
-     * where in_l is the length of 'in' and 'lp_l' is the lengthg of
-     * the low-pass synthesis filter.
+     * Returns the equivalent low-pass synthesis waveform of a cascade of
+     * filters, given the syhthesis waveform of the previous stage. This is
+     * the result of upsampling 'in' by 2, and concolving it with the low-pass
+     * synthesis waveform of the filter. The length of the returned signal is
+     * 2*in_l+lp_l-2, where in_l is the length of 'in' and 'lp_l' is the
+     * lengthg of the low-pass synthesis filter.
      *
-     * <P>The length of the low-pass synthesis filter is
-     * getSynLowNegSupport()+getSynLowPosSupport().
+     * <p>The length of the low-pass synthesis filter is
+     * getSynLowNegSupport()+getSynLowPosSupport().</p>
      *
      * @param in The synthesis waveform of the previous stage.
      *
-     * @param out If non-null this array is used to store the
-     * resulting signal. It must be long enough, or an
-     * IndexOutOfBoundsException is thrown.
+     * @param out If non-null this array is used to store the resulting
+     * signal. It must be long enough, or an IndexOutOfBoundsException is
+     * thrown.
      *
      * @see #getSynLowNegSupport
-     *
      * @see #getSynLowPosSupport
-     *
-     *
      * */
     public float[] getLPSynWaveForm(float in[], float out[]) {
         return upsampleAndConvolve(in,getLPSynthesisFilter(),out);
     }
 
     /**
-     * Returns the equivalent high-pass synthesis waveform of a
-     * cascade of filters, given the syhthesis waveform of the
-     * previous stage. This is the result of upsampling 'in' by 2, and
-     * concolving it with the high-pass synthesis waveform of the
-     * filter. The length of the returned signal is 2*in_l+hp_l-2,
-     * where in_l is the length of 'in' and 'hp_l' is the lengthg of
-     * the high-pass synthesis filter.
+     * Returns the equivalent high-pass synthesis waveform of a cascade of
+     * filters, given the syhthesis waveform of the previous stage. This is
+     * the result of upsampling 'in' by 2, and concolving it with the
+     * high-pass synthesis waveform of the filter. The length of the returned
+     * signal is 2*in_l+hp_l-2, where in_l is the length of 'in' and 'hp_l' is
+     * the lengthg of the high-pass synthesis filter.
      *
-     * <P>The length of the high-pass synthesis filter is
-     * getSynHighNegSupport()+getSynHighPosSupport().
+     * <p>The length of the high-pass synthesis filter is
+     * getSynHighNegSupport()+getSynHighPosSupport().</p>
      *
      * @param in The synthesis waveform of the previous stage.
      *
-     * @param out If non-null this array is used to store the
-     * resulting signal. It must be long enough, or an
-     * IndexOutOfBoundsException is thrown.
+     * @param out If non-null this array is used to store the resulting
+     * signal. It must be long enough, or an IndexOutOfBoundsException is
+     * thrown.
      *
      * @see #getSynHighNegSupport
-     *
      * @see #getSynHighPosSupport
-     *
-     *
      * */
     public float[] getHPSynWaveForm(float in[], float out[]) {
         return upsampleAndConvolve(in,getHPSynthesisFilter(),out);
     }
 
     /**
-     * Returns the signal resulting of upsampling (by 2) the input
-     * signal 'in' and then convolving it with the time-reversed
-     * signal 'wf'. The returned signal is of length l_in*2+l_wf-2,
-     * where l_in is the length of 'in', and l_wf is the length of
-     * 'wf'.
+     * Returns the signal resulting of upsampling (by 2) the input signal 'in'
+     * and then convolving it with the time-reversed signal 'wf'. The returned
+     * signal is of length l_in*2+l_wf-2, where l_in is the length of 'in',
+     * and l_wf is the length of 'wf'.
      *
-     * <P>The 'wf' signal has to be already time-reversed, therefore
-     * only a dot-product is performed (instead of a
-     * convolution). This is equivalent to convolving with the
-     * non-time-reversed 'wf' signal.
+     * <p>The 'wf' signal has to be already time-reversed, therefore only a
+     * dot-product is performed (instead of a convolution). This is equivalent
+     * to convolving with the non-time-reversed 'wf' signal.</p>
      *
-     * @param in The signal to upsample and filter. If null it is
-     * considered to be a dirac.
+     * @param in The signal to upsample and filter. If null it is considered
+     * to be a dirac.
      *
-     * @param wf The time-reversed impulse response used for
-     * filtering.
+     * @param wf The time-reversed impulse response used for filtering.
      *
-     * @param out If non-null this array is used to store the
-     * resulting signal, it must be of length in.length*2+wf.length-2
-     * at least. An IndexOutOfBoundsException is thrown if this is not
-     * the case.
+     * @param out If non-null this array is used to store the resulting
+     * signal, it must be of length in.length*2+wf.length-2 at least. An
+     * IndexOutOfBoundsException is thrown if this is not the case.
      *
      * @return The resulting signal, of length in.length*2+wf.length-2
-     *
-     *
      * */
     private static
         float[] upsampleAndConvolve(float in[], float wf[], float out[]) {
@@ -459,31 +416,26 @@ public abstract class AnWTFilter implements WaveletFilter{
     }
 
     /** 
-     * Returns the type of filter used according to the FilterTypes
-     * interface.
+     * Returns the type of filter used according to the FilterTypes interface.
      *
      * @see FilterTypes
      *
      * @return The filter type.
-     *
-     */
+     * */
     public abstract int getFilterType();
 
     /**
-     * Returns the parameters that are used in this class and
-     * implementing classes. It returns a 2D String array. Each of the
-     * 1D arrays is for a different option, and they have 3
-     * elements. The first element is the option name, the second one
-     * is the synopsis, the third one is a long description of what
-     * the parameter is and the fourth is its default value. The
-     * synopsis or description may be 'null', in which case it is
+     * Returns the parameters that are used in this class and implementing
+     * classes. It returns a 2D String array. Each of the 1D arrays is for a
+     * different option, and they have 3 elements. The first element is the
+     * option name, the second one is the synopsis, the third one is a long
+     * description of what the parameter is and the fourth is its default
+     * value. The synopsis or description may be 'null', in which case it is
      * assumed that there is no synopsis or description of the option,
      * respectively. Null may be returned if no options are supported.
      *
-     * @return the options name, their synopsis and their explanation, 
-     * or null if no options are supported.
-     * 
-     *
+     * @return the options name, their synopsis and their explanation, or null
+     * if no options are supported.
      * */
     public static String[][] getParameterInfo() {
         return pinfo;

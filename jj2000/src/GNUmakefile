@@ -1,5 +1,5 @@
 # CVS identifier:
-# $Id: GNUmakefile,v 1.32 2000/09/19 17:58:57 dsanta Exp $
+# $Id: GNUmakefile,v 1.34 2002/07/25 14:57:50 grosbois Exp $
 #
 #    JJ2000
 #
@@ -45,6 +45,12 @@ jj2000.j2k.codestream.reader \
 jj2000.j2k.fileformat.reader \
 jj2000.j2k.decoder \
 jj2000.disp \
+colorspace.boxes \
+colorspace \
+icc.lut \
+icc.tags \
+icc.types \
+icc \
 
 #List of packages for the simple applet (SimpleAppletDecoder)
 SAPACKAGELIST = \
@@ -67,6 +73,12 @@ jj2000.j2k.codestream.reader \
 jj2000.j2k.fileformat.reader \
 jj2000.j2k.decoder \
 jj2000.disp \
+colorspace.boxes \
+colorspace \
+icc.lut \
+icc.tags \
+icc.types \
+icc \
 
 #---------------------------Do not edit under this line
 

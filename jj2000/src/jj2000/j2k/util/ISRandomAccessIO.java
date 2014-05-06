@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ISRandomAccessIO.java,v 1.1 2000/09/19 12:49:43 dsanta Exp $
+ * $Id: ISRandomAccessIO.java,v 1.2 2001/04/09 16:58:15 grosbois Exp $
  *
  * Class:                   ISRandomAccessIO
  *
@@ -40,45 +40,42 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.util;
 
-import java.io.*;
 import jj2000.j2k.io.*;
+
+import java.io.*;
 
 /**
  * This class implements a wrapper to turn an InputStream into a
- * RandomAccessIO. To provide random access the input data from the
- * InputStream is cached in an in-memory buffer. The in-memory buffer size can 
+ * RandomAccessIO. To provide random access, the input data from the
+ * InputStream is cached in an in-memory buffer. The in-memory buffer size can
  * be limited to a specified size. The data is read into the cache on a as
  * needed basis, blocking only when necessary.
  *
- * <P>The cache grows automatically as necessary. However, if the data length
+ * <p>The cache grows automatically as necessary. However, if the data length
  * is known prior to the creation of a ISRandomAccessIO object, it is best to
  * specify that as the initial in-memory buffer size. That will minimize data
- * copying and multiple allocation.
+ * copying and multiple allocation.<p>
  *
- * <P>Multi-byte data is read in big-endian order. The in-memory buffer
+ * <p>Multi-byte data is read in big-endian order. The in-memory buffer
  * storage is released when 'close()' is called. This class can only be used
  * for data input, not output. The wrapped InputStream is closed when all the
- * input data is cached or when 'close()' is called.
+ * input data is cached or when 'close()' is called.</p>
  *
- * <P>If an out of memory condition is encountered when growing the
- * in-memory buffer an IOException is thrown instead of an
- * OutOfMemoryError. The exception message is "Out of memory to cache input
- * data".
+ * <p>If an out of memory condition is encountered when growing the in-memory
+ * buffer an IOException is thrown instead of an OutOfMemoryError. The
+ * exception message is "Out of memory to cache input data".</p>
  *
- * <P>This class is intended for use as a "quick and dirty" way to give
- * network connectivity to RandomAccessIO based classes. It is not intended as 
+ * <p>This class is intended for use as a "quick and dirty" way to give
+ * network connectivity to RandomAccessIO based classes. It is not intended as
  * an efficient means of implementing network connectivity. Doing such
  * requires reimplementing the RandomAccessIO based classes to directly use
- * network connections.
+ * network connections.</p>
  *
- * <P>This class does not use temporary files as buffers, because that would
- * preclude the use in unsigned applets.
+ * <p>This class does not use temporary files as buffers, because that would
+ * preclude the use in unsigned applets.</p>
  * */
 public class ISRandomAccessIO implements RandomAccessIO {
 
@@ -118,7 +115,7 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * @param inc The size increment for the cache buffer, in bytes.
      *
      * @param maxsize The maximum size for the cache buffer, in bytes.
-     */
+     * */
     public ISRandomAccessIO(InputStream is, int size, int inc, int maxsize) {
         if (size < 0 || inc <= 0 || maxsize <= 0 || is == null) {
             throw new IllegalArgumentException();
@@ -138,12 +135,11 @@ public class ISRandomAccessIO implements RandomAccessIO {
 
     /**
      * Creates a new RandomAccessIO wrapper for the given InputStream
-     * 'is'. The internal cache buffer size and increment is to to 256 kB. The 
+     * 'is'. The internal cache buffer size and increment is to to 256 kB. The
      * maximum buffer size is set to Integer.MAX_VALUE (2 GB).
      *
      * @param is The input from where to get the data.
-     *
-     */
+     * */
     public ISRandomAccessIO(InputStream is) {
         this(is,1<<18,1<<18,Integer.MAX_VALUE);
     }
@@ -155,7 +151,7 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @exception IOException If the maximum cache size is reached or if not
      * enough memory is available to grow the buffer.
-     */
+     * */
     private void growBuffer() throws IOException {
         byte newbuf[];
         int effinc;           // effective increment
@@ -179,7 +175,7 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * buffer. Reads all input data that will not cause it to block, but at
      * least on byte is read (even if it blocks), unless EOF is reached. This
      * method can not be called if EOF has been already reached
-     * (i.e. 'complete' is true). The wrapped InputStream is closed if the EOF 
+     * (i.e. 'complete' is true). The wrapped InputStream is closed if the EOF
      * is reached.
      *
      * @exception IOException An I/O error occurred, out of meory to grow
@@ -218,7 +214,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * not already closed. The memory used by the cache is released.
      *
      * @exception IOException If an I/O error occurs while closing the
-     * underlying InputStream.  */
+     * underlying InputStream.  
+     * */
     public void close() throws IOException {
         buf = null;
         if (!complete) {
@@ -228,9 +225,9 @@ public class ISRandomAccessIO implements RandomAccessIO {
     }
 
     /**
-     * Returns the current position in the stream, which is the
-     * position from where the next byte of data would be read. The first
-     * byte in the stream is in position 0.
+     * Returns the current position in the stream, which is the position from
+     * where the next byte of data would be read. The first byte in the stream
+     * is in position 0.
      *
      * @exception IOException If an I/O error occurred.
      * */
@@ -239,13 +236,13 @@ public class ISRandomAccessIO implements RandomAccessIO {
     }
 
     /**
-     * Moves the current position for the next read operation to
-     * offset. The offset is measured from the beginning of the stream. If the 
-     * offset is set beyond the currently cached data, the missing data will
-     * be read only when a read operation is performed. Setting
-     * the offset beyond the end of the data will cause an EOFException only
-     * if the data length is currently known, otherwise an IOException will
-     * occur when a read operation is attempted at that position.
+     * Moves the current position for the next read operation to offset. The
+     * offset is measured from the beginning of the stream. If the offset is
+     * set beyond the currently cached data, the missing data will be read
+     * only when a read operation is performed. Setting the offset beyond the
+     * end of the data will cause an EOFException only if the data length is
+     * currently known, otherwise an IOException will occur when a read
+     * operation is attempted at that position.
      *
      * @param off The offset where to move to.
      *
@@ -270,8 +267,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @return The length of the stream, in bytes.
      *
-     * @exception IOException If an I/O error ocurred.
-     */
+     * @exception IOException If an I/O error ocurred.  
+     * */
     public int length() throws IOException {
         while (!complete) { /* read until we reach EOF */
             readInput();
@@ -287,8 +284,7 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * @exception EOFException If the end-of file was reached.
      *
      * @exception IOException If an I/O error ocurred.
-     *
-     */
+     * */
     public int read() throws IOException {
         if (pos < len) { // common, fast case
             return 0xFF & (int)buf[pos++];
@@ -318,11 +314,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @param len The number of bytes to read.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
-     *     
      * */
     public void readFully(byte b[], int off, int n) throws IOException {
         if (pos+n <= len) { // common, fast case
@@ -349,8 +344,7 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * @return Always EndianType.BIG_ENDIAN.
      *
      * @see EndianType
-     *
-     */
+     * */
     public int getByteOrdering() {
         return EndianType.BIG_ENDIAN;
     }
@@ -358,11 +352,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads a signed byte (8 bit) from the input.
      *
-     * @return The next byte-aligned signed byte (8 bit) from the
-     * input.
+     * @return The next byte-aligned signed byte (8 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -377,11 +370,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads an unsigned byte (8 bit) from the input.
      *
-     * @return The next byte-aligned unsigned byte (8 bit) from the
-     * input.
+     * @return The next byte-aligned unsigned byte (8 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -396,11 +388,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads a signed short (16 bit) from the input.
      *
-     * @return The next byte-aligned signed short (16 bit) from the
-     * input.
+     * @return The next byte-aligned signed short (16 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -415,11 +406,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads an unsigned short (16 bit) from the input.
      *
-     * @return The next byte-aligned unsigned short (16 bit) from the
-     * input.
+     * @return The next byte-aligned unsigned short (16 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -437,8 +427,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      * @return The next byte-aligned signed int (32 bit) from the
      * input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -454,11 +444,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads a unsigned int (32 bit) from the input.
      *
-     * @return The next byte-aligned unsigned int (32 bit) from the
-     * input.
+     * @return The next byte-aligned unsigned int (32 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -466,7 +455,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
         if (pos+3 < len) { // common, fast case
             return (0xFFFFFFFFL
                     & (long)((buf[pos++]<<24) | ((0xFF & buf[pos++])<<16)
-                             | ((0xFF & buf[pos++])<<8) | (0xFF & buf[pos++])));
+                             | ((0xFF & buf[pos++])<<8) | 
+                             (0xFF & buf[pos++])));
         }
         // general case
         return (0xFFFFFFFFL
@@ -476,11 +466,10 @@ public class ISRandomAccessIO implements RandomAccessIO {
     /**
      * Reads a signed long (64 bit) from the input.
      *
-     * @return The next byte-aligned signed long (64 bit) from the
-     * input.
+     * @return The next byte-aligned signed long (64 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -512,8 +501,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @return The next byte-aligned IEEE float (32 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -535,8 +524,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @return The next byte-aligned IEEE double (64 bit) from the input.
      *
-     * @exception EOFException If the end-of file was reached before
-     * getting all the necessary data.
+     * @exception EOFException If the end-of file was reached before getting
+     * all the necessary data.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -569,8 +558,8 @@ public class ISRandomAccessIO implements RandomAccessIO {
      *
      * @return Always n.
      *
-     * @exception EOFException If the end-of file was reached before
-     * all the bytes could be skipped.
+     * @exception EOFException If the end-of file was reached before all the
+     * bytes could be skipped.
      *
      * @exception IOException If an I/O error ocurred.
      * */
@@ -585,56 +574,56 @@ public class ISRandomAccessIO implements RandomAccessIO {
     }
 
     /**
-     * Does nothing since this class does not implement data output.
-     */
+     * Does nothing since this class does not implement data output.  
+     * */
     public void flush() { /* no-op */
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void write(int b) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeByte(int v) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeShort(int v) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeInt(int v) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeLong(long v) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeFloat(float v) throws IOException {
         throw new IOException("read-only");
     }
 
     /**
      * Throws an IOException since this class does not implement data output.
-     */
+     * */
     public void writeDouble(double v) throws IOException {
         throw new IOException("read-only");
     }

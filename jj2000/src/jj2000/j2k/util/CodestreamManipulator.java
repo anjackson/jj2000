@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CodestreamManipulator.java,v 1.14 2001/02/14 17:52:14 grosbois Exp $
+ * $Id: CodestreamManipulator.java,v 1.17 2001/05/16 13:58:09 qtxjoas Exp $
  *
  * Class:                   CodestreamManipulator
  *
@@ -280,6 +280,8 @@ public class CodestreamManipulator{
                         markPos.addElement(new Integer(fi.getPos()));
                         ppt[t]++;
                         sop++;
+                        fi.skipBytes(4);
+                        i+=4;
                     }
 
                     if(marker == Markers.EPH){
@@ -345,7 +347,6 @@ public class CodestreamManipulator{
                 if(!tempEph){ // EPH marker is kept in header
                     length += Markers.EPH_LENGTH;
                 }
-
                 packetHeaders[t][p] = new byte[length];                
                 fi.readFully(packetHeaders[t][p],0,length);
                 markIndex++;
@@ -357,7 +358,7 @@ public class CodestreamManipulator{
                 length -= Markers.EPH_LENGTH;   
                  if(tempEph){ // EPH marker is used and is skipped
                     fi.skipBytes(Markers.EPH_LENGTH); 
-                }
+                 }
 
                 packetData[t][p] = new byte[length];                
                 fi.readFully(packetData[t][p],0,length);
@@ -377,7 +378,7 @@ public class CodestreamManipulator{
         int pIndex,phIndex;
         int tppStart;
         int tilePart;
-        int p,np;
+        int p,np,nomnp;
         int numTileParts;
         int numPackets;
         ByteArrayOutputStream temp = new ByteArrayOutputStream();
@@ -403,10 +404,12 @@ public class CodestreamManipulator{
             pIndex = 0;
             p=0;
             phIndex = 0;
+
             for(tilePart=0;tilePart<numTileParts;tilePart++){
             
                 // Calculate number of packets in this tilepart
-                np = (pptp > prem) ? prem:pptp;
+                nomnp = (pptp > prem) ? prem:pptp;
+                np = nomnp;
 
                 // Write tile part header
                 if(tilePart == 0){
@@ -425,12 +428,13 @@ public class CodestreamManipulator{
                     int phLength;
                     
                     p = pIndex;
-                    while(p < pIndex+np){
+                    while(np>0){
                         phLength = packetHeaders[t][p].length;
  
                         // If the total legth of the packet headers is greater
                         // than MAX_LPPT, several PPT markers are needed
                         if(pptLength + phLength > Markers.MAX_LPPT){ 
+
                             temp.write(Markers.PPT>>>8);
                             temp.write(Markers.PPT);
                             temp.write(pptLength>>>8);
@@ -445,6 +449,7 @@ public class CodestreamManipulator{
                         }
                         pptLength += phLength;
                         p++;
+                        np--;
                     }
                     // Write last PPT marker
                     temp.write(Markers.PPT>>>8);
@@ -459,6 +464,7 @@ public class CodestreamManipulator{
                     }
                 }
                 pIndex = p;
+                np = nomnp;
 
                 // Write SOD marker
                 temp.write(Markers.SOD>>>8);
@@ -498,8 +504,8 @@ public class CodestreamManipulator{
                     tempByteArr[1] = (byte)(Markers.SOT);
                     tempByteArr[2] = (byte)(0);                   // Lsot
                     tempByteArr[3] = (byte)(10); 
-                    tempByteArr[4] = (byte)(0);                   // Lsot
-                    tempByteArr[5] = (byte)(t);                   // Isot
+                    tempByteArr[4] = (byte)(t>>>8);               // Isot
+                    tempByteArr[5] = (byte)(t);                   // 
                     tempByteArr[6] = (byte)(length>>>24);         // Psot
                     tempByteArr[7] = (byte)(length>>>16);
                     tempByteArr[8] = (byte)(length>>>8);
@@ -544,13 +550,13 @@ public class CodestreamManipulator{
             int prem[] = new int[numTiles];
             
             // Set number of remaining packets 
-            for(t=0 ; t<numTiles ; t++)
+            for(t=0 ; t<numTiles ; t++){
                 prem[t] = packetHeaders[t].length;
+            }
                 
             // Calculate Nppm values 
-            for(tp=0; tp<maxtp ; tp++){   
+            for(tp=0; tp<maxtp ; tp++){ 
                 for(t=0 ; t<numTiles ; t++){
-
                     if(tileParts[t].length > tp){
                         totNumPackets = packetHeaders[t].length;
                         // Calculate number of packets in this tilepart
@@ -670,14 +676,15 @@ public class CodestreamManipulator{
         }
 
         // Write tile parts interleaved
-        for(tp=0;tp<maxtp;tp++)
+        for(tp=0;tp<maxtp;tp++){
             for(t=0 ; t<nt ;t++){
-                if(tileParts[t].length >= tp){
+                if(tileParts[t].length > tp){
                     temp = tileParts[t][tp];
                     length = temp.length;
                     fi.write(temp,0,length);
                 }
             }
+        }
         fi.writeShort(Markers.EOC);
     }
 }

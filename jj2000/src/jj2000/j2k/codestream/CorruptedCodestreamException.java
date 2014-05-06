@@ -1,7 +1,8 @@
 /*
  * CVS identifier:
  *
- * $Id: CorruptedCodestreamException.java,v 1.6 2000/09/05 09:22:33 grosbois Exp $
+ * $Id: CorruptedCodestreamException.java,v 1.6 2000/09/05 09:22:33 grosbois
+ * Exp $
  *
  * Class:                   CorruptedCodestreamException
  *
@@ -40,42 +41,33 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.codestream;
 
 import java.io.*;
 
 /**
- * Thsi exception is thrown whenever an illegal value is read from a
- * bit stream. The cause can be either a corrupted bit stream, or a a
- * bit stream which is illegal.
- *
- */
+ * This exception is thrown whenever an illegal value is read from a bit
+ * stream. The cause can be either a corrupted bit stream, or a a bit stream
+ * which is illegal.
+ * */
 public class CorruptedCodestreamException extends IOException {
 
     /**
-     * Constructs a new <tt>CorruptedCodestreamException</tt> exception
-     * with no detail message.
-     *
+     * Constructs a new <tt>CorruptedCodestreamException</tt> exception with
+     * no detail message.
      * */
     public CorruptedCodestreamException() {
         super();
     }
 
     /**
-     * Constructs a new <tt>CorruptedCodestreamException</tt> exception
-     * with the specified detail message.
+     * Constructs a new <tt>CorruptedCodestreamException</tt> exception with
+     * the specified detail message.
      *
      * @param s The detail message.
-     *
      * */
     public CorruptedCodestreamException(String s) {
         super(s);
     }
-
 }

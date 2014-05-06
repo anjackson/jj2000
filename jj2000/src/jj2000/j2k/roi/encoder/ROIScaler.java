@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ROIScaler.java,v 1.8 2001/02/19 11:19:43 grosbois Exp $
+ * $Id: ROIScaler.java,v 1.11 2001/09/20 12:42:20 grosbois Exp $
  *
  * Class:                   ROIScaler
  *
@@ -176,23 +176,6 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
     }
 	
     /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandAn sb, Coord co) {
-        return src.getNumCodeBlocks(sb,co);
-    }
-
-    /**
      * Since ROI scaling is always a reversible operation, it calls
      * isReversible() method of it source (the quantizer module).
      *
@@ -220,43 +203,33 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
      *
      * @see Subband
      * */
-    public SubbandAn getSubbandTree(int t,int c) {
-        return src.getSubbandTree(t,c);
+    public SubbandAn getAnSubbandTree(int t,int c) {
+        return src.getAnSubbandTree(t,c);
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**
      * Creates a ROIScaler object. The Quantizer is the source of data to
      * scale.
      *
-     * <P> The ROI Scaler creates a ROIMaskGenerator depending on what ROI
+     * <p>The ROI Scaler creates a ROIMaskGenerator depending on what ROI
      * information is in the ParameterList. If only rectangular ROI are used,
-     * the fast mask generator for rectangular ROI can be used.
+     * the fast mask generator for rectangular ROI can be used.</p>
      *
      * @param src The source of data to scale
      *
@@ -324,14 +297,14 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
      * This function parses the values given for the ROIs with the argument
      * -Rroi. Currently only circular and rectangular ROIs are supported.
      *
-     * <P> A rectangular ROI is indicated by a 'R' followed the coordinates
-     * for the upper left corner of the ROI and then its width and height.
+     * <p>A rectangular ROI is indicated by a 'R' followed the coordinates for
+     * the upper left corner of the ROI and then its width and height.</p>
      *
-     * <P> A circular ROI is indicated by a 'C' followed by the coordinates of
-     * the circle center and then the radius.
+     * <p>A circular ROI is indicated by a 'C' followed by the coordinates of
+     * the circle center and then the radius.</p>
      *
-     * <P> Before the R and C values, the component that are affected by the
-     * ROI are indicated.
+     * <p>Before the R and C values, the component that are affected by the
+     * ROI are indicated.</p>
      *
      * @param roiopt The info on the ROIs
      *
@@ -485,15 +458,15 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
      * block, which consists of  the quantized coefficients from the quantizer,
      * are scaled by the values given for any ROIs specified.
      *
-     * <P>The function calls on a ROIMaskGenerator to get the mask for
-     * scaling the coefficients in the current block.
+     * <p>The function calls on a ROIMaskGenerator to get the mask for scaling
+     * the coefficients in the current block.</p>
      *
-     * <P>The data returned by this method is a copy of the orignal
+     * <p>The data returned by this method is a copy of the orignal
      * data. Therfore it can be modified "in place" without any problems after
      * being returned. The 'offset' of the returned data is 0, and the 'scanw'
-     * is the same as the code-block width. See the 'CBlkWTData' class.
+     * is the same as the code-block width. See the 'CBlkWTData' class.</p>
      *
-     * @param n The component for which to return the next code-block.
+     * @param c The component for which to return the next code-block.
      *
      * @param cblk If non-null this object will be used to return the new
      * code-block. If null a new one will be allocated and returned. If the
@@ -505,8 +478,8 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
      *
      * @see CBlkWTData
      * */
-    public CBlkWTData getNextCodeBlock(int n, CBlkWTData cblk) {
-        return getNextInternCodeBlock(n,cblk);
+    public CBlkWTData getNextCodeBlock(int c, CBlkWTData cblk) {
+        return getNextInternCodeBlock(c,cblk);
     }
 
     /**
@@ -514,8 +487,8 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
      * block, which consists of  the quantized coefficients from the quantizer,
      * are scaled by the values given for any ROIs specified.
      *
-     * <P>The function calls on a ROIMaskGenerator to get the mask for
-     * scaling the coefficients in the current block.
+     * <p>The function calls on a ROIMaskGenerator to get the mask for scaling
+     * the coefficients in the current block.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -576,7 +549,7 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
         mask.h = h;
 
         // Get ROI mask from generator
-        root = src.getSubbandTree(tIdx,c);
+        root = src.getAnSubbandTree(tIdx,c);
 	maxBits = maxMagBits[tIdx][c];
 	roiInTile = mg.getROIMask(mask,root,maxBits,c);
 
@@ -589,14 +562,36 @@ public class ROIScaler extends ImgDataAdapter implements CBlkQuantDataSrcEnc {
         // Update field containing the number of ROI magnitude bit-planes
         cblk.nROIbp = cblk.magbits;
 
-        // If the ROI should adhere to the code-block's boundaries or if the
-        // entire subband belongs to the ROI mask, The code-block is set to
-        // belong entirely to the ROI with the highest scaling value
-        if(blockAligned || sbInMask) {
+        // If the entire subband belongs to the ROI mask, The code-block is
+        // set to belong entirely to the ROI with the highest scaling value
+        if(sbInMask) {
             // Scale the wmse so that instead of scaling the coefficients, the
             // wmse is scaled.
             cblk.wmseScaling *= (float)(1<<(maxBits<<1));
             cblk.nROIcoeff = w*h;
+            return cblk;
+        }
+
+        // In 'block aligned' mode, the code-block is set to belong entirely
+        // to the ROI with the highest scaling value if one coefficient, at
+        // least, belongs to the ROI
+        if(blockAligned) {
+            wrap=cblk.scanw-w;
+            mi=h*w-1;
+            i=cblk.offset+cblk.scanw*(h-1)+w-1;
+            int nroicoeff = 0;
+            for(j=h;j>0;j--){
+                for(k=w-1;k>=0;k--,i--,mi--){
+                    if (maskData[mi] != 0) {
+                        nroicoeff++;
+                    }
+                }
+                i -= wrap;
+            }
+            if(nroicoeff!=0) { // Include the subband
+                cblk.wmseScaling *= (float)(1<<(maxBits<<1));
+                cblk.nROIcoeff = w*h;
+            }
             return cblk;
         }
 

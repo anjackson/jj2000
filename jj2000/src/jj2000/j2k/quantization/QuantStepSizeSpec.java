@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: QuantStepSizeSpec.java,v 1.11 2000/09/19 14:11:22 grosbois Exp $
+ * $Id: QuantStepSizeSpec.java,v 1.12 2001/10/24 12:05:04 grosbois Exp $
  * 
  * Class:                   QuantStepSizeSpec
  * 
@@ -39,10 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.quantization;
 
 import jj2000.j2k.util.*;
@@ -69,8 +66,8 @@ public class QuantStepSizeSpec extends ModuleSpec {
      * @param type the type of the specification module i.e. tile specific,
      * component specific or both.
      * */
-    public QuantStepSizeSpec(int nt, int nc, byte type){
-	super(nt, nc, type);
+    public QuantStepSizeSpec(int nt, int nc, byte type) {
+	super(nt,nc,type);
     }
 
     /**
@@ -86,11 +83,11 @@ public class QuantStepSizeSpec extends ModuleSpec {
      *
      * @param pl The ParameterList
      * */
-    public QuantStepSizeSpec(int nt, int nc, byte type, ParameterList pl){
+    public QuantStepSizeSpec(int nt,int nc,byte type,ParameterList pl) {
         super(nt, nc, type);
 
 	String param = pl.getParameter("Qstep");
-	if(param==null){
+	if(param==null) {
 	    throw new IllegalArgumentException("Qstep option not specified");
 	}
 
@@ -103,10 +100,10 @@ public class QuantStepSizeSpec extends ModuleSpec {
 	boolean[] compSpec = null; // Components concerned by the specification
 	Float value; // value of the current step size
 	
-	while(stk.hasMoreTokens()){
+	while(stk.hasMoreTokens()) {
 	    word = stk.nextToken().toLowerCase();
 	  
-	    switch(word.charAt(0)){
+	    switch(word.charAt(0)) {
 	    case 't': // Tiles specification
  		tileSpec = parseIdx(word,nTiles);
 		if(curSpecType==SPEC_COMP_DEF)
@@ -125,7 +122,7 @@ public class QuantStepSizeSpec extends ModuleSpec {
 		try{
 		    value = new Float(word);
 		}
-		catch(NumberFormatException e){
+		catch(NumberFormatException e) {
 		    throw new IllegalArgumentException("Bad parameter for "+
 						       "-Qstep option : "+
 						       word);
@@ -138,12 +135,11 @@ public class QuantStepSizeSpec extends ModuleSpec {
 		}
 		
 
-		if(curSpecType==SPEC_DEF){
+		if(curSpecType==SPEC_DEF) {
 		    setDefault(value);
-		}
-		else if(curSpecType==SPEC_TILE_DEF){
+		} else if(curSpecType==SPEC_TILE_DEF) {
 		    for(int i=tileSpec.length-1; i>=0; i--)
-			if(tileSpec[i]){
+			if(tileSpec[i]) {
 			    setTileDef(i,value);
                         }
 		}

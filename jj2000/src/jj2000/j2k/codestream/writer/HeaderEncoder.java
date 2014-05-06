@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: HeaderEncoder.java,v 1.35 2001/03/02 10:10:30 grosbois Exp $
+ * $Id: HeaderEncoder.java,v 1.43 2001/10/12 09:02:14 grosbois Exp $
  *
  * Class:                   HeaderEncoder
  *
@@ -68,21 +68,39 @@ import java.io.*;
  * <p>A marker segment includes a marker and eventually marker segment
  * parameters. It is designed by the three letter code of the marker
  * associated with the marker segment. JPEG 2000 part I defines 6 types of
- * markers: <ul> <li> Delimiting : SOC,SOT,SOD,EOC (written in
- * FileCodestreamWriter).</li> <li> Fixed information: SIZ.</li> <li>
- * Functional: COD,COC,RGN,QCD,QCC,POC.</li> <li> In bit-stream: SOP,EPH.</li>
- * <li> Pointer: TLM,PLM,PLT,PPM,PPT.</li> <li> Informational:
- * CRG,COM.</li></ul>
+ * markers:
+ * <ul> 
+ * <li>Delimiting : SOC,SOT,SOD,EOC (written in FileCodestreamWriter).</li>
+ * <li>Fixed information: SIZ.</li> 
+ * <li>Functional: COD,COC,RGN,QCD,QCC,POC.</li>
+ * <li> In bit-stream: SOP,EPH.</li>
+ * <li> Pointer: TLM,PLM,PLT,PPM,PPT.</li> 
+ * <li> Informational: CRG,COM.</li>
+ * </ul></p>
  *
  * <p>Main Header is written when Encoder instance calls encodeMainHeader
  * whereas tile-part headers are written when the EBCOTRateAllocator instance
- * calls encodeTilePartHeader.
+ * calls encodeTilePartHeader.</p>
  *
  * @see Encoder
  * @see Markers
  * @see EBCOTRateAllocator
  * */
 public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
+
+    /** The prefix for the header encoder options: 'H' */
+    public final static char OPT_PREFIX = 'H';
+
+    /** The list of parameters that are accepted for the header encoder
+     * module. Options for this modules start with 'H'. */
+    private final static String[][] pinfo = {
+        {"Hjj2000_COM", null, "Writes or not the JJ2000 COM marker in the "+
+         "codestream", "on"},
+        {"HCOM", "<Comment 1>[#<Comment 2>[#<Comment3...>]]",
+         "Adds COM marker segments in the codestream. Comments must be "+
+         "separated with '#' and are written into distinct maker segments.",
+         null}
+    };
 
     /** Nominal range bit of the component defining default values in QCD for
      * main header */
@@ -93,19 +111,25 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     private int deftilenr;
     
     /** The number of components in the image */
-    protected int nComp;
+    private int nComp;
 
-    /** The ByteArrayOutputStream to store header data. This handler
-     * is kept in order to use methods not accessible from a general
-     * DataOutputStream. For the other methods, it's better to use
-     * variable hbuf.
+    /** Whether or not to write the JJ2000 COM marker segment */
+    private boolean enJJ2KMarkSeg = true;
+
+    /** Other COM marker segments specified in the command line */
+    private String otherCOMMarkSeg = null;
+
+    /** The ByteArrayOutputStream to store header data. This handler is kept
+     * in order to use methods not accessible from a general
+     * DataOutputStream. For the other methods, it's better to use variable
+     * hbuf.
      *
      * @see #hbuf */
     protected ByteArrayOutputStream baos;
     
-    /** The DataOutputStream to store header data. This kind of object 
-     * is useful to write short, int, .... It's constructor takes
-     * baos as parameter.
+    /** The DataOutputStream to store header data. This kind of object is
+     * useful to write short, int, .... It's constructor takes baos as
+     * parameter.
      *
      * @see #baos
      **/
@@ -114,8 +138,8 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     /** The image data reader. Source of original data info */
     protected ImgData origSrc;
 
-    /** An array specifying, for each component,if the data was signed
-        or not */
+    /** An array specifying, for each component,if the data was signed or not
+     * */ 
     protected boolean isOrigSig[];
 
     /** Reference to the rate allocator */
@@ -132,6 +156,23 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
     /** The encoder specifications */
     protected EncoderSpecs encSpec;
+
+   /**
+     * Returns the parameters that are used in this class and implementing
+     * classes. It returns a 2D String array. Each of the 1D arrays is for a
+     * different option, and they have 3 elements. The first element is the
+     * option name, the second one is the synopsis, the third one is a long
+     * description of what the parameter is and the fourth is its default
+     * value. The synopsis or description may be 'null', in which case it is
+     * assumed that there is no synopsis or description of the option,
+     * respectively. Null may be returned if no options are supported.
+     *
+     * @return the options name, their synopsis and their explanation, or null
+     * if no options are supported.
+     * */
+    public static String[][] getParameterInfo() {
+        return pinfo;
+    }
 
     /**
      * Initializes the header writer with the references to the coding chain.
@@ -151,10 +192,14 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * @param roiSc The ROI scaler module.
      *
      * @param ralloc The post compression rate allocator.
+     *
+     * @param pl ParameterList instance.
      * */
     public HeaderEncoder(ImgData origsrc, boolean isorigsig[],
                          ForwardWT dwt, Tiler tiler,EncoderSpecs encSpec, 
-			 ROIScaler roiSc, PostCompRateAllocator ralloc) {
+			 ROIScaler roiSc, PostCompRateAllocator ralloc,
+                         ParameterList pl) {
+        pl.checkList(OPT_PREFIX,pl.toNameArray(pinfo));
         if (origsrc.getNumComps() != isorigsig.length) {
             throw new IllegalArgumentException();
         }
@@ -169,6 +214,8 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         baos = new ByteArrayOutputStream();
         hbuf = new DataOutputStream(baos);
         nComp = origsrc.getNumComps();
+        enJJ2KMarkSeg = pl.getBooleanParameter("Hjj2000_COM");
+        otherCOMMarkSeg = pl.getParameter("HCOM");
     }
 
     /**
@@ -186,7 +233,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      *
      * @return A byte array countaining codestream header
      * */
-    protected byte[] getBuffer(){
+    protected byte[] getBuffer() {
         return baos.toByteArray();
     }
 
@@ -217,13 +264,11 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     }
 
     /**
-     * Returns the number of bytes used in the codestream header's
-     * buffer.
+     * Returns the number of bytes used in the codestream header's buffer.
      *
-     * @return Header length in buffer (without any header
-     * overhead)
+     * @return Header length in buffer (without any header overhead)
      * */
-    protected int getBufferLength(){
+    protected int getBufferLength() {
         return baos.size();
     }
 
@@ -238,7 +283,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
     /**
      * Start Of Codestream marker (SOC) signalling the beginning of a
-     * codestream. 
+     * codestream.
      * */
     private void writeSOC() throws IOException {
         hbuf.writeShort(SOC);
@@ -300,7 +345,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         hbuf.writeShort(nComp);
                 
         // Bit-depth and downsampling factors.
-        for(int c=0; c<nComp; c++){ // Loop on each component
+        for(int c=0; c<nComp; c++) { // Loop on each component
             
             // Ssiz bit-depth before mixing
             tmp = origSrc.getNomRangeBits(c)-1;            
@@ -324,7 +369,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * layering) used for compressing all the components in an image.
      *
      * <p>The values can be overriden for an individual component by a COC
-     * marker in either the main or the tile header.
+     * marker in either the main or the tile header.</p>
      *
      * @param mh Flag indicating whether this marker belongs to the main
      * header
@@ -333,8 +378,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * 
      * @see #writeCOC
      * */
-    protected void writeCOD(boolean mh, int tileIdx) 
-	throws IOException {
+    protected void writeCOD(boolean mh, int tileIdx) throws IOException {
 	AnWTFilter[][] filt;
         boolean precinctPartitionUsed;
         int tmp;
@@ -342,30 +386,28 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         int ppx=0, ppy=0;
 	Progression[] prog;
         
-        if (mh) {
+        if(mh) {
 	    mrl = ((Integer)encSpec.dls.getDefault()).intValue();
             // get default precinct size 
             ppx = encSpec.pss.getPPX(-1,-1,mrl);
             ppy = encSpec.pss.getPPY(-1,-1,mrl);
-	    prog = (Progression[])(encSpec.ps.getDefault());
-        }
-        else {
+	    prog = (Progression[])(encSpec.pocs.getDefault());
+        } else {
 	    mrl = ((Integer)encSpec.dls.getTileDef(tileIdx)).intValue();
             // get precinct size for specified tile
             ppx = encSpec.pss.getPPX(tileIdx,-1,mrl);
             ppy = encSpec.pss.getPPY(tileIdx,-1,mrl);
-	    prog = (Progression[])(encSpec.ps.getTileDef(tileIdx));
+	    prog = (Progression[])(encSpec.pocs.getTileDef(tileIdx));
         }
 
-        if ( ppx != PRECINCT_PARTITION_DEF_SIZE ||
-             ppy != PRECINCT_PARTITION_DEF_SIZE ) {
+        if(ppx!=PRECINCT_PARTITION_DEF_SIZE || 
+           ppy!=PRECINCT_PARTITION_DEF_SIZE ) {
             precinctPartitionUsed = true;
-        }
-        else {
+        } else {
             precinctPartitionUsed = false;
         }
         
-        if ( precinctPartitionUsed ) {
+        if(precinctPartitionUsed ) {
 	    // If precinct partition is used we add one byte per resolution
 	    // level i.e. mrl+1 (+1 for resolution 0).
             a = mrl+1;
@@ -383,36 +425,37 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         
         // Scod (coding style parameter)
 	tmp=0;
-        if ( precinctPartitionUsed ) 
+        if(precinctPartitionUsed) {
             tmp=SCOX_PRECINCT_PARTITION;
+        }
 
         // Are SOP markers used ?
-	if (mh) {
+	if(mh) {
             if( ((String)encSpec.sops.getDefault().toString())
                  .equalsIgnoreCase("on") ) {
                 tmp |= SCOX_USE_SOP;
             }
-        }
-        else {
-            if ( ((String)encSpec.sops.getTileDef(tileIdx).toString())
+        } else {
+            if( ((String)encSpec.sops.getTileDef(tileIdx).toString())
                  .equalsIgnoreCase("on") ) {
                 tmp |= SCOX_USE_SOP;
             }
         }
         
         // Are EPH markers used ?
-        if(mh){
+        if(mh) {
             if ( ((String)encSpec.ephs.getDefault().toString())
                  .equalsIgnoreCase("on") ) {
                 tmp |= SCOX_USE_EPH;
             }
-        }
-        else{
+        } else {
             if ( ((String)encSpec.ephs.getTileDef(tileIdx).toString())
                  .equalsIgnoreCase("on") ) {
                 tmp |= SCOX_USE_EPH;
             }
         }
+        if (dwt.getCbULX()!=0) tmp |= SCOX_HOR_CB_PART;
+        if (dwt.getCbULY()!=0) tmp |= SCOX_VER_CB_PART;
 	hbuf.write(tmp);
         
         // SGcod
@@ -425,22 +468,24 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // Multiple component transform
         // CSsiz (Color transform)
         String str = null;
-        if(mh)
+        if(mh) {
             str = (String)encSpec.cts.getDefault();
-        else
+        } else {
             str = (String)encSpec.cts.getTileDef(tileIdx);
+        }
 
-        if(str.equals("none"))
+        if(str.equals("none")) {
             hbuf.write(0);
-        else
+        } else {
             hbuf.write(1);
+        }
 
         // SPcod
         // Number of decomposition levels
         hbuf.write(mrl);
         
         // Code-block width and height
-        if ( mh ) {
+        if(mh) {
             // main header, get default values
             tmp = encSpec.cblks.
                 getCBlkWidth(ModuleSpec.SPEC_DEF,-1,-1);
@@ -448,8 +493,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             tmp = encSpec.cblks.
                 getCBlkHeight(ModuleSpec.SPEC_DEF,-1,-1);
             hbuf.write(MathUtil.log2(tmp)-2);
-        }
-        else {
+        } else {
             // tile header, get tile default values
             tmp = encSpec.cblks.
                 getCBlkWidth(ModuleSpec.SPEC_TILE_DEF,tileIdx,-1);
@@ -461,7 +505,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
 	// Style of the code-block coding passes
         tmp = 0;
-	if(mh){ // Main header
+	if(mh) { // Main header
 	    // Selective arithmetic coding bypass ?
 	    if( ((String)encSpec.bms.getDefault()).equals("on")) {
 		tmp |= OPT_BYPASS;
@@ -472,23 +516,21 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	    }
 	    // MQ termination after each arithmetically coded coding pass ?
 	    if(  ((String)encSpec.rts.getDefault()).equals("on") ) {
-		tmp |= OPT_REG_TERM;
+		tmp |= OPT_TERM_PASS;
 	    }
 	    // Vertically stripe-causal context mode ?
 	    if(  ((String)encSpec.css.getDefault()).equals("on") ) {
 		tmp |= OPT_VERT_STR_CAUSAL;
 	    }
             // Predictable termination ?
-            if( ((String)encSpec.tts.getDefault()).equals("predict")){
-                tmp |= OPT_ER_TERM;
+            if( ((String)encSpec.tts.getDefault()).equals("predict")) {
+                tmp |= OPT_PRED_TERM;
             }
 	    // Error resilience segmentation symbol insertion ?
 	    if(  ((String)encSpec.sss.getDefault()).equals("on")) {
-		tmp |= OPT_SEG_MARKERS;
+		tmp |= OPT_SEG_SYMBOLS;
 	    }
-	}
-	else{ // Tile header
-
+	} else { // Tile header
 	    // Selective arithmetic coding bypass ?
 	    if( ((String)encSpec.bms.getTileDef(tileIdx)).equals("on")) {
 		tmp |= OPT_BYPASS;
@@ -499,59 +541,56 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	    }
 	    // MQ termination after each arithmetically coded coding pass ?
 	    if(  ((String)encSpec.rts.getTileDef(tileIdx)).equals("on") ) {
-		tmp |= OPT_REG_TERM;
+		tmp |= OPT_TERM_PASS;
 	    }
 	    // Vertically stripe-causal context mode ?
 	    if(  ((String)encSpec.css.getTileDef(tileIdx)).equals("on") ) {
 		tmp |= OPT_VERT_STR_CAUSAL;
 	    }
             // Predictable termination ?
-            if( ((String)encSpec.tts.getTileDef(tileIdx)).equals("predict")){
-                tmp |= OPT_ER_TERM;
+            if( ((String)encSpec.tts.getTileDef(tileIdx)).equals("predict")) {
+                tmp |= OPT_PRED_TERM;
             }
 	    // Error resilience segmentation symbol insertion ?
 	    if(  ((String)encSpec.sss.getTileDef(tileIdx)).equals("on")) {
-		tmp |= OPT_SEG_MARKERS;
+		tmp |= OPT_SEG_SYMBOLS;
 	    }
 	}
         hbuf.write(tmp);
 
         // Wavelet transform
         // Wavelet Filter
-	if(mh){
+	if(mh) {
 	    filt=((AnWTFilter[][])encSpec.wfs.getDefault());
 	    hbuf.write(filt[0][0].getFilterType());
-	}else{
+	} else {
 	    filt=((AnWTFilter[][])encSpec.wfs.getTileDef(tileIdx));
 	    hbuf.write(filt[0][0].getFilterType());
 	}
 
         // Precinct partition
-        if ( precinctPartitionUsed ) {
+        if(precinctPartitionUsed) {
             // Write the precinct size for each resolution level + 1
             // (resolution 0) if precinct partition is used.
             Vector v[] = null;
-            if ( mh ) {
+            if(mh) {
                 v = (Vector[])encSpec.pss.getDefault();
-            }
-            else {
+            } else {
                 v = (Vector[])encSpec.pss.getTileDef(tileIdx);
             }
-            for (int r=mrl ; r>=0 ; r--) {
-                if ( r>=v[1].size() ) {
+            for(int r=mrl; r>=0; r--) {
+                if(r>=v[1].size()) {
                     tmp = ((Integer)v[1].elementAt(v[1].size()-1)).
                         intValue();
-                }
-                else {
+                } else {
                     tmp = ((Integer)v[1].elementAt(r)).intValue();
                 }
-                int yExp = (MathUtil.log2(tmp)<< 4) & 0x00F0;
+                int yExp = (MathUtil.log2(tmp)<<4) & 0x00F0;
 
-                if ( r>=v[0].size() ) {
+                if(r>=v[0].size()) {
                     tmp = ((Integer)v[0].elementAt(v[0].size()-1)).
                         intValue();
-                }
-                else {
+                } else {
                     tmp = ((Integer)v[0].elementAt(r)).intValue();
                 }
                 int xExp = MathUtil.log2(tmp) & 0x000F;
@@ -564,12 +603,12 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * Writes COC marker segment . It is a functional marker containing the
      * coding style for one component (coding style, decomposition, layering).
      *
-     * <P>Its values overrides any value previously set in COD in the main
-     * header or in the tile header.
+     * <p>Its values overrides any value previously set in COD in the main
+     * header or in the tile header.</p>
      *
-     * @param mh Flag indicating whether the main header is to be written 
+     * @param mh Flag indicating whether the main header is to be written. 
      *
-     * @param tileIdx Tile index
+     * @param tileIdx Tile index.
      * 
      * @param compIdx index of the component which need use of the COC marker
      * segment.
@@ -590,22 +629,21 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             // Get precinct size for specified component
             ppx = encSpec.pss.getPPX(-1, compIdx, mrl);
             ppy = encSpec.pss.getPPY(-1, compIdx, mrl);
-	    prog = (Progression[])(encSpec.ps.getCompDef(compIdx));
-        }
-        else {
+	    prog = (Progression[])(encSpec.pocs.getCompDef(compIdx));
+        } else {
             mrl = ((Integer)encSpec.dls.getTileCompVal(tileIdx,compIdx)).
 		intValue();
             // Get precinct size for specified component/tile
             ppx = encSpec.pss.getPPX(tileIdx, compIdx, mrl);
             ppy = encSpec.pss.getPPY(tileIdx, compIdx, mrl);
-	    prog = (Progression[])(encSpec.ps.getTileCompVal(tileIdx,compIdx));
+	    prog = (Progression[])(encSpec.pocs.
+                                   getTileCompVal(tileIdx,compIdx));
         }
 
         if ( ppx != Markers.PRECINCT_PARTITION_DEF_SIZE ||
              ppy != Markers.PRECINCT_PARTITION_DEF_SIZE ) {
             precinctPartitionUsed = true;
-        }
-        else {
+        } else {
             precinctPartitionUsed = false;
         }
         if ( precinctPartitionUsed ) {
@@ -627,8 +665,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // Ccoc
         if(nComp < 257) {
             hbuf.write(compIdx);
-        }
-        else {
+        } else {
             hbuf.writeShort(compIdx);
         }
 
@@ -654,8 +691,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             tmp = encSpec.cblks.
                 getCBlkHeight(ModuleSpec.SPEC_COMP_DEF, -1, compIdx);
             hbuf.write(MathUtil.log2(tmp)-2);
-        }
-        else {
+        } else {
             // tile header, get tile component values
             tmp = encSpec.cblks.
                 getCBlkWidth(ModuleSpec.SPEC_TILE_COMP, tileIdx, compIdx);
@@ -667,7 +703,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
         // Entropy coding mode options
         tmp = 0;
-	if(mh){ // Main header
+	if(mh) { // Main header
 	    // Lazy coding mode ?
 	    if( ((String)encSpec.bms.getCompDef(compIdx)).equals("on")) {
 		tmp |= OPT_BYPASS;
@@ -679,22 +715,21 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	    }
 	    // MQ termination after each arithmetically coded coding pass ?
 	    if(  ((String)encSpec.rts.getCompDef(compIdx)).equals("on") ) {
-		tmp |= OPT_REG_TERM;
+		tmp |= OPT_TERM_PASS;
 	    }
 	    // Vertically stripe-causal context mode ?
 	    if(  ((String)encSpec.css.getCompDef(compIdx)).equals("on") ) {
 		tmp |= OPT_VERT_STR_CAUSAL;
 	    }
             // Predictable termination ?
-            if( ((String)encSpec.tts.getCompDef(compIdx)).equals("predict")){
-                tmp |= OPT_ER_TERM;
+            if( ((String)encSpec.tts.getCompDef(compIdx)).equals("predict")) {
+                tmp |= OPT_PRED_TERM;
             }
 	    // Error resilience segmentation symbol insertion ?
 	    if(  ((String)encSpec.sss.getCompDef(compIdx)).equals("on")) {
-		tmp |= OPT_SEG_MARKERS;
+		tmp |= OPT_SEG_SYMBOLS;
 	    }
-	}
-	else{ // Tile Header
+	} else { // Tile Header
 	    if( ((String)encSpec.bms.getTileCompVal(tileIdx,compIdx)).
 		equals("on")) {
 		tmp |= OPT_BYPASS;
@@ -707,7 +742,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	    // MQ termination after each arithmetically coded coding pass ?
 	    if(  ((String)encSpec.rts.getTileCompVal(tileIdx,compIdx)).
 		 equals("on") ) {
-		tmp |= OPT_REG_TERM;
+		tmp |= OPT_TERM_PASS;
 	    }
 	    // Vertically stripe-causal context mode ?
 	    if(  ((String)encSpec.css.getTileCompVal(tileIdx,compIdx)).
@@ -716,23 +751,23 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	    }
             // Predictable termination ?
             if( ((String)encSpec.tts.getTileCompVal(tileIdx,compIdx)).
-                equals("predict")){
-                tmp |= OPT_ER_TERM;
+                equals("predict")) {
+                tmp |= OPT_PRED_TERM;
             }
 	    // Error resilience segmentation symbol insertion ?
 	    if(  ((String)encSpec.sss.getTileCompVal(tileIdx,compIdx)).
 		 equals("on")) {
-		tmp |= OPT_SEG_MARKERS;
+		tmp |= OPT_SEG_SYMBOLS;
 	    }
 	}
 	hbuf.write(tmp);
 
         // Wavelet transform
         // Wavelet Filter
-	if(mh){
+	if(mh) {
 	    filt=((AnWTFilter[][])encSpec.wfs.getCompDef(compIdx));
 	    hbuf.write(filt[0][0].getFilterType());
-	}else{
+	} else {
 	    filt=((AnWTFilter[][])encSpec.wfs.getTileCompVal(tileIdx,compIdx));
 	    hbuf.write(filt[0][0].getFilterType());
 	}
@@ -744,16 +779,14 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             Vector v[] = null;
             if ( mh ) {
                 v = (Vector[])encSpec.pss.getCompDef(compIdx);
-            }
-            else {
+            } else {
                 v = (Vector[])encSpec.pss.getTileCompVal(tileIdx, compIdx);
             }
             for (int r=mrl ; r>=0 ; r--) {
                 if ( r>=v[1].size() ) {
                     tmp = ((Integer)v[1].elementAt(v[1].size()-1)).
                         intValue();
-                }
-                else {
+                } else {
                     tmp = ((Integer)v[1].elementAt(r)).intValue();
                 }
                 int yExp = (MathUtil.log2(tmp)<< 4) & 0x00F0;
@@ -761,8 +794,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
                 if ( r>=v[0].size() ) {
                     tmp = ((Integer)v[0].elementAt(v[0].size()-1)).
                         intValue();
-                }
-                else {
+                } else {
                     tmp = ((Integer)v[0].elementAt(r)).intValue();
                 }
                 int xExp = MathUtil.log2(tmp) & 0x000F;
@@ -779,17 +811,11 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * individual component by a QCC marker in either the main or the tile
      * header.
      * */
-    protected void writeMainQCD() throws IOException{
-        int c;
+    protected void writeMainQCD() throws IOException {
         int mrl;
         int qstyle;
 
         float step;
-        
-        int[] tcIdx = encSpec.dls.getDefRep();
-        SubbandAn sb,csb,
-            sbRoot = dwt.getSubbandTree(tcIdx[0],tcIdx[1]);
-        defimgn = dwt.getNomRangeBits(tcIdx[1]);
 
         String qType = (String)encSpec.qts.getDefault();
         float baseStep = ((Float)encSpec.qsss.getDefault()).floatValue();
@@ -797,6 +823,34 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
         boolean isDerived   = qType.equals("derived");
         boolean isReversible = qType.equals("reversible");
+
+        mrl = ((Integer)encSpec.dls.getDefault()).intValue();
+
+        int nt = dwt.getNumTiles();
+        int nc = dwt.getNumComps();
+        int tmpI;
+        int[] tcIdx = new int[2];
+        String tmpStr;
+        boolean notFound = true;
+        for(int t=0; t<nt && notFound; t++) {
+            for(int c=0; c<nc && notFound; c++) {
+                tmpI = ((Integer)encSpec.dls.getTileCompVal(t,c)).intValue();
+                tmpStr = (String)encSpec.qts.getTileCompVal(t,c);
+                if(tmpI==mrl && tmpStr.equals(qType)) {
+                    tcIdx[0] = t; tcIdx[1] = c;
+                    notFound = false;
+                }
+            }
+        }
+        if(notFound) {
+            throw new Error("Default representative for quantization type "+
+                            " and number of decomposition levels not found "+
+                            " in main QCD marker segment. "+
+                            "You have found a JJ2000 bug.");
+        }
+        SubbandAn sb,csb,
+            sbRoot = dwt.getAnSubbandTree(tcIdx[0],tcIdx[1]);
+        defimgn = dwt.getNomRangeBits(tcIdx[1]);
 
         int nqcd; // Number of quantization step-size to transmit
 
@@ -807,8 +861,6 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // QCD marker
         hbuf.writeShort(QCD);
         
-        mrl = ((Integer)encSpec.dls.getDefault()).intValue();
-
         // Compute the number of steps to send
         switch (qstyle) {
         case SQCX_SCALAR_DERIVED:
@@ -908,36 +960,27 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     }
 
     /**
-     * Writes QCC marker segment in main header. It is a functional
-     * marker segment countaining the quantization used for
-     * compressing the specified component in an image. The values
-     * override for the specified component what was defined by a QCC
-     * marker in either the main or the tile header.
+     * Writes QCC marker segment in main header. It is a functional marker
+     * segment countaining the quantization used for compressing the specified
+     * component in an image. The values override for the specified component
+     * what was defined by a QCC marker in either the main or the tile header.
      *
-     * @param compIdx Index of the component which needs QCC marker
-     * segment.
+     * @param compIdx Index of the component which needs QCC marker segment.
      * */
-    protected void writeMainQCC(int compIdx)
-	throws IOException{
+    protected void writeMainQCC(int compIdx) throws IOException {
 
         int mrl;
-        int qstyle,tIdx;
+        int qstyle;
+        int tIdx = 0;
         float step;
         
         SubbandAn sb,sb2;
 	SubbandAn sbRoot;
 
-	if(encSpec.qts.isCompSpecified(compIdx)){
-	    tIdx = encSpec.qts.getCompDefRep(compIdx);
-	}
-	else{
-	    tIdx = encSpec.qts.getDefRep()[0];
-	}
-	sbRoot = dwt.getSubbandTree(tIdx,compIdx);
-
         int imgnr = dwt.getNomRangeBits(compIdx);
         String qType = (String)encSpec.qts.getCompDef(compIdx);
-        float baseStep = ((Float)encSpec.qsss.getCompDef(compIdx)).floatValue();
+        float baseStep = 
+            ((Float)encSpec.qsss.getCompDef(compIdx)).floatValue();
         int gb = ((Integer)encSpec.gbs.getCompDef(compIdx)).intValue();
 
         boolean isReversible = qType.equals("reversible");
@@ -945,16 +988,37 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
         mrl = ((Integer)encSpec.dls.getCompDef(compIdx)).intValue();
 
+        int nt = dwt.getNumTiles();
+        int nc = dwt.getNumComps();
+        int tmpI;
+        String tmpStr;
+        boolean notFound = true;
+        for(int t=0; t<nt && notFound; t++) {
+            for(int c=0; c<nc && notFound; c++) {
+                tmpI = ((Integer)encSpec.dls.getTileCompVal(t,c)).intValue();
+                tmpStr = (String)encSpec.qts.getTileCompVal(t,c);
+                if(tmpI==mrl && tmpStr.equals(qType)) {
+                    tIdx = t;
+                    notFound = false;
+                }
+            }
+        }
+        if(notFound) {
+            throw new Error("Default representative for quantization type "+
+                            " and number of decomposition levels not found "+
+                            " in main QCC (c="+compIdx+") marker segment. "+
+                            "You have found a JJ2000 bug.");
+        }
+  	sbRoot = dwt.getAnSubbandTree(tIdx,compIdx);
+
         int nqcc; // Number of quantization step-size to transmit
 
         // Get the quantization style
         if(isReversible) {
             qstyle = SQCX_NO_QUANTIZATION;
-        }
-        else if (isDerived) {
+        } else if (isDerived) {
             qstyle = SQCX_SCALAR_DERIVED;
-        }
-        else {
+        } else {
             qstyle = SQCX_SCALAR_EXPOUNDED;
         }
 
@@ -1006,8 +1070,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // Cqcc
         if (nComp < 257) {
             hbuf.write(compIdx);
-        }
-        else {
+        } else {
             hbuf.writeShort(compIdx);
         }
 
@@ -1076,47 +1139,47 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     }
 
     /**
-     * Writes QCD marker segment in tile header. QCD is a functional
-     * marker segment countaining the quantization default used for
-     * compressing all the components in an image. The values can be
-     * overriden for an individual component by a QCC marker in either
-     * the main or the tile header.
+     * Writes QCD marker segment in tile header. QCD is a functional marker
+     * segment countaining the quantization default used for compressing all
+     * the components in an image. The values can be overriden for an
+     * individual component by a QCC marker in either the main or the tile
+     * header.
      *
      * @param tIdx Tile index
      * */
-    protected void writeTileQCD(int tIdx) throws IOException{
-        int c;
+    protected void writeTileQCD(int tIdx) throws IOException {
         int mrl;
         int qstyle;
 
         float step;
         SubbandAn sb,csb,sbRoot;
         
-        if(encSpec.qts.isTileSpecified(tIdx)){
-            int cIdx = encSpec.qts.getTileDefRep(tIdx);
-            sbRoot = dwt.getSubbandTree(tIdx,cIdx);
-            deftilenr = dwt.getNomRangeBits(cIdx);
-        }
-        else{
-            // No quantization type specification for this tile
-            int cIdx = 0;
-	    for(cIdx=0; cIdx<nComp; cIdx++){
-		if(!encSpec.qts.isCompSpecified(cIdx)){
-		    break;
-		}
-	    }
-	    // All the component are specified
-	    if(cIdx>=nComp)
-		throw new IllegalArgumentException("No component default"+
-                                                   " value"+
-						   " for quantization type");
-
-            sbRoot = dwt.getSubbandTree(tIdx,cIdx);
-            deftilenr = dwt.getNomRangeBits(cIdx);
-        }
-
         String qType = (String)encSpec.qts.getTileDef(tIdx);
         float baseStep = ((Float)encSpec.qsss.getTileDef(tIdx)).floatValue();
+        mrl = ((Integer)encSpec.dls.getTileDef(tIdx)).intValue();
+
+        int nc = dwt.getNumComps();
+        int tmpI;
+        String tmpStr;
+        boolean notFound = true;
+        int compIdx = 0;
+        for(int c=0; c<nc && notFound; c++) {
+            tmpI = ((Integer)encSpec.dls.getTileCompVal(tIdx,c)).intValue();
+            tmpStr = (String)encSpec.qts.getTileCompVal(tIdx,c);
+            if(tmpI==mrl && tmpStr.equals(qType)) {
+                compIdx = c;
+                notFound = false;
+            }
+        }
+        if(notFound) {
+            throw new Error("Default representative for quantization type "+
+                            " and number of decomposition levels not found "+
+                            " in tile QCD (t="+tIdx+") marker segment. "+
+                            "You have found a JJ2000 bug.");
+        }
+
+  	sbRoot = dwt.getAnSubbandTree(tIdx,compIdx);
+        deftilenr = dwt.getNomRangeBits(compIdx);
         int gb = ((Integer)encSpec.gbs.getTileDef(tIdx)).intValue();
 
         boolean isDerived   = qType.equals("derived");
@@ -1131,8 +1194,6 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // QCD marker
         hbuf.writeShort(QCD);
         
-        mrl = ((Integer)encSpec.dls.getTileDef(tIdx)).intValue();
-
         // Compute the number of steps to send
         switch (qstyle) {
         case SQCX_SCALAR_DERIVED:
@@ -1232,19 +1293,16 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     }
 
     /**
-     * Writes QCC marker segment in tile header. It is a functional
-     * marker segment countaining the quantization used for
-     * compressing the specified component in an image. The values
-     * override for the specified component what was defined by a QCC
-     * marker in either the main or the tile header.
+     * Writes QCC marker segment in tile header. It is a functional marker
+     * segment countaining the quantization used for compressing the specified
+     * component in an image. The values override for the specified component
+     * what was defined by a QCC marker in either the main or the tile header.
      *
      * @param t Tile index
      *
-     * @param compIdx Index of the component which needs QCC marker
-     * segment.
+     * @param compIdx Index of the component which needs QCC marker segment.
      * */
-    protected void writeTileQCC(int t,int compIdx)
-	throws IOException{
+    protected void writeTileQCC(int t,int compIdx) throws IOException {
 
         int mrl;
         int qstyle;
@@ -1253,7 +1311,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         SubbandAn sb,sb2;
         int nqcc; // Number of quantization step-size to transmit
 
-        SubbandAn sbRoot = dwt.getSubbandTree(t,compIdx);
+        SubbandAn sbRoot = dwt.getAnSubbandTree(t,compIdx);
         int imgnr = dwt.getNomRangeBits(compIdx);
         String qType = (String)encSpec.qts.getTileCompVal(t,compIdx);
         float baseStep = ((Float)encSpec.qsss.getTileCompVal(t,compIdx)).
@@ -1268,11 +1326,9 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // Get the quantization style
         if(isReversible) {
             qstyle = SQCX_NO_QUANTIZATION;
-        }
-        else if (isDerived) {
+        } else if (isDerived) {
             qstyle = SQCX_SCALAR_DERIVED;
-        }
-        else {
+        } else {
             qstyle = SQCX_SCALAR_EXPOUNDED;
         }
 
@@ -1324,8 +1380,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // Cqcc
         if (nComp < 257) {
             hbuf.write(compIdx);
-        }
-        else {
+        } else {
             hbuf.writeShort(compIdx);
         }
 
@@ -1412,11 +1467,10 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 
         // Get the progression order changes, their number and checks
         // if it is ok
-        if(mh){
-            prog = (Progression[])(encSpec.ps.getDefault());
-        }
-        else {
-            prog = (Progression[])(encSpec.ps.getTileDef(tileIdx));
+        if(mh) {
+            prog = (Progression[])(encSpec.pocs.getDefault());
+        } else {
+            prog = (Progression[])(encSpec.pocs.getTileDef(tileIdx));
         }
 
         // Calculate the length of a component field (depends on the number of 
@@ -1427,21 +1481,20 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         hbuf.writeShort(POC);
 
         // Lpoc (marker segment length (in bytes))
-        // Basic: Lpoc(2 bytes) + npoc * [ RSpoc(1) + CSpoc(1 or 2) + LYEpoc(2) 
-        // + REpoc(1) + CEpoc(1 or 2) + Ppoc(1) ]
-	npoc = prog.length-1;
+        // Basic: Lpoc(2 bytes) + npoc * [ RSpoc(1) + CSpoc(1 or 2) + 
+        // LYEpoc(2) + REpoc(1) + CEpoc(1 or 2) + Ppoc(1) ]
+	npoc = prog.length;
         markSegLen = 2 + npoc * (1+lenCompField+2+1+lenCompField+1);
         hbuf.writeShort(markSegLen);
 
         // Write each progression order change 
-        for (int i=0 ; i<npoc ; i++){
+        for (int i=0 ; i<npoc ; i++) {
             // RSpoc(i)
             hbuf.write(prog[i].rs);
             // CSpoc(i)
             if ( lenCompField==2 ) {
                 hbuf.writeShort(prog[i].cs);
-            }
-            else {
+            } else {
                 hbuf.write(prog[i].cs);
             }
             // LYEpoc(i)
@@ -1451,22 +1504,28 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             // CEpoc(i)
             if ( lenCompField==2 ) {
                 hbuf.writeShort(prog[i].ce);
-            }
-            else {
+            } else {
                 hbuf.write(prog[i].ce);
             }
             // Ppoc(i)
-            hbuf.write(prog[i+1].type);
+            hbuf.write(prog[i].type);
         }
     }
 
 
     /**
      * Write main header. JJ2000 main header corresponds to the following
-     * sequence of marker
-     * segments:<ol><li>SOC</li><li>SIZ</li><li>COD</li><li>COC (if
-     * needed)</li><li>QCD</li><li>QCC (if needed)</li><li>POC (if
-     * needed)</li></ol>
+     * sequence of marker segments:
+     *
+     * <ol>
+     * <li>SOC</li>
+     * <li>SIZ</li>
+     * <li>COD</li>
+     * <li>COC (if needed)</li>
+     * <li>QCD</li>
+     * <li>QCC (if needed)</li>
+     * <li>POC (if needed)</li>
+     * </ol>
      * */
     public void encodeMainHeader() throws IOException {
         int i;
@@ -1518,12 +1577,12 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // | Quantization Component (QCC)  |
         // +-------------------------------+
         // Write needed QCC markers
-        for(i=0; i<nComp; i++){
+        for(i=0; i<nComp; i++) {
 	    if(dwt.getNomRangeBits(i)!= defimgn ||
 	       encSpec.qts.isCompSpecified(i) || 
                encSpec.qsss.isCompSpecified(i) ||
                encSpec.dls.isCompSpecified(i) ||
-               encSpec.gbs.isCompSpecified(i)){
+               encSpec.gbs.isCompSpecified(i)) {
                 writeMainQCC(i);
 	    }
         }
@@ -1531,39 +1590,66 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // +--------------------------+
         // |    POC maker segment     |
 	// +--------------------------+
-	Progression[] prog = (Progression[])(encSpec.ps.getDefault());
+	Progression[] prog = (Progression[])(encSpec.pocs.getDefault());
         if(prog.length>1)
             writePOC(true, 0);
 
-        // +--------------------------+
-        // |      Comment (COM)       |
-        // +--------------------------+
+        // +---------------------------+
+        // |      Comments (COM)       |
+        // +---------------------------+
         writeCOM();
     }
 
     /** 
-     * Write a COM marker segment adding some comments to the codestream. 
+     * Write COM marker segment(s) to the codestream.
      * 
-     * <p> This marker is currently written in main header and indicates the
-     * JJ2000 encoder's version that has created the codestream. 
+     * <p>This marker is currently written in main header and indicates the
+     * JJ2000 encoder's version that has created the codestream.</p>
      * */
     private void writeCOM() throws IOException {
-        String str = "CREATOR: JJ2000 version "+JJ2KInfo.version;
-        int markSegLen; // the marker segment length
-        
-        // COM marker
-        hbuf.writeShort(COM);
-
-        // Calculate length: Lcom(2) + Rcom (2) + string's length;
-        markSegLen = 2 + 2 + str.length();
-        hbuf.writeShort(markSegLen);
-
-        // Rcom 
-        hbuf.writeShort(1); // General use (IS 8859-15:1999(Latin) values)
-
-        byte[] chars = str.getBytes();
-        for(int i=0; i<chars.length; i++) {
-            hbuf.writeByte(chars[i]);
+        // JJ2000 COM marker segment
+        if(enJJ2KMarkSeg) {
+            String str = "Created by: JJ2000 version "+JJ2KInfo.version;
+            int markSegLen; // the marker segment length
+            
+            // COM marker
+            hbuf.writeShort(COM);
+            
+            // Calculate length: Lcom(2) + Rcom (2) + string's length;
+            markSegLen = 2 + 2 + str.length();
+            hbuf.writeShort(markSegLen);
+            
+            // Rcom 
+            hbuf.writeShort(1); // General use (IS 8859-15:1999(Latin) values)
+            
+            byte[] chars = str.getBytes();
+            for(int i=0; i<chars.length; i++) {
+                hbuf.writeByte(chars[i]);
+            }
+        }
+        // other COM marker segments
+        if(otherCOMMarkSeg!=null) {
+            StringTokenizer stk = new StringTokenizer(otherCOMMarkSeg,"#");
+            while(stk.hasMoreTokens()) {
+                String str = stk.nextToken();
+                int markSegLen; // the marker segment length
+            
+                // COM marker
+                hbuf.writeShort(COM);
+                
+                // Calculate length: Lcom(2) + Rcom (2) + string's length;
+                markSegLen = 2 + 2 + str.length();
+                hbuf.writeShort(markSegLen);
+                
+                // Rcom 
+                hbuf.writeShort(1); // General use (IS 8859-15:1999(Latin)
+                // values)
+                
+                byte[] chars = str.getBytes();
+                for(int i=0; i<chars.length; i++) {
+                    hbuf.writeByte(chars[i]);
+                }
+            }
         }
     }
 
@@ -1571,9 +1657,9 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
      * Writes the RGN marker segment in the tile header. It describes the
      * scaling value in each tile component
      *
-     * <P>May be used in tile or main header. If used in main header, it
+     * <p>May be used in tile or main header. If used in main header, it
      * refers to a ROI of the whole image, regardless of tiling. When used in
-     * tile header, only the particular tile is affected.
+     * tile header, only the particular tile is affected.</p>
      *
      * @param tIdx The tile index 
      *
@@ -1585,7 +1671,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         int markSegLen;    // the marker length
 
         // Write one RGN marker per component 
-        for(i=0;i<nComp;i++){
+        for(i=0;i<nComp;i++) {
             // RGN marker
             hbuf.writeShort(RGN);
             
@@ -1596,10 +1682,11 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
             hbuf.writeShort(markSegLen);
             
             // Write component (Crgn)
-            if(nComp<257)
+            if(nComp<257) {
                 hbuf.writeByte(i);
-            else
+            } else {
                 hbuf.writeShort(i);
+            }
             
             // Write type of ROI (Srgn) 
             hbuf.writeByte(SRGN_IMPLICIT);
@@ -1611,10 +1698,18 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
     }
     /** 
      * Writes tile-part header. JJ2000 tile-part header corresponds to the
-     * following sequence of marker segments:<ol> <li>SOT</li> <li>COD (if
-     * needed)</li> <li>COC (if needed)</li> <li>QCD (if needed)</li> <li>QCC
-     * (if needed)</li> <li>RGN (if needed)</li> <li>POC (if needed)</li>
-     * <li>SOD</li> </ol>
+     * following sequence of marker segments:
+     *
+     * <ol> 
+     * <li>SOT</li> 
+     * <li>COD (if needed)</li> 
+     * <li>COC (if needed)</li> 
+     * <li>QCD (if needed)</li> 
+     * <li>QCC (if needed)</li> 
+     * <li>RGN (if needed)</li> 
+     * <li>POC (if needed)</li>
+     * <li>SOD</li> 
+     * </ol>
      *
      * @param length The length of the current tile-part.
      *
@@ -1624,6 +1719,8 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         throws IOException {
                 
         int tmp;
+        Coord numTiles = ralloc.getNumTiles(null);
+        ralloc.setTile(tileIdx%numTiles.x,tileIdx/numTiles.x);
           
 	// +--------------------------+
         // |    SOT maker segment     |
@@ -1637,10 +1734,10 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         hbuf.writeByte(10);
             
         // Isot
-        if(tileIdx>65534){
+        if(tileIdx>65534) {
             throw new IllegalArgumentException("Trying to write a tile-part "+
-                                               "header whose tile index is too"+
-                                               " high");
+                                               "header whose tile index is "+
+                                               "too high");
         }
         hbuf.writeByte(tileIdx>>8);
         hbuf.writeByte(tileIdx);
@@ -1676,7 +1773,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
            encSpec.pss.isTileSpecified(tileIdx) ||
            encSpec.sops.isTileSpecified(tileIdx) ||
            encSpec.sss.isTileSpecified(tileIdx) ||
-           encSpec.ps.isTileSpecified(tileIdx) ||
+           encSpec.pocs.isTileSpecified(tileIdx) ||
            encSpec.ephs.isTileSpecified(tileIdx) ||
            encSpec.cblks.isTileSpecified(tileIdx) ||
            ( isEresUsed != isEresUsedInTile ) ) {
@@ -1687,7 +1784,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	// +--------------------------+
         // |    COC maker segment     |
 	// +--------------------------+
-	for(int c=0; c<nComp; c++){
+	for(int c=0; c<nComp; c++) {
             boolean isEresUsedInTileComp = ((String)encSpec.tts.
                                             getTileCompVal(tileIdx,c)).
 		equals("predict");
@@ -1703,8 +1800,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
                encSpec.cblks.isTileCompSpecified(tileIdx,c) ||
                ( isEresUsedInTileComp != isEresUsed ) ) {
 		writeCOC(false,tileIdx,c);
-	    }
-            else if(tileCODwritten){
+	    } else if(tileCODwritten) {
                 if(encSpec.wfs.isCompSpecified(c) ||
                    encSpec.dls.isCompSpecified(c) ||
                    encSpec.bms.isCompSpecified(c) ||
@@ -1715,7 +1811,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
                    encSpec.pss.isCompSpecified(c) ||
                    encSpec.cblks.isCompSpecified(c) ||
                    (encSpec.tts.isCompSpecified(c)&&
-                    ((String)encSpec.tts.getCompDef(c)).equals("predict"))){
+                    ((String)encSpec.tts.getCompDef(c)).equals("predict"))) {
                     writeCOC(false,tileIdx,c);
                 }
             }
@@ -1728,7 +1824,7 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	if(encSpec.qts.isTileSpecified(tileIdx) ||
            encSpec.qsss.isTileSpecified(tileIdx) ||
            encSpec.dls.isTileSpecified(tileIdx) ||
-           encSpec.gbs.isTileSpecified(tileIdx)){
+           encSpec.gbs.isTileSpecified(tileIdx)) {
 	    writeTileQCD(tileIdx);
             tileQCDwritten = true;
 	} else {
@@ -1738,19 +1834,18 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
 	// +--------------------------+
         // |    QCC maker segment     |
 	// +--------------------------+
-	for(int c=0; c<nComp; c++){
+	for(int c=0; c<nComp; c++) {
 	    if(dwt.getNomRangeBits(c)!= deftilenr ||
                encSpec.qts.isTileCompSpecified(tileIdx,c) ||
                encSpec.qsss.isTileCompSpecified(tileIdx,c) ||
                encSpec.dls.isTileCompSpecified(tileIdx,c) ||
-               encSpec.gbs.isTileCompSpecified(tileIdx,c)){
+               encSpec.gbs.isTileCompSpecified(tileIdx,c)) {
 		writeTileQCC(tileIdx,c);
-	    }
-            else if(tileQCDwritten){
+	    } else if(tileQCDwritten) {
                 if(encSpec.qts.isCompSpecified(c) || 
                    encSpec.qsss.isCompSpecified(c) ||
                    encSpec.dls.isCompSpecified(c) ||
-                   encSpec.gbs.isCompSpecified(c)){
+                   encSpec.gbs.isCompSpecified(c)) {
                     writeTileQCC(tileIdx,c);
                 }
             }
@@ -1766,8 +1861,8 @@ public class HeaderEncoder implements Markers, StdEntropyCoderOptions {
         // |    POC maker segment     |
 	// +--------------------------+
 	Progression[] prog;
-        if( encSpec.ps.isTileSpecified(tileIdx) ){
-	    prog = (Progression[])(encSpec.ps.getTileDef(tileIdx));
+        if( encSpec.pocs.isTileSpecified(tileIdx) ) {
+	    prog = (Progression[])(encSpec.pocs.getTileDef(tileIdx));
 	    if(prog.length>1)
                 writePOC(false,tileIdx);
         }

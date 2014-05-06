@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ThreadPool.java,v 1.8 2000/09/21 16:13:12 dsanta Exp $
+ * $Id: ThreadPool.java,v 1.9 2002/05/22 15:00:55 grosbois Exp $
  * 
  * Class:                   ThreadPool
  * 
@@ -39,12 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.util;
 
 /**

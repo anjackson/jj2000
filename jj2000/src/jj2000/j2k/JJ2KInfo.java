@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: JJ2KInfo.java,v 1.18 2001/02/28 13:30:57 grosbois Exp $
+ * $Id: JJ2KInfo.java,v 1.28 2002/07/30 10:12:38 grosbois Exp $
  * 
  * Class:                   JJ2KInfo
  * 
@@ -50,17 +50,20 @@ package jj2000.j2k;
 public class JJ2KInfo {
 
     /** The version number (such as 2.0, 2.1.1, etc.) */
-    public static final String version = "4.1";
+    public static final String version = "5.1";
 
     /**
      * The copyright message string. Double newlines separate paragraphs.
      * Newlines should be respected when displaying the message.
      * */
     public static final String copyright =
-        "This software module was originally developed by Raphaël Grosbois "+
+        "This software module was originally developed by Rapha\u00ebl "+
+        "Grosbois "+
         "and Diego Santa Cruz (Swiss Federal Institute of Technology-EPFL); "+
-        "Joel Askelöf (Ericsson Radio Systems AB); and Bertrand Berthelot, "+
-        "David Bouchard, Félix Henry, Gerard Mozelle and Patrice Onno (Canon"+
+        "Joel Askel\u00f6f (Ericsson Radio Systems AB); and Bertrand "+
+        "Berthelot, "+
+        "David Bouchard, F\u00e9lix Henry, Gerard Mozelle and Patrice Onno "+
+        "(Canon"+
         " Research Centre "+
         "France S.A) in the course of development of the JPEG 2000 standard "+
         "as "+

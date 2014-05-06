@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ImgReaderPGX.java,v 1.10 2001/03/01 09:11:28 grosbois Exp $
+ * $Id: ImgReaderPGX.java,v 1.13 2002/07/25 15:08:13 grosbois Exp $
  *
  * Class:                   ImgReaderPGX
  *
@@ -56,38 +56,45 @@ import java.io.*;
  * use of JPEG 2000 with images of different bit-depths in the range 1 to 31
  * bits per pixel.
  *
- * <P>The file consists of a one line text header followed by the binary data.
- * <P><u>Header:</u><br>
- * <tt>"PG"+ <i>ws</i> +&lt;<i>endianess</i>&gt;+ <i>ws</i> +<i>[sign]</i>+ 
- * <i>ws</i> + &lt;<i>bit-depth</i>&gt;+" "+&lt;<i>width</i>&gt;+" "+
- * &lt;<i>height</i>&gt;+'\n'</tt><br>
- * where:<br>
- * - <i>ws</i>(white-spaces) is any combination of characters <tt>' '</tt> and 
- * <tt>'\t'</tt>.<br>
- * - <i>endianess</i> equals <tt>"LM"</tt> or <tt>"ML"</tt>(resp. little-endian
- * or big-endian).<br>
- * - <i>sign</i> equals "+" or "-" (resp. unsigned or signed). If ommited, 
- * default value is unsigned.<br>
- * - <i>bit-depth</i> can be any number between 1 and 31.<br>
- * - <i>width</i> and <i>height</i> are the image dimensions (in pixels).<br>
- * <u>Datas:</u><br>
- * The image binary datas appear one after the other(in raster order) 
- * immediatly after the last header character('\n') and are byte-aligned (they
- * are packed into 1,2 or 4 bytes per sample, depending upon the 
- * <i>bit-depth</i> value).
+ * <p>The file consists of a one line text header followed by the data.</p>
  *
- * <P> If the data is unisigned, level shifting is applied subtracting
- * 2^(bitdepth - 1)
+ * <p>
+ * <u>Header:</u> "PG"+ <i>ws</i> +&lt;<i>endianess</i>&gt;+ <i>ws</i>
+ * +[<i>sign</i>]+<i>ws</i> + &lt;<i>bit-depth</i>&gt;+"
+ * "+&lt;<i>width</i>&gt;+" "+&lt;<i>height</i>&gt;+'\n'</p> 
+ * 
+ * <p>where:<br>
+ * <ul>
+ * <li><i>ws</i> (white-spaces) is any combination of characters ' ' and
+ * '\t'.</li> 
+ * <li><i>endianess</i> equals "LM" or "ML"(resp. little-endian or
+ * big-endian)</li> 
+ * <li><i>sign</i> equals "+" or "-" (resp. unsigned or signed). If omited,
+ * values are supposed to be unsigned.</li> 
+ * <li><i>bit-depth</i> that can be any number between 1 and 31.</li>
+ * <li><i>width</i> and <i>height</i> are the image dimensions (in
+ * pixels).</li> 
+ * </ul>
+ * 
+ * <u>Data:</u> The image binary values appear one after the other (in raster
+ * order) immediately after the last header character ('\n') and are
+ * byte-aligned (they are packed into 1,2 or 4 bytes per sample, depending
+ * upon the bit-depth value).
+ * </p>
  *
- * <P>Since it is not possible to know the input file byte-ordering
- * before reading its header, this class can not be construct from a
- * RandomAccessIO. So, the constructor has to open first the input file,
- * to read only its header, and then it can create the appropriate 
- * BufferedRandomAccessFile (Big-Endian or Little-Endian byte-ordering).
+ * <p> If the data is unisigned, level shifting is applied subtracting
+ * 2^(bitdepth - 1)</p>
  *
- * <P>NOTE: This class is not thread safe, for reasons of internal buffering.
+ * <p>Since it is not possible to know the input file byte-ordering before
+ * reading its header, this class can not be construct from a
+ * RandomAccessIO. So, the constructor has to open first the input file, to
+ * read only its header, and then it can create the appropriate
+ * BufferedRandomAccessFile (Big-Endian or Little-Endian byte-ordering).</p>
  *
- * @see ImgData
+ * <p>NOTE: This class is not thread safe, for reasons of internal
+ * buffering.</p>
+ *
+ * @see jj2000.j2k.image.ImgData
  * @see RandomAccessIO
  * @see BufferedRandomAccessFile
  * @see BEBufferedRandomAccessFile
@@ -278,29 +285,30 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
      * returned, as a reference to the internal data, if any, instead of as a
      * copy, therefore the returned data should not be modified.
      *
-     * <P> After being read the coefficients are level shifted by subtracting
-     * 2^(nominal bit range - 1)
+     * <p>After being read the coefficients are level shifted by subtracting
+     * 2^(nominal bit range - 1)<p>
      *
-     * <P>The rectangular area to return is specified by the 'ulx', 'uly', 'w'
+     * <p>The rectangular area to return is specified by the 'ulx', 'uly', 'w'
      * and 'h' members of the 'blk' argument, relative to the current
      * tile. These members are not modified by this method. The 'offset' and
-     * 'scanw' of the returned data can be arbitrary. See the 'DataBlk' class.
+     * 'scanw' of the returned data can be arbitrary. See the 'DataBlk'
+     * class.</p>
      *
-     * <P>If the data array in <tt>blk</tt> is <tt>null</tt>, then a new one
+     * <p>If the data array in <tt>blk</tt> is <tt>null</tt>, then a new one
      * is created if necessary. The implementation of this interface may
      * choose to return the same array or a new one, depending on what is more
      * efficient. Therefore, the data array in <tt>blk</tt> prior to the
      * method call should not be considered to contain the returned data, a
      * new array may have been created. Instead, get the array from
-     * <tt>blk</tt> after the method has returned.
+     * <tt>blk</tt> after the method has returned.</p>
      *
-     * <P>The returned data always has its 'progressive' attribute unset
-     * (i.e. false).
+     * <p>The returned data always has its 'progressive' attribute unset
+     * (i.e. false).</p>
      *
-     * <P>When an I/O exception is encountered the JJ2KExceptionHandler is
+     * <p>When an I/O exception is encountered the JJ2KExceptionHandler is
      * used. The exception is passed to its handleException method. The action
      * that is taken depends on the action that has been registered in
-     * JJ2KExceptionHandler. See JJ2KExceptionHandler for details.
+     * JJ2KExceptionHandler. See JJ2KExceptionHandler for details.</p>
      *
      * @param blk Its coordinates and dimensions specify the area to
      * return. Some fields in this object are modified to return the data.
@@ -385,7 +393,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                         in.read(buf,0,blk.w<<1);
                         switch (byteOrder) {
                         case LITTLE_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<1)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<1)-1;
                                  j>=0; k--) {
                                 barr[k] =
                                     ((((buf[j--]&0xFF)<<8)|(buf[j--]&0xFF))
@@ -393,7 +401,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                             }
                             break;
                         case BIG_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<1)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<1)-1;
                                  j>=0; k--) {
                                 barr[k] =
                                     (((buf[j--]&0xFF)|((buf[j--]&0xFF)<<8))
@@ -412,7 +420,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                         in.read(buf,0,blk.w<<1);
                         switch (byteOrder) {
                         case LITTLE_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<1)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<1)-1;
                                  j>=0; k--) {
                                 barr[k] =
                                     (((((buf[j--]&0xFF)<<8)|(buf[j--]&0xFF))
@@ -421,7 +429,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                             }
                             break;
                         case BIG_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<1)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<1)-1;
                                  j>=0; k--) {
                                 barr[k] =
                                     ((((buf[j--]&0xFF)|((buf[j--]&0xFF)<<8))
@@ -446,7 +454,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                         in.read(buf,0,blk.w<<2);
                         switch (byteOrder) {
                         case LITTLE_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<2)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<2)-1;
                                  j >= 0; k--) {
                                 barr[k] =
                                     ((((buf[j--]&0xFF)<<24)|
@@ -456,7 +464,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                             }
                             break;
                         case BIG_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<2)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<2)-1;
                                  j >= 0; k--) {
                                 barr[k] =
                                     (((buf[j--]&0xFF)|((buf[j--]&0xFF)<<8)|
@@ -477,7 +485,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                         in.read(buf,0,blk.w<<2);
                         switch (byteOrder) {
                         case LITTLE_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<2)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<2)-1;
                                  j >= 0; k--) {
                                 barr[k] =
                                     (((((buf[j--]&0xFF)<<24)|
@@ -488,7 +496,7 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
                             }
                             break;
                         case BIG_ENDIAN:
-                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(w<<2)-1;
+                            for (k = (i-blk.uly)*blk.w+blk.w-1, j=(blk.w<<2)-1;
                                  j >= 0; k--) {
                                 barr[k] =
                                     ((((buf[j--]&0xFF)|((buf[j--]&0xFF)<<8)|
@@ -529,24 +537,24 @@ public class ImgReaderPGX extends ImgReader implements EndianType{
      * returned, as a copy of the internal data, therefore the returned data
      * can be modified "in place".
      *
-     * <P> After being read the coefficients are level shifted by subtracting
+     * <p>After being read the coefficients are level shifted by subtracting
      * 2^(nominal bit range - 1)
      *
-     * <P>The rectangular area to return is specified by the 'ulx', 'uly', 'w'
+     * <p>The rectangular area to return is specified by the 'ulx', 'uly', 'w'
      * and 'h' members of the 'blk' argument, relative to the current
      * tile. These members are not modified by this method. The 'offset' of
      * the returned data is 0, and the 'scanw' is the same as the block's
-     * width. See the 'DataBlk' class.
+     * width. See the 'DataBlk' class.</p>
      *
-     * <P>If the data array in 'blk' is 'null', then a new one is created. If
+     * <p>If the data array in 'blk' is 'null', then a new one is created. If
      * the data array is not 'null' then it is reused, and it must be large
      * enough to contain the block's data. Otherwise an 'ArrayStoreException'
-     * or an 'IndexOutOfBoundsException' is thrown by the Java system.
+     * or an 'IndexOutOfBoundsException' is thrown by the Java system.</p>
      *
-     * <P>The returned data has its 'progressive' attribute unset
-     * (i.e. false).
+     * <p>The returned data has its 'progressive' attribute unset
+     * (i.e. false).</p>
      *
-     * <P>This method just calls 'getInternCompData(blk, n)'.
+     * <p>This method just calls 'getInternCompData(blk,c)'.</p>
      *
      * <P>When an I/O exception is encountered the JJ2KExceptionHandler is
      * used. The exception is passed to its handleException method. The action

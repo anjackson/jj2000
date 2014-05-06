@@ -1,7 +1,7 @@
 /*
  * CVS Identifier:
  *
- * $Id: RandomAccessIO.java,v 1.14 2000/10/09 09:03:22 grosbois Exp $
+ * $Id: RandomAccessIO.java,v 1.15 2001/10/24 12:07:02 grosbois Exp $
  *
  * Interface:           RandomAccessIO.java
  *
@@ -39,8 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
-
+ * */
 package jj2000.j2k.io;
 
 import java.io.*;
@@ -50,7 +49,7 @@ import java.io.*;
  * implements the <tt>BinaryDataInput</tt> and <tt>BinaryDataOutput</tt>
  * interfaces so that binary data input/output can be performed.
  *
- * <P>This interface supports streams of up to 2 GB in length.
+ * <p>This interface supports streams of up to 2 GB in length.</p>
  *
  * @see BinaryDataInput
  * @see BinaryDataOutput

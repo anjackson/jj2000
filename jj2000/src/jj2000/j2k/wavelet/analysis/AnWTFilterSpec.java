@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: AnWTFilterSpec.java,v 1.26 2000/11/27 16:15:12 grosbois Exp $
+ * $Id: AnWTFilterSpec.java,v 1.27 2001/05/08 16:11:37 grosbois Exp $
  * 
  * Class:                   AnWTFilterSpec
  * 
@@ -78,8 +78,8 @@ public class AnWTFilterSpec extends ModuleSpec {
      * @param pl The ParameterList
      * */
     public AnWTFilterSpec(int nt, int nc, byte type, 
-                          QuantTypeSpec qts,ParameterList pl){
-        super(nt, nc, type);
+                          QuantTypeSpec qts,ParameterList pl) {
+        super(nt,nc,type);
 
         // Check parameters
         pl.checkList(AnWTFilter.OPT_PREFIX,
@@ -89,9 +89,11 @@ public class AnWTFilterSpec extends ModuleSpec {
         boolean isFilterSpecified = true;
 
 	// No parameter specified
-	if(param==null){
+	if(param==null) {
             isFilterSpecified = false;
 
+            // If lossless compression, uses the reversible filters in each
+            // tile-components 
             if(pl.getBooleanParameter("lossless")) {
                 setDefault(parseFilters(REV_FILTER_STR));
                 return;
@@ -100,18 +102,17 @@ public class AnWTFilterSpec extends ModuleSpec {
 	    // If no filter is specified through the command-line, use
 	    // REV_FILTER_STR or NON_REV_FILTER_STR according to the
 	    // quantization type
-	    for(int t=nt-1;t>=0;t--){
-		for(int c=nc-1;c>=0;c--){
-		    switch(qts.getSpecValType(t,c)){
+	    for(int t=nt-1;t>=0;t--) {
+		for(int c=nc-1;c>=0;c--) {
+		    switch(qts.getSpecValType(t,c)) {
 		    case SPEC_DEF:
-			if(getDefault()==null){
+			if(getDefault()==null) {
                             if( pl.getBooleanParameter("lossless") )
                                 setDefault(parseFilters(REV_FILTER_STR));
 			    if( ((String)qts.getDefault()).
-                                equals("reversible") ){
+                                equals("reversible") ) {
 				setDefault(parseFilters(REV_FILTER_STR));
-			    }
-			    else{
+			    } else {
 				setDefault(parseFilters(NON_REV_FILTER_STR));
 			    }
 			}
@@ -120,10 +121,9 @@ public class AnWTFilterSpec extends ModuleSpec {
 		    case SPEC_COMP_DEF:
 			if(!isCompSpecified(c)){
 			    if( ((String)qts.getCompDef(c)).
-                                equals("reversible") ){
+                                equals("reversible") ) {
 				setCompDef(c,parseFilters(REV_FILTER_STR));
-			    }
-			    else{
+			    } else{
 				setCompDef(c,parseFilters(NON_REV_FILTER_STR));
 			    }
 			}
@@ -132,35 +132,35 @@ public class AnWTFilterSpec extends ModuleSpec {
 		    case SPEC_TILE_DEF:
 			if(!isTileSpecified(t)){
 			    if( ((String)qts.getTileDef(t)).
-                                equals("reversible") ){
+                                equals("reversible") ) {
 				setTileDef(t,parseFilters(REV_FILTER_STR));
-			    }
-			    else{
+			    } else {
 				setTileDef(t,parseFilters(NON_REV_FILTER_STR));
 			    }
 			}
 			specValType[t][c] = SPEC_TILE_DEF;
 			break;
 		    case SPEC_TILE_COMP:
-			if(!isTileCompSpecified(t,c)){
+			if(!isTileCompSpecified(t,c)) {
 			    if(((String)qts.getTileCompVal(t,c)).
-                               equals("reversible")){
-				setTileCompVal(t,c,parseFilters(REV_FILTER_STR));
-			    }
-			    else{
+                               equals("reversible")) {
 				setTileCompVal(t,c,
-                                               parseFilters(NON_REV_FILTER_STR));
+                                               parseFilters(REV_FILTER_STR));
+			    } else {
+				setTileCompVal(t,c,
+                                               parseFilters(NON_REV_FILTER_STR)
+                                               );
 			    }
 			}
 			specValType[t][c] = SPEC_TILE_COMP;
 			break;
 		    default:
 			throw new IllegalArgumentException("Unsupported "+
-							   "specification type");
+							   "specification "+
+                                                           "type");
 		    }
 		}
 	    }
-
             return;
 	}
 

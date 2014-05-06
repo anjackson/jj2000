@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: AnWTFilterIntLift5x3.java,v 1.14 2000/12/12 16:45:17 grosbois Exp $
+ * $Id: AnWTFilterIntLift5x3.java,v 1.15 2001/08/02 11:19:27 grosbois Exp $
  *
  * Class:                   AnWTFilterIntLift5x3
  *
@@ -40,22 +40,22 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.wavelet.analysis;
 
+import jj2000.j2k.codestream.writer.*;
 import jj2000.j2k.wavelet.*;
 import jj2000.j2k.image.*;
 import jj2000.j2k.*;
-import jj2000.j2k.codestream.writer.*;
 
 /**
  * This class inherits from the analysis wavelet filter definition for int
  * data. It implements the forward wavelet transform specifically for the 5x3
  * filter. The implementation is based on the lifting scheme.
  *
- * <P>See the AnWTFilter class for details such as normalization, how to split
+ * <p>See the AnWTFilter class for details such as normalization, how to split
  * odd-length signals, etc. In particular, this method assumes that the
- * low-pass coefficient is computed first.
+ * low-pass coefficient is computed first.</p>
  *
  * @see AnWTFilter
  * @see AnWTFilterInt
@@ -76,36 +76,34 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * general description of the analyze_lpf() method in the AnWTFilter class
      * for more details.
      *
-     * <P>The coefficients of the first lifting step are [-1/2 1 -1/2]. 
+     * <p>The coefficients of the first lifting step are [-1/2 1 -1/2].</p>
      *
-     * <P>The coefficients of the second lifting step are [1/4 1 1/4].
+     * <p>The coefficients of the second lifting step are [1/4 1 1/4].</p>
      * 
-     * @param inSig This is the array that contains the input
-     * signal.
+     * @param inSig This is the array that contains the input signal.
      *
-     * @param inOff This is the index in inSig of the first sample to
+     * @param inOff This is the index in inSig of the first sample to filter.
+     *
+     * @param inLen This is the number of samples in the input signal to
      * filter.
      *
-     * @param inLen This is the number of samples in the input signal
-     * to filter.
+     * @param inStep This is the step, or interleave factor, of the input
+     * signal samples in the inSig array.
      *
-     * @param inStep This is the step, or interleave factor, of the
-     * input signal samples in the inSig array.
+     * @param lowSig This is the array where the low-pass output signal is
+     * placed.
      *
-     * @param lowSig This is the array where the low-pass output
-     * signal is placed.
+     * @param lowOff This is the index in lowSig of the element where to put
+     * the first low-pass output sample.
      *
-     * @param lowOff This is the index in lowSig of the element where
-     * to put the first low-pass output sample.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * output samples in the lowSig array.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass output samples in the lowSig array.
+     * @param highSig This is the array where the high-pass output signal is
+     * placed.
      *
-     * @param highSig This is the array where the high-pass output
-     * signal is placed.
-     *
-     * @param highOff This is the index in highSig of the element where
-     * to put the first high-pass output sample.
+     * @param highOff This is the index in highSig of the element where to put
+     * the first high-pass output sample.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass output samples in the highSig array.
@@ -120,9 +118,7 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
         int lk; //Indexing lowSig
         int hk; //Indexing highSig
         
-        /*
-         *Generate high frequency subband
-         */
+        /* Generate high frequency subband */
         
         //Initialize counters
         ik = inOff + inStep;
@@ -142,9 +138,7 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
             highSig[hk] = inSig[ik] - ((2*inSig[ik-inStep])>>1);
         }    
         
-        /*
-         *Generate low frequency subband
-         */
+        /* Generate low frequency subband */
         
         //Initialize counters
         ik = inOff;
@@ -186,36 +180,34 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * general description of the analyze_hpf() method in the AnWTFilter class
      * for more details.
      *
-     * <P>The coefficients of the first lifting step are [-1/2 1 -1/2]. 
+     * <P>The coefficients of the first lifting step are [-1/2 1 -1/2].</p>
      *
-     * <P>The coefficients of the second lifting step are [1/4 1 1/4].
+     * <P>The coefficients of the second lifting step are [1/4 1 1/4].</p>
      * 
-     * @param inSig This is the array that contains the input
-     * signal.
+     * @param inSig This is the array that contains the input signal.
      *
-     * @param inOff This is the index in inSig of the first sample to
+     * @param inOff This is the index in inSig of the first sample to filter.
+     *
+     * @param inLen This is the number of samples in the input signal to
      * filter.
      *
-     * @param inLen This is the number of samples in the input signal
-     * to filter.
+     * @param inStep This is the step, or interleave factor, of the input
+     * signal samples in the inSig array.
      *
-     * @param inStep This is the step, or interleave factor, of the
-     * input signal samples in the inSig array.
+     * @param lowSig This is the array where the low-pass output signal is
+     * placed.
      *
-     * @param lowSig This is the array where the low-pass output
-     * signal is placed.
+     * @param lowOff This is the index in lowSig of the element where to put
+     * the first low-pass output sample.
      *
-     * @param lowOff This is the index in lowSig of the element where
-     * to put the first low-pass output sample.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * output samples in the lowSig array.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass output samples in the lowSig array.
+     * @param highSig This is the array where the high-pass output signal is
+     * placed.
      *
-     * @param highSig This is the array where the high-pass output
-     * signal is placed.
-     *
-     * @param highOff This is the index in highSig of the element where
-     * to put the first high-pass output sample.
+     * @param highOff This is the index in highSig of the element where to put
+     * the first high-pass output sample.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass output samples in the highSig array.
@@ -232,9 +224,7 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
         int lk; //Indexing lowSig
         int hk; //Indexing highSig
         
-        /*
-         *Generate high frequency subband
-         */
+        /* Generate high frequency subband */
         
         //Initialize counters
         ik = inOff;
@@ -263,14 +253,12 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
         }
     
         //If input signal has odd length then we perform the lifting step
-        // i.e. apply a symmetric extension.
+        //i.e. apply a symmetric extension.
         if( inLen%2==1 && inLen>1 ) {
             highSig[hk] = inSig[ik] - inSig[ik-inStep];
         }
         
-        /*
-         *Generate low frequency subband
-         */
+        /* Generate low frequency subband */
         
         //Initialize counters
         ik = inOff + inStep;
@@ -293,9 +281,8 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
         }
     }
     /**
-     * Returns the negative support of the low-pass analysis
-     * filter. That is the number of taps of the filter in the
-     * negative direction.
+     * Returns the negative support of the low-pass analysis filter. That is
+     * the number of taps of the filter in the negative direction.
      *
      * @return 2
      * */
@@ -340,8 +327,6 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * Returns the negative support of the low-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
-     *
      * @return The number of taps of the low-pass synthesis filter in the
      * negative direction
      * */
@@ -352,8 +337,6 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
     /**
      * Returns the positive support of the low-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
-     *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
      *
      * @return The number of taps of the low-pass synthesis filter in
      * the positive direction
@@ -366,8 +349,6 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * Returns the negative support of the high-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
-     *
      * @return The number of taps of the high-pass synthesis filter in the
      * negative direction
      * */
@@ -378,8 +359,6 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
     /**
      * Returns the positive support of the high-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
-     *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
      *
      * @return The number of taps of the high-pass synthesis filter in the
      * positive direction
@@ -395,8 +374,9 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * L2-norm of the synthesis basis functions for a particular subband (also
      * called energy weight).
      *
-     * <P>The returned array may not be modified (i.e. a reference to the
-     * internal array may be returned by the implementation of this method).
+     * <p>The returned array may not be modified (i.e. a reference to the
+     * internal array may be returned by the implementation of this
+     * method).</p>
      *
      * @return The time-reversed low-pass synthesis waveform of the filter.
      * */
@@ -411,8 +391,9 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * L2-norm of the synthesis basis functions for a particular subband (also
      * called energy weight).
      *
-     * <P>The returned array may not be modified (i.e. a reference to the
-     * internal array may be returned by the implementation of this method).
+     * <p>The returned array may not be modified (i.e. a reference to the
+     * internal array may be returned by the implementation of this
+     * method).</p>
      *
      * @return The time-reversed high-pass synthesis waveform of the filter.
      * */
@@ -452,9 +433,9 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * affected by image boundaries processings such as symmetric extension,
      * since there is not reference method for this.
      *
-     * <P>The result depends on the length of the allowed overlap when
+     * <p>The result depends on the length of the allowed overlap when
      * compared to the overlap required by the wavelet filter. It also depends
-     * on how overlap processing is implemented in the wavelet filter.
+     * on how overlap processing is implemented in the wavelet filter.</p>
      *
      * @param tailOvrlp This is the number of samples in the input signal
      * before the first sample to filter that can be used for overlap.
@@ -488,8 +469,8 @@ public class AnWTFilterIntLift5x3 extends AnWTFilterInt {
      * are the same if the same filter code should be output for both filters
      * by the encodeFilterCode() method.
      *
-     * <P>Currently the implementation of this method only tests if 'obj' is
-     * also of the class AnWTFilterIntLift5x3.
+     * <p>Currently the implementation of this method only tests if 'obj' is
+     * also of the class AnWTFilterIntLift5x3.</p>
      *
      * @param The object against which to test inequality.
      * */

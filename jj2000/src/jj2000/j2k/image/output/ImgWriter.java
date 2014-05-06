@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ImgWriter.java,v 1.10 2000/12/04 17:24:28 grosbois Exp $
+ * $Id: ImgWriter.java,v 1.12 2001/09/14 09:13:11 grosbois Exp $
  *
  * Class:                   ImgWriter
  *
@@ -53,16 +53,16 @@ import java.io.*;
  * This is the generic interface to be implemented by all image file (or other
  * resource) writers for different formats.
  *
- * <P>Each object inheriting from this class should have a source ImgData
+ * <p>Each object inheriting from this class should have a source ImgData
  * object associated with it. The image data to write to the file is obtained
  * from the associated ImgData object. In general this object would be
- * specified at construction time.
+ * specified at construction time.</p>
  *
- * <P>Depending on the actual type of file that is written a call to any
+ * <p>Depending on the actual type of file that is written a call to any
  * write() or writeAll() method will write data from one component, several
  * components or all components. For example, a PGM writer will write data
  * from only one component (defined in the constructor) while a PPM writer
- * will write 3 components (normally R,G,B).
+ * will write 3 components (normally R,G,B).</p>
  * */
 public abstract class ImgWriter {
 
@@ -116,9 +116,9 @@ public abstract class ImgWriter {
      * issued by the implementing class to the source ImgData object should be
      * done by blocks or strips, in order to reduce memory usage.
      *
-     * <P>The implementing class should only write data that is not
+     * <p>The implementing class should only write data that is not
      * "progressive" (in other words that it is final), see DataBlk for
-     * details.
+     * details.</p>
      *
      * @exception IOException If an I/O error occurs.
      *
@@ -139,12 +139,11 @@ public abstract class ImgWriter {
     public void writeAll() throws IOException {
         // Find the list of tile to decode.
         Coord nT = src.getNumTiles(null);
-        int tIdx = 0;
 
         // Loop on vertical tiles
         for(int y=0; y<nT.y; y++){
             // Loop on horizontal tiles
-            for(int x=0; x<nT.x; x++, tIdx++){
+            for(int x=0; x<nT.x; x++){
 		src.setTile(x,y);
 		write();
             } // End loop on horizontal tiles            
@@ -155,8 +154,9 @@ public abstract class ImgWriter {
      * Writes the data of the specified area to the file, coordinates are
      * relative to the current tile of the source.
      *
-     * <P>The implementing class should only write data that is not
-     * "progressive" (in other words that is final), see DataBlk for details.
+     * <p>The implementing class should only write data that is not
+     * "progressive" (in other words that is final), see DataBlk for
+     * details.</p>
      *
      * @param ulx The horizontal coordinate of the upper-left corner of the
      * area to write, relative to the current tile.

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: TagTreeEncoder.java,v 1.8 2000/09/05 09:22:51 grosbois Exp $
+ * $Id: TagTreeEncoder.java,v 1.10 2001/08/17 16:02:06 grosbois Exp $
  *
  * Class:                   TagTreeEncoder
  *
@@ -39,10 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.codestream.writer;
 
 import jj2000.j2k.util.*;
@@ -50,32 +47,30 @@ import jj2000.j2k.io.*;
 import java.io.*;
 
 /**
- * This class implements the tag tree encoder. A tag tree codes a 2D
- * matrix of integer elements in an efficient way. The encoding
- * procedure 'encode()' codes information about a value of the matrix,
- * given a threshold. The procedure encodes the sufficient information
- * to identify whether or not the value is greater than or equal to
- * the threshold.
+ * This class implements the tag tree encoder. A tag tree codes a 2D matrix of
+ * integer elements in an efficient way. The encoding procedure 'encode()'
+ * codes information about a value of the matrix, given a threshold. The
+ * procedure encodes the sufficient information to identify whether or not the
+ * value is greater than or equal to the threshold.
  *
- * <P>The tag tree saves encoded information to a BitOutputBuffer.
+ * <p>The tag tree saves encoded information to a BitOutputBuffer.</p>
  *
- * <P>A particular and useful property of tag trees is that it is
- * possible to change a value of the matrix, provided both new and old
- * values of the element are both greater than or equal to the largest
- * threshold which has yet been supplied to the coding procedure
- * 'encode()'. This property can be exploited through the 'setValue()'
- * method.
+ * <p>A particular and useful property of tag trees is that it is possible to
+ * change a value of the matrix, provided both new and old values of the
+ * element are both greater than or equal to the largest threshold which has
+ * yet been supplied to the coding procedure 'encode()'. This property can be
+ * exploited through the 'setValue()' method.</p>
  *
- * <P>This class allows saving the state of the tree at any point and
- * restoring it at a later time, by calling save() and restore().
+ * <p>This class allows saving the state of the tree at any point and
+ * restoring it at a later time, by calling save() and restore().</p>
  *
- * <P>A tag tree can also be reused, or restarted, if one of the
- * reset() methods is called.
+ * <p>A tag tree can also be reused, or restarted, if one of the reset()
+ * methods is called.</p>
  *
- * <P>The TagTreeDecoder class implements the tag tree decoder.
+ * <p>The TagTreeDecoder class implements the tag tree decoder.</p>
  *
- * <P>Tag trees that have one dimension, or both, as 0 are allowed for
- * convenience. Of course no values can be set or coded in such cases.
+ * <p>Tag trees that have one dimension, or both, as 0 are allowed for
+ * convenience. Of course no values can be set or coded in such cases.</p>
  *
  * @see BitOutputBuffer
  *
@@ -92,43 +87,40 @@ public class TagTreeEncoder {
     /** The number of levels in the tag tree */
     protected int lvls;
 
-    /** The tag tree values. The first index is the level, starting at
-     * level 0 (leafs). The second index is the element within the
-     * level, in lexicographical order. */
+    /** The tag tree values. The first index is the level, starting at level 0
+     * (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeV[][];
 
-    /** The tag tree state. The first index is the level, starting at
-     * level 0 (leafs). The second index is the element within the
-     * level, in lexicographical order. */
+    /** The tag tree state. The first index is the level, starting at level 0
+     * (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeS[][];
 
-    /** The saved tag tree values. The first index is the level,
-     * starting at level 0 (leafs). The second index is the element
-     * within the level, in lexicographical order. */
+    /** The saved tag tree values. The first index is the level, starting at
+     * level 0 (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeVbak[][];
 
     /** The saved tag tree state. The first index is the level, starting at
-     * level 0 (leafs). The second index is the element within the
-     * level, in lexicographical order. */
+     * level 0 (leafs). The second index is the element within the level, in
+     * lexicographical order. */
     protected int treeSbak[][];
 
-    /** The saved state. If true the values and states of the tree
-     * have been saved since the creation or last reset. */
+    /** The saved state. If true the values and states of the tree have been
+     * saved since the creation or last reset. */
     protected boolean saved;
 
     /**
-     * Creates a tag tree encoder with 'w' elements along the
-     * horizontal dimension and 'h' elements along the vertical
-     * direction. The total number of elements is thus 'vdim' x
-     * 'hdim'.
+     * Creates a tag tree encoder with 'w' elements along the horizontal
+     * dimension and 'h' elements along the vertical direction. The total
+     * number of elements is thus 'vdim' x 'hdim'.
      *
-     * <P>The values of all elements are initialized to Integer.MAX_VALUE.
+     * <p>The values of all elements are initialized to Integer.MAX_VALUE.</p>
      *
      * @param h The number of elements along the horizontal direction.
      *
      * @param w The number of elements along the vertical direction.
-     *
-     *
      * */
     public TagTreeEncoder(int h, int w) {
         int k;
@@ -145,23 +137,19 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Creates a tag tree encoder with 'w' elements along the
-     * horizontal dimension and 'h' elements along the vertical
-     * direction. The total number of elements is thus 'vdim' x
-     * 'hdim'. The values of the leafs in the tag tree are initialized
-     * to the values of the 'val' array.
+     * Creates a tag tree encoder with 'w' elements along the horizontal
+     * dimension and 'h' elements along the vertical direction. The total
+     * number of elements is thus 'vdim' x 'hdim'. The values of the leafs in
+     * the tag tree are initialized to the values of the 'val' array.
      *
-     * <P>The values in the 'val' array are supposed to appear in
-     * lexicographical order, starting at index 0.
+     * <p>The values in the 'val' array are supposed to appear in
+     * lexicographical order, starting at index 0.</p>
      *
      * @param h The number of elements along the horizontal direction.
      *
      * @param w The number of elements along the vertical direction.
      *
-     * @param val The values with which initialize the leafs of the
-     * tag tree.
-     *
-     *
+     * @param val The values with which initialize the leafs of the tag tree.
      * */
     public TagTreeEncoder(int h, int w, int val[]) {
         int k;
@@ -183,8 +171,6 @@ public class TagTreeEncoder {
      * Returns the number of leafs along the horizontal direction.
      *
      * @return The number of leafs along the horizontal direction.
-     *
-     *
      * */
     public final int getWidth() {
         return w;
@@ -194,24 +180,20 @@ public class TagTreeEncoder {
      * Returns the number of leafs along the vertical direction.
      *
      * @return The number of leafs along the vertical direction.
-     *
-     *
      * */
     public final int getHeight() {
         return h;
     }
 
     /**
-     * Initializes the variables of this class, given the dimensions
-     * at the base level (leaf level). All the state ('treeS' array)
-     * and values ('treeV' array) are intialized to 0. This method is
-     * called by the constructors.
+     * Initializes the variables of this class, given the dimensions at the
+     * base level (leaf level). All the state ('treeS' array) and values
+     * ('treeV' array) are intialized to 0. This method is called by the
+     * constructors.
      *
      * @param w The number of elements along the vertical direction.
      *
      * @param h The number of elements along the horizontal direction.
-     *
-     *
      * */
     private void init(int w, int h) {
         int i;
@@ -230,8 +212,8 @@ public class TagTreeEncoder {
                 lvls++;
             }
         }
-        // Allocate tree values and states
-        // (no need to initialize to 0 since it's the default)
+        // Allocate tree values and states (no need to initialize to 0 since
+        // it's the default)
         treeV = new int[lvls][];
         treeS = new int[lvls][];
         w = this.w;
@@ -245,10 +227,8 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Recalculates the values of the elements in the tag tree, in
-     * levels 1 and up, based on the values of the leafs (level 0).
-     *
-     *
+     * Recalculates the values of the elements in the tag tree, in levels 1
+     * and up, based on the values of the leafs (level 0).
      * */
     private void recalcTreeV() {
         int m,n,bi,lw,tm1,tm2,lh,k;
@@ -303,23 +283,21 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Changes the value of a leaf in the tag tree. The new and old
-     * values of the element must be not smaller than the largest
-     * threshold which has yet been supplied to 'encode()'.
+     * Changes the value of a leaf in the tag tree. The new and old values of
+     * the element must be not smaller than the largest threshold which has
+     * yet been supplied to 'encode()'.
      *
      * @param m The vertical index of the element.
      *
      * @param n The horizontal index of the element.
      *
      * @param v The new value of the element.
-     *
-     *
      * */
     public void setValue(int m, int n, int v) {
         int k,idx;
         // Check arguments
-        if (lvls == 0 || n < 0 || n >= w || v < treeS[lvls-1][0] ||
-            treeV[0][m*w+n] < treeS[lvls-1][0]) {
+        if (lvls==0 || n<0 || n>=w || v<treeS[lvls-1][0] ||
+            treeV[0][m*w+n]<treeS[lvls-1][0]) {
             throw new IllegalArgumentException();
         }
         // Update the leaf value
@@ -341,24 +319,20 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Sets the values of the leafs to the new set of values and
-     * updates the tag tree accordingly. No leaf can change its value
-     * if either the new or old value is smaller than largest
-     * threshold which has yet been supplied to 'encode()'. However
-     * such a leaf can keep its old value (i.e. new and old value must
-     * be identical.
+     * Sets the values of the leafs to the new set of values and updates the
+     * tag tree accordingly. No leaf can change its value if either the new or
+     * old value is smaller than largest threshold which has yet been supplied
+     * to 'encode()'. However such a leaf can keep its old value (i.e. new and
+     * old value must be identical.
      *
-     * <P>This method is more efficient than the setValue() method if
-     * a large proportion of the leafs change their value. Note that
-     * for leafs which don't have their value defined yet the value
-     * should be Integer.MAX_VALUE (which is the default
-     * initialization value).
+     * <p>This method is more efficient than the setValue() method if a large
+     * proportion of the leafs change their value. Note that for leafs which
+     * don't have their value defined yet the value should be
+     * Integer.MAX_VALUE (which is the default initialization value).</p>
      *
      * @param val The new values for the leafs, in lexicographical order.
      *
      * @see #setValue
-     *
-     *
      * */
     public void setValues(int val[]) {
         int i,maxt;
@@ -380,10 +354,10 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Encodes information for the specified element of the tree,
-     * given the threshold and sends it to the 'out' stream. The
-     * information that is coded is whether or not the value of the
-     * element is greater than or equal to the value of the threshold.
+     * Encodes information for the specified element of the tree, given the
+     * threshold and sends it to the 'out' stream. The information that is
+     * coded is whether or not the value of the element is greater than or
+     * equal to the value of the threshold.
      *
      * @param m The vertical index of the element.
      *
@@ -392,8 +366,6 @@ public class TagTreeEncoder {
      * @param t The threshold to use for encoding. It must be non-negative.
      *
      * @param out The stream where to write the coded information.
-     *
-     *
      * */
     public void encode(int m, int n, int t, BitOutputBuffer out) {
         int k,ts,idx,tmin;
@@ -445,12 +417,10 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Saves the current values and state of the tree. Calling
-     * restore() restores the tag tree the saved state.
+     * Saves the current values and state of the tree. Calling restore()
+     * restores the tag tree the saved state.
      *
      * @see #restore
-     *
-     *
      * */
     public void save() {
         int k,i;
@@ -478,12 +448,10 @@ public class TagTreeEncoder {
 
     /**
      * Restores the saved values and state of the tree. An
-     * IllegalArgumentException is thrown if the tree values and state
-     * have not been saved yet.
+     * IllegalArgumentException is thrown if the tree values and state have
+     * not been saved yet.
      *
      * @see #save
-     *
-     *
      * */
     public void restore() {
         int k,i;
@@ -503,8 +471,6 @@ public class TagTreeEncoder {
     /**
      * Resets the tree values and state. All the values are set to
      * Integer.MAX_VALUE and the states to 0.
-     *
-     *
      * */
     public void reset() {
         int k;
@@ -519,12 +485,10 @@ public class TagTreeEncoder {
     }
 
     /**
-     * Resets the tree values and state. The values are set to the
-     * values in 'val'. The states are all set to 0.
+     * Resets the tree values and state. The values are set to the values in
+     * 'val'. The states are all set to 0.
      *
      * @param val The new values for the leafs, in lexicographical order.
-     *
-     *
      * */
     public void reset(int val[]) {
         int k;

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: DecoderSpecs.java,v 1.22 2001/02/28 14:12:18 grosbois Exp $
+ * $Id: DecoderSpecs.java,v 1.25 2002/07/25 15:06:17 grosbois Exp $
  *
  * Class:                   DecoderSpecs
  *
@@ -39,7 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.decoder;
 
 import jj2000.j2k.codestream.reader.*;
@@ -60,7 +60,10 @@ import jj2000.j2k.*;
  *
  * @see ModuleSpec
  * */
-public class DecoderSpecs{
+public class DecoderSpecs implements Cloneable {
+
+    /** ICC Profiling specifications */
+    public ModuleSpec iccs;
 
     /** ROI maxshift value specifications */
     public MaxShiftSpec rois;
@@ -115,13 +118,39 @@ public class DecoderSpecs{
     public ModuleSpec pphs;
 
     /** 
+     * Returns a copy of the current object.
+     * */
+    public DecoderSpecs getCopy() {
+        DecoderSpecs decSpec2;
+        try {
+            decSpec2 = (DecoderSpecs)this.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new Error("Cannot clone the DecoderSpecs instance");
+        }
+        // Quantization
+        decSpec2.qts = (QuantTypeSpec)qts.getCopy();
+        decSpec2.qsss = (QuantStepSizeSpec)qsss.getCopy();
+        decSpec2.gbs = (GuardBitsSpec)gbs.getCopy();
+        // Wavelet transform
+        decSpec2.wfs = (SynWTFilterSpec)wfs.getCopy();
+        decSpec2.dls = (IntegerSpec)dls.getCopy();
+        // Component transformation
+        decSpec2.cts = (CompTransfSpec)cts.getCopy();
+        // ROI
+        if(rois!=null) {
+            decSpec2.rois = (MaxShiftSpec)rois.getCopy();
+        }
+        return decSpec2;
+    }
+
+    /** 
      * Initialize all members with the given number of tiles and components.
      *
      * @param nt Number of tiles
      *
      * @param nc Number of components
      * */
-    public DecoderSpecs(int nt,int nc){
+    public DecoderSpecs(int nt,int nc) {
         // Quantization
         qts  = new QuantTypeSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP);
         qsss = new QuantStepSizeSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE_COMP);
@@ -149,6 +178,7 @@ public class DecoderSpecs{
         sops = new ModuleSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE);
         ephs = new ModuleSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE);
         pphs = new ModuleSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE);
+	iccs = new ModuleSpec(nt,nc,ModuleSpec.SPEC_TYPE_TILE);
         pphs.setDefault(new Boolean(false));
     }
 }

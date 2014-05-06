@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: Quantizer.java,v 1.34 2001/02/26 11:08:51 grosbois Exp $
+ * $Id: Quantizer.java,v 1.38 2002/01/09 13:24:14 grosbois Exp $
  *
  * Class:                   Quantizer
  *
@@ -39,11 +39,11 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.quantization.quantizer;
 
-import jj2000.j2k.wavelet.analysis.*;
 import jj2000.j2k.codestream.writer.*;
+import jj2000.j2k.wavelet.analysis.*;
 import jj2000.j2k.quantization.*;
 import jj2000.j2k.wavelet.*;
 import jj2000.j2k.encoder.*;
@@ -60,7 +60,7 @@ import jj2000.j2k.util.*;
  * (wherever it makes sense), under the assumption that the image, component
  * dimensions, and the tiles, are not modifed by the quantizer. If it is not
  * the case for a particular implementation, then the methods should be
- * overriden.
+ * overriden.</p>
  *
  * <p>Sign magnitude representation is used (instead of two's complement) for
  * the output data. The most significant bit is used for the sign (0 if
@@ -69,24 +69,24 @@ import jj2000.j2k.util.*;
  * significant bits) can contain a fractional value of the quantized
  * coefficient. This fractional value is not to be coded by the entropy
  * coder. However, it can be used to compute rate-distortion measures with
- * greater precision.
+ * greater precision.</p>
  *
  * <p>The value of M is determined for each subband as the sum of the number
  * of guard bits G and the nominal range of quantized wavelet coefficients in
- * the corresponding subband (Rq), minus 1:
+ * the corresponding subband (Rq), minus 1:</p>
  *
- * <p>M = G + Rq -1
+ * <p>M = G + Rq -1</p>
  *
  * <p>The value of G should be the same for all subbands. The value of Rq
  * depends on the quantization step size, the nominal range of the component
  * before the wavelet transform and the analysis gain of the subband (see
- * Subband).
+ * Subband).</p>
  *
  * <p>The blocks of data that are requested should not cross subband
- * boundaries.
+ * boundaries.</p>
  *
  * <p>NOTE: At the moment only quantizers that implement the
- * 'CBlkQuantDataSrcEnc' interface are supported.
+ * 'CBlkQuantDataSrcEnc' interface are supported.</p>
  *
  * @see Subband
  * */
@@ -102,8 +102,9 @@ public abstract class Quantizer extends ImgDataAdapter
         { "Qtype", "[<tile-component idx>] <id> "+
           "[ [<tile-component idx>] <id> ...]",
           "Specifies which quantization type to use for specified "+
-	  "tile-component. By default (if '-lossless is not specified'), "+
-          "the quantization step size is 'expounded'.\n"+
+	  "tile-component. The default type is either 'reversible' or "+
+          "'expounded' depending on whether or not the '-lossless' option "+
+          " is specified.\n"+
           "<tile-component idx> : see general note.\n"+
           "<id>: Supported quantization types specification are : "+
           "'reversible' "+
@@ -116,7 +117,9 @@ public abstract class Quantizer extends ImgDataAdapter
           "This option specifies the base normalized quantization step "+
 	  "size (bnss) for tile-components. It is normalized to a "+
 	  "dynamic range of 1 in the image domain. This parameter is "+
-	  "ignored in reversible coding.","0.0078125"},
+	  "ignored in reversible coding. The default value is '1/128'"+
+          " (i.e. 0.0078125).",
+          "0.0078125"},
         { "Qguard_bits", "[<tile-component idx>] <gb> "+
           "[ [<tile-component idx>] <gb> ...]",
           "The number of bits used for each tile-component in the quantizer"+
@@ -194,40 +197,30 @@ public abstract class Quantizer extends ImgDataAdapter
      *
      * @see #calcSbParams
      * */
-    public SubbandAn getSubbandTree(int t,int c) {
+    public SubbandAn getAnSubbandTree(int t,int c) {
         SubbandAn sbba;
 
         // Ask for the wavelet tree of the source
-        sbba = src.getSubbandTree(t,c);
+        sbba = src.getAnSubbandTree(t,c);
         // Calculate the stepWMSE
         calcSbParams(sbba,c);
         return sbba;
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**
@@ -264,7 +257,7 @@ public abstract class Quantizer extends ImgDataAdapter
      * the options in 'pl'
      * */
     public static Quantizer createInstance(CBlkWTDataSrc src,
-                                           EncoderSpecs encSpec){
+                                           EncoderSpecs encSpec) {
 	// Instantiate quantizer
 	return new StdQuantizer(src,encSpec);
     }

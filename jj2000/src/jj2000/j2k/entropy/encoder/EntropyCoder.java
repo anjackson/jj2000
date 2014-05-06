@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: EntropyCoder.java,v 1.54 2001/02/14 10:47:33 grosbois Exp $
+ * $Id: EntropyCoder.java,v 1.58 2001/09/20 12:40:30 grosbois Exp $
  *
  * Class:                   EntropyCoder
  *
@@ -51,6 +51,7 @@ import jj2000.j2k.entropy.*;
 import jj2000.j2k.image.*;
 import jj2000.j2k.util.*;
 import jj2000.j2k.roi.*;
+import jj2000.j2k.*;
 
 import java.util.*;
 import java.io.*;
@@ -61,17 +62,17 @@ import java.io.*;
  * coefficients, or codewords, represented in sign magnitude. The output is a
  * compressed code-block with rate-distortion information.
  *
- * <P>The source of data for objects of this class are 'CBlkQuantDataSrcEnc'
- * objects.
+ * <p>The source of data for objects of this class are 'CBlkQuantDataSrcEnc'
+ * objects.</p>
  *
- * <P>For more details on the sign magnitude representation used see the
- * Quantizer class.
+ * <p>For more details on the sign magnitude representation used see the
+ * Quantizer class.</p>
  *
- * <P>This class provides default implemenations for most of the methods
+ * <p>This class provides default implemenations for most of the methods
  * (wherever it makes sense), under the assumption that the image and
  * component dimensions, and the tiles, are not modifed by the entropy
  * coder. If that is not the case for a particular implementation then the
- * methods should be overriden.
+ * methods should be overriden.</p>
  *
  * @see Quantizer
  * @see CBlkQuantDataSrcEnc
@@ -98,14 +99,14 @@ public abstract class EntropyCoder extends ImgDataAdapter
          "is often close to uniform. Since the MQ codeword will be "+
          "terminated "+
          "at least once per lazy pass, it is important to use an efficient "+
-         "termination algorithm, see the 'Cterm' option."+
+         "termination algorithm, see the 'Cterm_type' option."+
          "'on' enables, 'off' disables it.","off"},
         {"CresetMQ", "[<tile-component idx>] on|off"+
          "[ [<tile-component idx>] on|off ...]",
          "If this is enabled the probability estimates of the MQ coder are "+
          "reset after each arithmetically coded (i.e. non-lazy) coding pass. "+
          "'on' enables, 'off' disables it.","off"},
-        {"Creg_term", "[<tile-component idx>] on|off"+
+        {"Cterminate", "[<tile-component idx>] on|off"+
          "[ [<tile-component idx>] on|off ...]",
          "If this is enabled the codeword (raw or MQ) is terminated on a "+
          "byte boundary after each coding pass. In this case it is important "+
@@ -126,7 +127,7 @@ public abstract class EntropyCoder extends ImgDataAdapter
          "information to detect and "+
          "conceal errors.'on' enables, 'off' disables "+
          "it.","off"},
-        {"Cterm", "[<tile-component idx>] near_opt|easy|predict|full"+
+        {"Cterm_type", "[<tile-component idx>] near_opt|easy|predict|full"+
          "[ [<tile-component idx>] near_opt|easy|predict|full ...]",
          "Specifies the algorithm used to terminate the MQ codeword. "+
          "The most efficient one is 'near_opt', which delivers a codeword "+
@@ -142,8 +143,8 @@ public abstract class EntropyCoder extends ImgDataAdapter
          "It is important to use a good termination policy since the MQ "+
          "codeword can be terminated quite often, specially if the 'Cbypass'"+
          " or "+
-         "'Creg_term' options are enabled (in the normal case it would be "+
-         "terminated once per code-block, while if 'Creg_term' is specified "+
+         "'Cterminate' options are enabled (in the normal case it would be "+
+         "terminated once per code-block, while if 'Cterminate' is specified "+
          "it will be done almost 3 times per bit-plane in each code-block).",
 	 "near_opt"},
         {"Clen_calc","[<tile-component idx>] near_opt|lazy_good|lazy"+
@@ -240,49 +241,38 @@ public abstract class EntropyCoder extends ImgDataAdapter
      *
      * @see Subband
      * */
-    public SubbandAn getSubbandTree(int t,int c) {
-        return src.getSubbandTree(t,c);
+    public SubbandAn getAnSubbandTree(int t,int c) {
+        return src.getAnSubbandTree(t,c);
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical offset of the code-block partition. Allowable
+     * values are 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**
-     * Returns the parameters that are used in this class and
-     * implementing classes. It returns a 2D String array. Each of the
-     * 1D arrays is for a different option, and they have 3
-     * elements. The first element is the option name, the second one
-     * is the synopsis, the third one is a long description of what
-     * the parameter is and the fourth is its default value. The
-     * synopsis or description may be 'null', in which case it is
+     * Returns the parameters that are used in this class and implementing
+     * classes. It returns a 2D String array. Each of the 1D arrays is for a
+     * different option, and they have 3 elements. The first element is the
+     * option name, the second one is the synopsis, the third one is a long
+     * description of what the parameter is and the fourth is its default
+     * value. The synopsis or description may be 'null', in which case it is
      * assumed that there is no synopsis or description of the option,
      * respectively. Null may be returned if no options are supported.
      *
-     * @return the options name, their synopsis and their explanation, 
-     * or null if no options are supported.
+     * @return the options name, their synopsis and their explanation, or null
+     * if no options are supported.
      * */
     public static String[][] getParameterInfo() {
         return pinfo;
@@ -295,18 +285,39 @@ public abstract class EntropyCoder extends ImgDataAdapter
      *
      * @param src The source of data to be entropy coded
      *
-     * @param encSpec The encoder specifications
-     *
      * @param pl The parameter list (or options).
+     *
+     * @param cbks Code-block size specifications
+     *
+     * @param pss Precinct partition specifications
+     *
+     * @param bms By-pass mode specifications
+     *
+     * @param mqrs MQ-reset specifications
+     *
+     * @param rts Regular termination specifications
+     *
+     * @param css Causal stripes specifications
+     *
+     * @param sss Error resolution segment symbol use specifications
+     *
+     * @param lcs Length computation specifications
+     *
+     * @param tts Termination type specifications
      *
      * @exception IllegalArgumentException If an error occurs while parsing
      * the options in 'pl'
      * */
     public static EntropyCoder createInstance(CBlkQuantDataSrcEnc src,
-                                              EncoderSpecs encSpec,
-                                              ParameterList pl) {
+                                              ParameterList pl,
+                                              CBlkSizeSpec cblks,
+                                              PrecinctSizeSpec pss,
+                                              StringSpec bms,StringSpec mqrs,
+                                              StringSpec rts,StringSpec css,
+                                              StringSpec sss,StringSpec lcs,
+                                              StringSpec tts) {
         // Check parameters
         pl.checkList(OPT_PREFIX,pl.toNameArray(pinfo));
-        return new StdEntropyCoder(src, encSpec);
+        return new StdEntropyCoder(src,cblks,pss,bms,mqrs,rts,css,sss,lcs,tts);
     }
 }

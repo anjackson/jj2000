@@ -1,7 +1,7 @@
 /*
  * CVS Identifier:
  *
- * $Id: ForwCompTransf.java,v 1.17 2000/12/05 22:45:20 grosbois Exp $
+ * $Id: ForwCompTransf.java,v 1.20 2001/09/14 09:14:57 grosbois Exp $
  *
  * Class:               ForwCompTransf
  *
@@ -50,19 +50,16 @@ import jj2000.j2k.util.*;
 import jj2000.j2k.*;
 
 /** 
- * This class apply component transformations to the tiles depending
- * on user specifications. These transformations can be used to
- * improve compression efficiency but are not related to colour
- * transforms used to map colour values for display purposes. JPEG
- * 2000 part I defines 2 component transformations: RCT (Reversible
- * Component Transformation) and ICT (Irreversible Component
- * Transformation).
+ * This class apply component transformations to the tiles depending on user
+ * specifications. These transformations can be used to improve compression
+ * efficiency but are not related to colour transforms used to map colour
+ * values for display purposes. JPEG 2000 part I defines 2 component
+ * transformations: RCT (Reversible Component Transformation) and ICT
+ * (Irreversible Component Transformation).
  *
  * @see ModuleSpec
  * */
-public class ForwCompTransf extends ImgDataAdapter
-    implements BlkImgDataSrc {
-
+public class ForwCompTransf extends ImgDataAdapter implements BlkImgDataSrc {
     /** Identifier for no component transformation. Value is 0. */
     public static final int NONE = 0;
 
@@ -70,8 +67,8 @@ public class ForwCompTransf extends ImgDataAdapter
         (FORW_RCT). Value is 1. */
     public static final int FORW_RCT = 1;
 
-    /** Identifier for the Forward Irreversible Component
-        Transformation (FORW_ICT). Value is 2 */
+    /** Identifier for the Forward Irreversible Component Transformation
+        (FORW_ICT). Value is 2 */
     public static final int FORW_ICT = 2;
 
     /** The source of image data */
@@ -83,15 +80,15 @@ public class ForwCompTransf extends ImgDataAdapter
     /** The wavelet filter specifications */
     private AnWTFilterSpec wfs;
 
-    /** The type of the current component transformation JPEG 2000
-     * part I only support NONE, FORW_RCT and FORW_ICT types*/
+    /** The type of the current component transformation. JPEG 2000 part 1
+     * supports only NONE, FORW_RCT and FORW_ICT types */
     private int transfType = NONE;
 
     /** The bit-depths of transformed components */
     private int tdepth[];
 
-    /** Output block used instead of the one provided as an argument
-        if the later is DataBlkFloat.*/
+    /** Output block used instead of the one provided as an argument if the
+        later is DataBlkFloat.*/
     private DataBlk outBlk;
 
     /** Block used to request component with index 0 */
@@ -104,11 +101,10 @@ public class ForwCompTransf extends ImgDataAdapter
     private DataBlkInt block2;
 
      /**
-     * Constructs a new ForwCompTransf object that operates on the
-     * specified source of image data.
+     * Constructs a new ForwCompTransf object that operates on the specified
+     * source of image data.
      *
-     * @param imgSrc The source from where to get the data to be
-     * transformed
+     * @param imgSrc The source from where to get the data to be transformed
      *
      * @param encSpec The encoder specifications
      *
@@ -124,12 +120,16 @@ public class ForwCompTransf extends ImgDataAdapter
     /** The prefix for component transformation type: 'M' */
     public final static char OPT_PREFIX = 'M';
 
-    /** The list of parameters that is accepted by the forward
-     * component transformation module. Options start with an 'M'. */
+    /** The list of parameters that is accepted by the forward component
+     * transformation module. Options start with an 'M'. */
     private final static String [][] pinfo = {
 	{ "Mct", "[<tile index>] [on|off] ...",
-	  "Specifies to use component transformation with some tiles. "+
-	  " If the wavelet transform is reversible (w5x3 filter), the "+
+	  "Specifies in which tiles to use a multiple component transform. "+
+          "Note that this multiple component transform can only be applied "+
+          "in tiles that contain at least three components and whose "+
+          "components are processed with the same wavelet filters and "+
+          "quantization type. "+
+	  "If the wavelet transform is reversible (w5x3 filter), the "+
           "Reversible Component Transformation (RCT) is applied. If not "+
           "(w9x7 filter), the Irreversible Component Transformation (ICT)"+
           " is used.", null},
@@ -144,15 +144,15 @@ public class ForwCompTransf extends ImgDataAdapter
      * and 0 should be returned. Position 0 is the position of the least
      * significant bit in the data.
      *
-     * <P>This default implementation assumes that the number of
-     * fractional bits is not modified by the component mixer.
+     * <p>This default implementation assumes that the number of fractional
+     * bits is not modified by the component mixer.</p>
      *
      * @param c The index of the component.
      *
-     * @return The value of the fixed point position of the source
-     * since the color transform does not affect it.
+     * @return The value of the fixed point position of the source since the
+     * color transform does not affect it.
      * */
-     public int getFixedPoint(int c){
+     public int getFixedPoint(int c) {
          return src.getFixedPoint(c);        
      }         
       
@@ -166,24 +166,24 @@ public class ForwCompTransf extends ImgDataAdapter
      * assumed that there is no synopsis or description of the option,
      * respectively. Null may be returned if no options are supported.
      *
-     * @return the options name, their synopsis and their explanation, 
-     * or null if no options are supported.
+     * @return the options name, their synopsis and their explanation, or null
+     * if no options are supported.
      * */
-    public static String[][] getParameterInfo(){
+    public static String[][] getParameterInfo() {
         return pinfo;
     }
 
     /**
      * Calculates the bitdepths of the transformed components, given the
      * bitdepth of the un-transformed components and the component
-     * tranformation type.
+     * transformation type.
      *
      * @param ntdepth The bitdepth of each non-transformed components.
      *
      * @param ttype The type ID of the component transformation.
      *
-     * @param tdepth If not null the results are stored in this
-     * array, otherwise a new array is allocated and returned.
+     * @param tdepth If not null the results are stored in this array,
+     * otherwise a new array is allocated and returned.
      *
      * @return The bitdepth of each transformed component.
      * */
@@ -248,17 +248,18 @@ public class ForwCompTransf extends ImgDataAdapter
      * Initialize some variables used with RCT. It must be called, at least,
      * at the beginning of each new tile.
      * */
-    private void initForwRCT(){
+    private void initForwRCT() {
         int i;
-	
+        int tIdx = getTileIdx();
+
         if (src.getNumComps() < 3) {
             throw new IllegalArgumentException();
         }
         // Check that the 3 components have the same dimensions
-        if (src.getCompWidth(0) != src.getCompWidth(1) ||
-            src.getCompWidth(0) != src.getCompWidth(2) ||
-            src.getCompHeight(0) != src.getCompHeight(1) ||
-            src.getCompHeight(0) != src.getCompHeight(2)) {
+        if (src.getTileCompWidth(tIdx,0) != src.getTileCompWidth(tIdx,1) ||
+            src.getTileCompWidth(tIdx,0) != src.getTileCompWidth(tIdx,2) ||
+            src.getTileCompHeight(tIdx,0) != src.getTileCompHeight(tIdx,1) ||
+            src.getTileCompHeight(tIdx,0) != src.getTileCompHeight(tIdx,2)) {
             throw new IllegalArgumentException("Can not use RCT "+
                                                "on components with different "+
                                                "dimensions");
@@ -276,17 +277,18 @@ public class ForwCompTransf extends ImgDataAdapter
      * Initialize some variables used with ICT. It must be called, at least,
      * at the beginning of a new tile.
      * */
-    private void initForwICT(){
+    private void initForwICT() {
         int i;
+        int tIdx = getTileIdx();
 
         if (src.getNumComps() < 3) {
             throw new IllegalArgumentException();
         }
         // Check that the 3 components have the same dimensions
-        if (src.getCompWidth(0) != src.getCompWidth(1) ||
-            src.getCompWidth(0) != src.getCompWidth(2) ||
-            src.getCompHeight(0) != src.getCompHeight(1) ||
-            src.getCompHeight(0) != src.getCompHeight(2)) {
+        if (src.getTileCompWidth(tIdx,0) != src.getTileCompWidth(tIdx,1) ||
+            src.getTileCompWidth(tIdx,0) != src.getTileCompWidth(tIdx,2) ||
+            src.getTileCompHeight(tIdx,0) != src.getTileCompHeight(tIdx,1) ||
+            src.getTileCompHeight(tIdx,0) != src.getTileCompHeight(tIdx,2)) {
             throw new IllegalArgumentException("Can not use ICT "+
                                                "on components with different "+
                                                "dimensions");
@@ -354,7 +356,7 @@ public class ForwCompTransf extends ImgDataAdapter
      *
      * @return Reversibility of component transformation in current tile
      * */
-    public boolean isReversible(){
+    public boolean isReversible() {
         switch(transfType){
         case NONE:
         case FORW_RCT:
@@ -372,12 +374,12 @@ public class ForwCompTransf extends ImgDataAdapter
      * tile. If no component transformation has been requested by the user,
      * data are not modified.
      *
-     * <P>This method calls the getInternCompData() method, but respects the
+     * <p>This method calls the getInternCompData() method, but respects the
      * definitions of the getCompData() method defined in the BlkImgDataSrc
-     * interface.
+     * interface.</p>
      *
-     * @param blk Determines the rectangular area to return, and the
-     * data is returned in this object.
+     * @param blk Determines the rectangular area to return, and the data is
+     * returned in this object.
      *
      * @param c Index of the output component.
      *
@@ -412,7 +414,7 @@ public class ForwCompTransf extends ImgDataAdapter
      *
      * @return The requested DataBlk
      * */
-    public DataBlk getInternCompData(DataBlk blk, int c){
+    public DataBlk getInternCompData(DataBlk blk, int c) {
         switch(transfType){
         case NONE:
  	    return src.getInternCompData(blk,c);
@@ -421,7 +423,8 @@ public class ForwCompTransf extends ImgDataAdapter
         case FORW_ICT:
 	    return forwICT(blk,c);
         default:
-            throw new IllegalArgumentException("Non JPEG 2000 part I component"+
+            throw new IllegalArgumentException("Non JPEG 2000 part 1 "+
+                                               "component"+
                                                " transformation for tile: "+
                                                tIdx);
         }
@@ -438,7 +441,7 @@ public class ForwCompTransf extends ImgDataAdapter
      *
      * @return Data of requested component
      * */
-    private DataBlk forwRCT(DataBlk blk,int c){
+    private DataBlk forwRCT(DataBlk blk,int c) {
         int k,k0,k1,k2,mink,i;
         int w = blk.w; //width of output block
         int h = blk.h; //height of ouput block
@@ -573,7 +576,7 @@ public class ForwCompTransf extends ImgDataAdapter
      *
      * @return Data of requested component
      * */
-    private DataBlk forwICT(DataBlk blk,int c){
+    private DataBlk forwICT(DataBlk blk,int c) {
         int k,k0,k1,k2,mink,i;
         int w = blk.w; //width of output block
         int h = blk.h; //height of ouput block
@@ -594,7 +597,7 @@ public class ForwCompTransf extends ImgDataAdapter
 	outdata = (float[]) blk.getData();
 	
 	//Create data array of blk if necessary
-	if(outdata == null) {
+	if(outdata==null || outdata.length<w*h ) {
 	    outdata = new float[h * w];
 	    blk.setData(outdata);
 	}
@@ -604,23 +607,26 @@ public class ForwCompTransf extends ImgDataAdapter
         
             int data0[],data1[],data2[]; // input data arrays
 
-	    if(block0==null)
+	    if(block0==null) {
 		block0 = new DataBlkInt();
-	    if(block1==null)
+            }
+	    if(block1==null) {
 		block1 = new DataBlkInt();
-	    if(block2==null)
+            }
+	    if(block2==null) {
 		block2 = new DataBlkInt(); 
+            }
 	    block0.w = block1.w = block2.w = blk.w;
 	    block0.h = block1.h = block2.h = blk.h;
 	    block0.ulx = block1.ulx = block2.ulx = blk.ulx;
 	    block0.uly = block1.uly = block2.uly = blk.uly;
 
             // Returned blocks may have different size and position
-            block0 = (DataBlkInt)src.getInternCompData(block0, 0);
+            block0 = (DataBlkInt)src.getInternCompData(block0,0);
             data0 = (int[]) block0.getData();
-            block1 = (DataBlkInt)src.getInternCompData(block1, 1);
+            block1 = (DataBlkInt)src.getInternCompData(block1,1);
             data1 = (int[]) block1.getData();
-            block2 = (DataBlkInt)src.getInternCompData(block2, 2);
+            block2 = (DataBlkInt)src.getInternCompData(block2,2);
             data2 = (int[]) block2.getData();
 
             // Set the progressiveness of the output data
@@ -730,8 +736,8 @@ public class ForwCompTransf extends ImgDataAdapter
      * IllegalArgumentException is thrown if the indexes do not correspond to
      * a valid tile.
      *
-     * <P>This default implementation changes the tile in the source and
-     * re-initializes properly component transformation variables..
+     * <p>This default implementation changes the tile in the source and
+     * re-initializes properly component transformation variables..</p>
      *
      * @param x The horizontal index of the tile.
      *
@@ -761,12 +767,13 @@ public class ForwCompTransf extends ImgDataAdapter
     }
 
     /**
-     * Advances to the next tile, in standard scan-line order (by rows then
+     * Goes to the next tile, in standard scan-line order (by rows then by
      * columns). An NoNextElementException is thrown if the current tile is
      * the last one (i.e. there is no next tile).
      *
-     * <P>This default implementation just advances to the next tile in the
-     * source and re-initializes properly component transformation variables.
+     * <p>This default implementation just advances to the next tile in the
+     * source and re-initializes properly component transformation
+     * variables.</p>
      * */
     public void nextTile() {
         src.nextTile();
@@ -790,5 +797,4 @@ public class ForwCompTransf extends ImgDataAdapter
                                                " not recognized");
         }
     }
-
 }

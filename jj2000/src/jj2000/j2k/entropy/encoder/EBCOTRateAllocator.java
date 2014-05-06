@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: EBCOTRateAllocator.java,v 1.90 2001/03/01 18:37:43 grosbois Exp $
+ * $Id: EBCOTRateAllocator.java,v 1.97 2002/05/22 14:59:44 grosbois Exp $
  *
  * Class:                   EBCOTRateAllocator
  *
@@ -52,7 +52,7 @@ import jj2000.j2k.encoder.*;
 import jj2000.j2k.image.*;
 import jj2000.j2k.util.*;
 
-import java.util.Vector;
+import java.util.*;
 import java.io.*;
 
 /**
@@ -63,7 +63,7 @@ import java.io.*;
  * components, and then running the rate-allocation on the whole image at
  * once, for each layer.
  *
- * <P>This implementation also provides some timing features. They can be
+ * <p>This implementation also provides some timing features. They can be
  * enabled by setting the 'DO_TIMING' constant of this class to true and
  * recompiling. The timing uses the 'System.currentTimeMillis()' Java API
  * call, which returns wall clock time, not the actual CPU time used. The
@@ -72,12 +72,10 @@ import java.io.*;
  * to find the total used time (i.e. some time might be counted in several
  * places). When timing is disabled ('DO_TIMING' is false) there is no penalty
  * if the compiler performs some basic optimizations. Even if not the penalty
- * should be negligeable.
+ * should be negligeable.</p>
  *
  * @see PostCompRateAllocator
- *
  * @see CodedCBlkDataSrcEnc
- *
  * @see jj2000.j2k.codestream.writer.CodestreamWriter
  * */
 public class EBCOTRateAllocator extends PostCompRateAllocator {
@@ -105,7 +103,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * <li>4th index: subband index</li>
      * <li>5th index: code-block index</li>
      * </ul>
-     **/
+     * */
     private CBlkRateDistStats cblks[][][][][];
     
     /**
@@ -125,15 +123,15 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
     private int truncIdxs[][][][][][];
     
     /** 
-     * Maximum number of precincts :
+     * Number of precincts in each resolution level:
      *
      * <ul>
      * <li>1st dim: tile index.</li>
      * <li>2nd dim: component index.</li>
      * <li>3nd dim: resolution level index.</li>
      * </ul>
-     */
-    private Coord maxNumPrec[][][];
+     * */
+    private Coord numPrec[][][];
     
     /** Array containing the layers information. */
     private EBCOTLayer layers[];
@@ -155,32 +153,28 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * numbers are considered "equal" if they are within this precision. */
     private static final float FLOAT_ABS_PRECISION = 1e-10f;
 
-    /** 
-     * Minimum average size of a packet. If layer has less bytes than the this
-     * constant multiplied by number of packets in the layer, then the layer
-     * is skipped.  
-     * */
+    /** Minimum average size of a packet. If layer has less bytes than the
+     * this constant multiplied by number of packets in the layer, then the
+     * layer is skipped. */
     private static final int MIN_AVG_PACKET_SZ = 32;
 
-    /**
-     * The R-D summary information collected from the coding of all
+    /** The R-D summary information collected from the coding of all
      * code-blocks. For each entry it contains the accumulated length of all
      * truncation points that have a slope not less than
      * '2*(k-RD_SUMMARY_OFF)', where 'k' is the entry index.
      *
-     * <P>Therefore, the length at entry 'k' is the total number of bytes of
+     * <p>Therefore, the length at entry 'k' is the total number of bytes of
      * code-block data that would be obtained if the truncation slope was
      * chosen as '2*(k-RD_SUMMARY_OFF)', without counting the overhead
-     * associated with the packet heads.
+     * associated with the packet heads.</p>
      *
-     * <P>This summary is used to estimate the relation of the R-D slope to
+     * <p>This summary is used to estimate the relation of the R-D slope to
      * coded length, and to obtain absolute minimums on the slope given a
-     * length.
-     **/
+     * length. </p> */
     private int RDSlopesRates[];
     
     /** Packet encoder. */
-    private PktEncoder packetEnc;
+    private PktEncoder pktEnc;
      
     /** The layer specifications */
     private LayersInfo lyrSpec;
@@ -243,7 +237,6 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         truncIdxs = new int[nt][numLayers][nc][][][];
 
         int cblkPerSubband; // Number of code-blocks per subband
-        int t=0; // tile index
 	int mrl; // Number of resolution levels
         int l; // layer index
 	int s; //subband index
@@ -256,29 +249,45 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         int trx0, try0, trx1, try1; // Current tile position in the reduced
         // resolution image domain
         int xrsiz, yrsiz; // Component sub-sampling factors
+        Coord tileI = null;
+        Coord nTiles = null;
+        int xsiz,ysiz,x0siz,y0siz;
+        int xt0siz,yt0siz;
+        int xtsiz,ytsiz;
 
-        src.setTile(0,0); // Go to the first one
+        int cb0x = src.getCbULX();
+        int cb0y = src.getCbULY();
 
-        while(t<nt){ // Loop on tiles
-            for(int c=0; c<nc; c++){ // loop on components
+        src.setTile(0,0);
+        for (int t=0; t<nt; t++) { // Loop on tiles
+            nTiles = src.getNumTiles(nTiles);
+            tileI = src.getTile(tileI);
+            x0siz = getImgULX();
+            y0siz = getImgULY();
+            xsiz = x0siz + getImgWidth();
+            ysiz = y0siz + getImgHeight();
+            xt0siz = src.getTilePartULX();
+            yt0siz = src.getTilePartULY();
+            xtsiz = src.getNomTileWidth();
+            ytsiz = src.getNomTileHeight();
+
+            // Tile's coordinates on the reference grid
+            tx0 = (tileI.x==0) ? x0siz : xt0siz+tileI.x*xtsiz;
+            ty0 = (tileI.y==0) ? y0siz : yt0siz+tileI.y*ytsiz;
+            tx1 = (tileI.x!=nTiles.x-1) ? xt0siz+(tileI.x+1)*xtsiz : xsiz;
+            ty1 = (tileI.y!=nTiles.y-1) ? yt0siz+(tileI.y+1)*ytsiz : ysiz;
+
+            for(int c=0; c<nc; c++) { // loop on components
 
                 //Get the number of resolution levels
-                sb = src.getSubbandTree(t,c);
+                sb = src.getAnSubbandTree(t,c);
                 mrl = sb.resLvl+1;
 
                 // Initialize maximum number of precincts per resolution array
-                if( maxNumPrec == null ){
-                    maxNumPrec = new Coord[nt][nc][];
+                if (numPrec==null) { numPrec = new Coord[nt][nc][]; }
+                if (numPrec[t][c]==null) { 
+                    numPrec[t][c] = new Coord[mrl];
                 }
-                if( maxNumPrec[t][c] ==null ){
-                    maxNumPrec[t][c] = new Coord[mrl];
-                }
-
-                // Tile's coordinates on the reference grid
-                tx0 = src.getULX(c);
-                ty0 = src.getULY(c);
-                tx1 = tx0 + src.getWidth();
-                ty1 = ty0 + src.getHeight();
                 
                 // Subsampling factors
                 xrsiz = src.getCompSubsX(c);
@@ -291,12 +300,12 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                 tcy1 = (int)Math.ceil(ty1/(double)(yrsiz));
 
                 cblks[t][c] = new CBlkRateDistStats[mrl][][];
-
+                
                 for(l=0; l<numLayers; l++) {
                     truncIdxs[t][l][c] = new int[mrl][][];
                 }
 
-                for(int r=mrl-1; r>=0; r--){ // loop on resolution levels
+                for(int r=0; r<mrl; r++) { // loop on resolution levels
                     
                     // Tile's coordinates in the reduced resolution image
                     // domain
@@ -310,56 +319,52 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                     // options.
                     double twoppx = (double)encSpec.pss.getPPX(t,c,r);
                     double twoppy = (double)encSpec.pss.getPPY(t,c,r);
-                    maxNumPrec[t][c][r] = new Coord();
-                    if( trx1>trx0 ) {
-                        maxNumPrec[t][c][r].x = (int)Math.ceil(trx1/twoppx)
-                            - (int)Math.floor(trx0/twoppx);
+                    numPrec[t][c][r] = new Coord();
+                    if (trx1>trx0) {
+                        numPrec[t][c][r].x = (int)Math.ceil((trx1-cb0x)/twoppx)
+                            - (int)Math.floor((trx0-cb0x)/twoppx);
+                    } else {
+                        numPrec[t][c][r].x = 0;
                     }
-                    if( try1>try0 ) {
-                        maxNumPrec[t][c][r].y = (int)Math.ceil(try1/twoppy)
-                            - (int)Math.floor(try0/twoppy);
+                    if (try1>try0) {
+                        numPrec[t][c][r].y = (int)Math.ceil((try1-cb0y)/twoppy)
+                            - (int)Math.floor((try0-cb0y)/(double)twoppy);
+                    } else {
+                        numPrec[t][c][r].y = 0;
                     }
 
-                    //Find subband with highest index
-                    sb2 = sb;
-                    while(sb2.subb_HH != null)
-                        sb2 = sb2.subb_HH;
-                    maxsbi = sb2.sbandIdx + 1;
-                    minsbi = maxsbi >> 2;
+                    minsbi = (r==0) ? 0 : 1;
+                    maxsbi = (r==0) ? 1 : 4;
 
                     cblks[t][c][r] = new CBlkRateDistStats[maxsbi][];
-                    for(l=0; l<numLayers; l++)
+                    for(l=0; l<numLayers; l++) {
                         truncIdxs[t][l][c][r] = new int[maxsbi][];
+                    }
 
-                    sb2 = (SubbandAn)sb.getSubbandByIdx(r,minsbi);
-                    for(s=minsbi; s<maxsbi; s++){ // loop on subbands
+                    for(s=minsbi; s<maxsbi; s++) { // loop on subbands
                         //Get the number of blocks in the current subband
-                        ncblks = src.getNumCodeBlocks(sb2,ncblks);
+                        sb2 = (SubbandAn)sb.getSubbandByIdx(r,s);
+                        ncblks = sb2.numCb;
                         cblkPerSubband = ncblks.x*ncblks.y;
                         cblks[t][c][r][s] = 
                             new CBlkRateDistStats[cblkPerSubband];
                         
-                        for(l=0; l<numLayers; l++){
+                        for(l=0; l<numLayers; l++) {
                             truncIdxs[t][l][c][r][s] = new int[cblkPerSubband];
-                            for(i=0; i<cblkPerSubband; i++)
+                            for(i=0; i<cblkPerSubband; i++) {
                                 truncIdxs[t][l][c][r][s][i] = -1;
+                            }
                         }
-                        sb2 = (SubbandAn) sb2.nextSubband();
                     } // End loop on subbands
-
-                    sb = sb.subb_LL;
                 } // End lopp on resolution levels
             } // End loop on components
-
-            // Go to the next tile
-            if(t<nt-1) { //not at last tile
+            if (t!=nt-1) {
                 src.nextTile();
             }
-            t++;
         } // End loop on tiles
         
         //Initialize the packet encoder
-        packetEnc = new PktEncoder(src,encSpec,maxNumPrec,pl);
+        pktEnc = new PktEncoder(src,encSpec,numPrec,pl);
 
         // The layers array has to be initialized after the constructor since
         // it is needed that the bit stream header has been entirely written
@@ -404,7 +409,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * account. This method will get all the code-blocks and then initialize
      * the target bitrates for each layer, according to the specifications.
      * */
-    public void initialize() throws IOException{
+    public void initialize() throws IOException {
         int n,i,l;
         int ho; // The header overhead (in bytes)
         float np;// The number of pixels divided by the number of bits per byte
@@ -444,20 +449,18 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                 avgPktLen += Markers.EPH_LENGTH;
             }
 		    
-	    for( int c=0 ; c<numComps ; c++ ){
-		numLvls   = src.getSubbandTree(t,c).resLvl+1;
+	    for (int c=0; c<numComps; c++) {
+		numLvls   = src.getAnSubbandTree(t,c).resLvl+1;
 		if( !src.precinctPartitionUsed(c,t) ) {
 		    // Precinct partition is not used so there is only
 		    // one packet per resolution level/layer
 		    totenclength += numLayers*avgPktLen*numLvls;
-		}
-		else {
+		} else {
 		    // Precinct partition is used so for each
 		    // component/tile/resolution level, we get the maximum
 		    // number of packets
-                    for ( int rl=0 ; rl<numLvls ; rl++ ) {
-                        maxpkt = maxNumPrec[t][c][rl].x * 
-                                 maxNumPrec[t][c][rl].y;
+                    for (int rl=0; rl<numLvls; rl++) {
+                        maxpkt = numPrec[t][c][rl].x*numPrec[t][c][rl].y;
                         totenclength += numLayers*avgPktLen*maxpkt;
                     } 
 		}
@@ -476,7 +479,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         np = src.getImgWidth()*src.getImgHeight()/8f;
 
         // SOT marker must be taken into account
-        for(int t=0; t<numTiles; t++){
+        for(int t=0; t<numTiles; t++) {
             headEnc.reset();
             headEnc.encodeTilePartHeader(0,t);
             ho += headEnc.getLength();
@@ -488,19 +491,17 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         }
 
         minlsz = 0; // To keep compiler happy
-	for( int t=0 ; t<numTiles ; t++ ){
-            for( int c=0 ; c<numComps ; c++ ){
-		numLvls   = src.getSubbandTree(t,c).resLvl+1;
+	for(int t=0; t<numTiles; t++) {
+            for(int c=0; c<numComps; c++) {
+		numLvls   = src.getAnSubbandTree(t,c).resLvl+1;
 		
 		if ( !src.precinctPartitionUsed(c,t) ) {
 		    // Precinct partition is not used
 		    minlsz += MIN_AVG_PACKET_SZ*numLvls;
-		}
-		else {
+		} else {
 		    // Precinct partition is used
-                    for ( int rl=0 ; rl<numLvls ; rl++ ) {
-                        maxpkt = maxNumPrec[t][c][rl].x * 
-			    maxNumPrec[t][c][rl].y;
+                    for (int rl=0; rl<numLvls; rl++) {
+                        maxpkt = numPrec[t][c][rl].x*numPrec[t][c][rl].y;
                         minlsz += MIN_AVG_PACKET_SZ*maxpkt;
                     }
 		}
@@ -512,7 +513,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         i = 0;
         lastbytes = 0;
 
-        while (n < numLayers-1) {
+        while (n<numLayers-1) {
             // At an optimized layer
             basebytes = Math.floor(lyrSpec.getTargetBitrate(i)*np);
             if (i < lyrSpec.getNOptPoints()-1) {
@@ -520,16 +521,15 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                 // Limit target length to 'totenclength'
                 if (nextbytes > totenclength) 
                     nextbytes = totenclength;
-            }
-            else {
+            } else {
                 nextbytes = 1;
             }
             loopnlyrs = lyrSpec.getExtraLayers(i)+1;
             ls = Math.exp(Math.log((double)nextbytes/basebytes)/loopnlyrs);
             layers[n].optimize = true;
-            for (l = 0; l < loopnlyrs; l++) {
+            for (l=0; l<loopnlyrs; l++) {
                 newbytes = (int)basebytes - lastbytes - ho;
-                if (newbytes < minlsz) {  // Skip layer (too small)
+                if (newbytes<minlsz) {  // Skip layer (too small)
                     basebytes *= ls;
                     numLayers--;
                     continue;
@@ -547,9 +547,9 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         n = numLayers-2;
         nextbytes = (int) (lyrSpec.getTotBitrate()*np) - ho;
         newbytes = nextbytes - ((n>=0) ? layers[n].maxBytes : 0);
-        while (newbytes < minlsz) {
-            if (numLayers == 1) {
-                if (newbytes <= 0) {
+        while (newbytes<minlsz) {
+            if (numLayers==1) {
+                if (newbytes<=0) {
                     throw new
                         IllegalArgumentException("Overall target bitrate too "+
                                                  "low, given the current "+
@@ -569,44 +569,33 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 	
 	// Re-initialize progression order changes if needed Default values
 	Progression[] prog1,prog2;
-	prog1 = (Progression[])encSpec.ps.getDefault();
+	prog1 = (Progression[])encSpec.pocs.getDefault();
 	int nValidProg = prog1.length;
-	for(int prg=0; prg<prog1.length;prg++){
+	for(int prg=0; prg<prog1.length; prg++) {
 	    if(prog1[prg].lye>numLayers){
 		prog1[prg].lye = numLayers;
-		nValidProg=prg+1;
-		break;
 	    }
 	}
-	if(nValidProg==0)
-	    throw new Error("Unable to initialize rate allocator");
-	if(nValidProg!=prog1.length){
-	    prog2 = new Progression[nValidProg];
-	    for(int prg=0; prg<nValidProg; prg++)
-		prog2[prg] = prog1[prg];
-	    encSpec.ps.setDefault(prog2);
-	}
+	if(nValidProg==0) {
+	    throw new Error("Unable to initialize rate allocator: No "+
+                            "default progression type has been defined.");
+        }
 
 	// Tile specific values
-	for(int t=0; t<numTiles; t++){
-	    if(encSpec.ps.isTileSpecified(t)){
-		prog1 = (Progression[])encSpec.ps.getTileDef(t);
+	for(int t=0; t<numTiles; t++) {
+	    if(encSpec.pocs.isTileSpecified(t)) {
+		prog1 = (Progression[])encSpec.pocs.getTileDef(t);
 		nValidProg = prog1.length;
-		for(int prg=0; prg<prog1.length;prg++){
-		    if(prog1[prg].lye>numLayers){
+		for(int prg=0; prg<prog1.length; prg++) {
+		    if(prog1[prg].lye>numLayers) {
 			prog1[prg].lye = numLayers;
-			nValidProg=prg+1;
-			break;
 		    }
 		}
-		if(nValidProg==0)
-		    throw new Error("Unable to initialize rate allocator");
-		if(nValidProg!=prog1.length){
-		    prog2 = new Progression[nValidProg];
-		    for(int prg=0; prg<nValidProg; prg++)
-			prog2[prg] = prog1[prg];
-		    encSpec.ps.setTileDef(t,prog2);
-		}
+		if(nValidProg==0) {
+		    throw new Error("Unable to initialize rate allocator:"+
+                                    " No default progression type has been "+
+                                    "defined for tile "+t);
+                }
 	    }
 	} // End loop on tiles
 
@@ -642,15 +631,47 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         numComps = src.getNumComps();
         numTiles = src.getNumTiles();
 
+	SubbandAn root,sb;
+	int cblkToEncode = 0;
+	int nEncCblk = 0;
+	ProgressWatch pw = FacilityManager.getProgressWatch();
+
         //Get all coded code-blocks Goto first tile
         src.setTile(0,0);
         for (t=0; t<numTiles; t++) { //loop on tiles
+	    nEncCblk = 0;
+	    cblkToEncode = 0;
+	    for(c=0; c<numComps; c++) {
+		root = src.getAnSubbandTree(t,c);
+		for(r=0; r<=root.resLvl; r++) {
+		    if(r==0) {
+			sb = (SubbandAn)root.getSubbandByIdx(0,0);
+			if(sb!=null) cblkToEncode += sb.numCb.x*sb.numCb.y;
+		    } else {
+			sb = (SubbandAn)root.getSubbandByIdx(r,1);
+			if(sb!=null) cblkToEncode += sb.numCb.x*sb.numCb.y;
+			sb = (SubbandAn)root.getSubbandByIdx(r,2);
+			if(sb!=null) cblkToEncode += sb.numCb.x*sb.numCb.y;
+			sb = (SubbandAn)root.getSubbandByIdx(r,3);
+			if(sb!=null) cblkToEncode += sb.numCb.x*sb.numCb.y;
+		    }
+		}
+	    }
+	    if(pw!=null) {
+		pw.initProgressWatch(0,cblkToEncode,"Encoding tile "+t+"...");
+	    }
+
             for (c=0; c<numComps; c++) { //loop on components
 
                 //Get next coded code-block coordinates
                 while ( (ccb = src.getNextCodeBlock(c,ccb)) != null) {
                     if (DO_TIMING) stime = System.currentTimeMillis();
 
+		    if(pw!=null) {
+			nEncCblk++;
+			pw.updateProgressWatch(nEncCblk,null);
+		    }
+		    
                     subb = ccb.sb;
 
                     //Get the coded code-block resolution level index
@@ -660,7 +681,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                     s = subb.sbandIdx;
 
                     //Get the number of blocks in the current subband
-                    ncblks = src.getNumCodeBlocks(subb,ncblks);
+                    ncblks = subb.numCb;
 
                     // Add code-block contribution to summary R-D table
                     // RDSlopesRates
@@ -684,6 +705,11 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                     if(DO_TIMING) initTime += System.currentTimeMillis()-stime;
                 }
             }
+	    
+	    if(pw!=null) {
+		pw.terminateProgressWatch();
+	    }
+
             //Goto next tile
             if(t<numTiles-1) //not at last tile
                 src.nextTile();
@@ -697,26 +723,20 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * writes the layer bit streams according to the progressive type.
      * */  
     private void buildAndWriteLayers() throws IOException {
-    
-        int maxBytes, actualBytes, packetBytes;
+        int nPrec = 0;
+        int maxBytes, actualBytes;
         float rdThreshold;
-        int numLvls;
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
-        int tIndx[][][];
         int[] tileLengths; // Length of each tile
         int tmp;
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-        int numComps = src.getNumComps();
-        int numTiles = src.getNumTiles();
-	int[][] mrl = packetEnc.getMRL();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+        int nt = src.getNumTiles();
+        int mrl;
 
         long stime = 0L;
 
@@ -725,7 +745,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         // Start with the maximum slope
         rdThreshold = maxSlope;
 
-        tileLengths = new int[numTiles];
+        tileLengths = new int[nt];
         actualBytes = 0;
 
 	// +------------------------------+
@@ -735,29 +755,28 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 	for(int l=0; l<numLayers; l++){ //loop on layers
 
 	    maxBytes = layers[l].maxBytes;
-	    if(layers[l].optimize){
+	    if(layers[l].optimize) {
 		rdThreshold = 
 		    optimizeBitstreamLayer(l,rdThreshold,maxBytes,actualBytes);
-	    } 
-	    else{
-		if( (l<=0) || (l>=numLayers-1) )
+	    } else {
+		if( l<=0 || l>=numLayers-1 ) {
 		    throw new IllegalArgumentException("The first and the"+
 						       " last layer "+
                                                        "thresholds"+
 						       " must be optimized");
+                }
 		rdThreshold = estimateLayerThreshold(maxBytes,layers[l-1]);
 	    }
 
-	    src.setTile(0,0);
-	    for(int t=0; t<numTiles; t++){ //loop on tiles
-		if(l==0){
+	    for(int t=0; t<nt; t++) { //loop on tiles
+		if(l==0) {
 		    // Tile header
 		    headEnc.reset();
 		    headEnc.encodeTilePartHeader(0,t);
 		    tileLengths[t] += headEnc.getLength();
 		}
 
-		for(int c=0; c < numComps; c++){ //loop on components
+		for(int c=0; c<nc; c++) { //loop on components
 		    
 		    // set boolean sopUsed here (SOP markers)
 		    sopUsed = ((String)encSpec.sops.getTileDef(t)).
@@ -767,80 +786,42 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 			equalsIgnoreCase("on");
 		    
 		    // Go to LL band
-		    sb = src.getSubbandTree(t,c);
-		    while (sb.subb_LL != null) {
+		    sb = src.getAnSubbandTree(t,c);
+                    mrl = sb.resLvl+1;
+
+		    while (sb.subb_LL!=null) {
 			sb = sb.subb_LL;
 		    }
 
-		    numLvls = mrl[t][c]+1;
+		    for(int r=0; r<mrl ; r++) { // loop on resolution levels
 
-		    for(int r=0; r<numLvls ; r++) {
-                        precinctIdx = 0;
+                        nPrec = numPrec[t][c][r].x*numPrec[t][c][r].y;
+                        for(int p=0; p<nPrec; p++) { // loop on precincts
 
-			// Start-end of tile-component
-			xys = packetEnc.getSotEotArrayMax(t,c);
-			x0 = xys[0].x;
-			y0 = xys[0].y;
-			x1 = xys[1].x;
-			y1 = xys[1].y;
-			
-			xyInc = packetEnc.getIncArrayMax(t,c);
-			x_inc = xyInc.x;
-			y_inc = xyInc.y;
-			
-			xyInc = packetEnc.getIncArray(t,c,r);
-			x_inc_rl = xyInc.x;
-			y_inc_rl = xyInc.y;
-			
-			xys = packetEnc.getSotEotArray(t,c,r);
-			x0_rl = xys[0].x;
-			y0_rl = xys[0].y;
-
-			for(int yr=y0 ; yr<y1 ; yr+=y_inc )
-			    for(int xr=x0 ; xr<x1 ; xr+=x_inc )
-				if ( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-				     ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-
-                                    if(precinctIdx>=maxNumPrec[t][c][r].x*
-                                       maxNumPrec[t][c][r].y)
-                                        continue;
-
-				    findTruncIndices(l,c,r,t,sb,rdThreshold,
-						     precinctIdx);
+                            findTruncIndices(l,c,r,t,sb,rdThreshold,p);
 				    
-				    hBuff = 
-					packetEnc.
-					encodePacket(l+1,c,r,t,
-						     cblks[t][c][r], 
-						     truncIdxs[t][l][c][r],
-						     hBuff, bBuff, 
-						     precinctIdx);
-                                    if(packetEnc.isPacketWritable()){
-                                        tmp = bsWriter.
-                                            writePacketHead(hBuff.getBuffer(),
-                                                            hBuff.getLength(), 
-                                                            true, sopUsed,
-                                                            ephUsed);
-                                        tmp += bsWriter.
-                                            writePacketBody(packetEnc.
-                                                            getLastBodyBuf(),  
-                                                            packetEnc.
-                                                            getLastBodyLen(), 
-                                                            true,packetEnc.
-                                                            isROIinPkt(),
-                                                            packetEnc.
-                                                            getROILen());
-                                        actualBytes += tmp;
-                                        tileLengths[t] += tmp;
-                                    }
-                                    precinctIdx++;
-				} // End loop on precincts
+                            hBuff = 
+                                pktEnc.encodePacket(l+1,c,r,t,
+                                                    cblks[t][c][r], 
+                                                    truncIdxs[t][l][c][r],
+                                                    hBuff, bBuff,p);
+                            if(pktEnc.isPacketWritable()) {
+                                tmp = bsWriter.
+                                    writePacketHead(hBuff.getBuffer(),
+                                                    hBuff.getLength(), 
+                                                    true, sopUsed,ephUsed);
+                                tmp += bsWriter.
+                                    writePacketBody(pktEnc.getLastBodyBuf(),  
+                                                    pktEnc.getLastBodyLen(), 
+                                                    true,pktEnc.isROIinPkt(),
+                                                    pktEnc.getROILen());
+                                actualBytes += tmp;
+                                tileLengths[t] += tmp;
+                            }
+                        } // End loop on precincts
 			sb = sb.parent;
 		    } // End loop on resolution levels
 		} // End loop on components
-		if( t!=numTiles-1 ){
-		    src.nextTile();
-		}
 	    } // end loop on tiles
 	    layers[l].rdThreshold = rdThreshold;
 	    layers[l].actualBytes = actualBytes;
@@ -856,23 +837,25 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 	// | Write tiles according to their Progression order |
 	// +--------------------------------------------------+
 	// Reset the packet encoder before writing all packets
-	packetEnc.reset();
+	pktEnc.reset();
 	Progression[] prog; // Progression(s) in each tile
 	int cs,ce,rs,re,lye;
 
-	for(int t=0; t<numTiles; t++){ //loop on tiles
+        int[] mrlc = new int[nc];
+	for(int t=0; t<nt; t++) { //loop on tiles
 	    int[][] lysA; // layer index start for each component and
 	    // resolution level
-	    int[][] lys = new int[numComps][];
-	    for(int c=0; c<numComps; c++){
-		lys[c] = new int[mrl[t][c]+1];
+	    int[][] lys = new int[nc][];
+	    for(int c=0; c<nc; c++){
+                mrlc[c] = src.getAnSubbandTree(t,c).resLvl;
+		lys[c] = new int[mrlc[c]+1];
 	    }
 	    
 	    // Tile header
 	    headEnc.reset();
 	    headEnc.encodeTilePartHeader(tileLengths[t],t);
 	    bsWriter.commitBitstreamHeader(headEnc);
-	    prog = (Progression[])encSpec.ps.getTileDef(t);
+	    prog = (Progression[])encSpec.pocs.getTileDef(t);
 
 	    for(int prg=0; prg<prog.length;prg++){ // Loop on progression
 		lye = prog[prg].lye;
@@ -904,7 +887,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 		// Update next first layer index 
 		for(int c=cs; c<ce; c++)
 		    for(int r=rs; r<re; r++){
-                        if(r>mrl[t][c]) continue;
+                        if(r>mrlc[c]) continue;
 			lys[c][r] = lye;
                     }
 	    } // End loop on progression
@@ -917,133 +900,93 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * Write a piece of bit stream according to the
      * RES_LY_COMP_POS_PROG progression mode and between given bounds
      *
-     * @param t Tile index
+     * @param t Tile index.
      *
-     * @param rs First resolution level index
+     * @param rs First resolution level index.
      *
-     * @param re Last resolution level index
+     * @param re Last resolution level index.
      *
-     * @param cs First component index
+     * @param cs First component index.
      *
-     * @param ce Last component index
+     * @param ce Last component index.
      *
-     * @param lys First layer index for each component and resolution
+     * @param lys First layer index for each component and resolution.
      *
-     * @param lye Index of the last layer
+     * @param lye Index of the last layer.
      * */
     public void writeResLyCompPos(int t,int rs,int re,int cs,int ce,
-				  int lys[][],int lye) throws IOException{
+				  int lys[][],int lye) throws IOException {
 
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-	int[][] mrl = packetEnc.getMRL();
-        int numComps = src.getNumComps();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	int precinctIdxA[][][];
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+	int[] mrl = new int[nc];
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
+        int nPrec = 0;
 
-	// Max number of decomposition levels in the tile
-	int numLvls = mrl[t][0];
-	for(int c=0; c < numComps; c++)
-	    if(mrl[t][c]>numLvls)
-		numLvls = mrl[t][c];
-	numLvls++;
+	// Max number of resolution levels in the tile
+	int maxResLvl = 0;
+	for(int c=0; c<nc; c++) {
+            mrl[c] = src.getAnSubbandTree(t,c).resLvl;
+	    if(mrl[c]>maxResLvl) maxResLvl = mrl[c];
+        }
 	
-	precinctIdxA = new int[numComps][numLvls][numLayers];
 	int minlys; // minimum layer start index of each component
 		    
-	for(int r=rs; r<re; r++){ //loop on resolution levels
-            if(r>=numLvls) continue;
+	for(int r=rs; r<re; r++) { //loop on resolution levels
+            if(r>maxResLvl) continue;
 
 	    minlys = 100000;
 	    for(int c=cs; c<ce; c++) {
-		if( r<lys[c].length && lys[c][r]<minlys )
+		if( r<lys[c].length && lys[c][r]<minlys ) {
 		    minlys = lys[c][r];
+                }
             }
 		
-	    for(int l=minlys; l<lye; l++){ //loop on layers
-		for(int c=cs; c<ce; c++){//loop on components
+	    for(int l=minlys; l<lye; l++) { //loop on layers
+		for(int c=cs; c<ce; c++) {//loop on components
                     if(r>=lys[c].length) continue;
 		    if(l<lys[c][r]) continue;
 
-		    // If no more decomposition levels for this
-		    // component
-		    if(r>mrl[t][c]) continue;
+		    // If no more decomposition levels for this component
+		    if(r>mrl[c]) continue;
 		    
-		    xys = packetEnc.getSotEotArrayMax(t,c);
-		    x0 = xys[0].x;
-		    y0 = xys[0].y;
-		    x1 = xys[1].x;
-		    y1 = xys[1].y;
-		    
-		    xyInc = packetEnc.getIncArrayMax(t, c);
-		    x_inc = xyInc.x;
-		    y_inc = xyInc.y;
-		    
-		    xyInc = packetEnc.getIncArray(t,c,r);
-		    x_inc_rl = xyInc.x;
-		    y_inc_rl = xyInc.y;
-		    
-		    xys = packetEnc.getSotEotArray(t,c,r);
-		    x0_rl = xys[0].x;
-		    y0_rl = xys[0].y;
-		   
-		    for(int yr=y0 ; yr<y1 ; yr+=y_inc )
-			for(int xr=x0 ; xr<x1 ; xr+=x_inc )
-			    if ( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-				 ( (yr==y0) || (yr%y_inc_rl==0) ) ){
+                    nPrec = numPrec[t][c][r].x*numPrec[t][c][r].y;
+                    for(int p=0; p<nPrec; p++) { // loop on precincts
 				
-                                if(precinctIdxA[c][r][l]>=
-                                   maxNumPrec[t][c][r].x*maxNumPrec[t][c][r].y)
-                                    continue;
-
-				precinctIdx = precinctIdxA[c][r][l];
-				
-				// set boolean sopUsed here (SOP markers)
-				sopUsed = ((String)encSpec.sops.
-					   getTileDef(t)).equals("on");
-				// set boolean ephUsed here (EPH
-				// markers)
-				ephUsed = ((String)encSpec.ephs.
-					   getTileDef(t)).equals("on");
+			// set boolean sopUsed here (SOP markers)
+                        sopUsed = ((String)encSpec.sops.
+                                   getTileDef(t)).equals("on");
+			// set boolean ephUsed here (EPH markers)
+                        ephUsed = ((String)encSpec.ephs.
+                                   getTileDef(t)).equals("on");
 					    
-				sb = src.getSubbandTree(t,c);
-				for(int i=mrl[t][c]; i>r; i--){
-				    sb = sb.subb_LL;
-				}
+                        sb = src.getAnSubbandTree(t,c);
+                        for(int i=mrl[c]; i>r; i--) {
+                            sb = sb.subb_LL;
+                        }
 				
-				threshold = layers[l].rdThreshold;
-				findTruncIndices(l,c,r,t,sb,threshold,
-						 precinctIdx);
+                        threshold = layers[l].rdThreshold;
+                        findTruncIndices(l,c,r,t,sb,threshold,p);
 				
-				hBuff = packetEnc.
-				    encodePacket(l+1,c,r,t,cblks[t][c][r],
-						 truncIdxs[t][l][c][r],
-						 hBuff,bBuff,precinctIdx);
+                        hBuff = pktEnc.encodePacket(l+1,c,r,t,cblks[t][c][r],
+                                                    truncIdxs[t][l][c][r],
+                                                    hBuff,bBuff,p);
 					    
-                                if(packetEnc.isPacketWritable()){
-                                    bsWriter.
-                                        writePacketHead(hBuff.getBuffer(),
-                                                        hBuff.getLength(), 
-                                                        false,sopUsed,ephUsed);
-                                    bsWriter.
-                                        writePacketBody(packetEnc.
-                                                        getLastBodyBuf(),
-                                                        packetEnc.
-                                                        getLastBodyLen(),
-                                                        false,
-                                                        packetEnc.isROIinPkt(),
-                                                        packetEnc.getROILen());
-                                }
-				precinctIdxA[c][r][l]++;
-				
-			    } // End loop on precincts
+                        if(pktEnc.isPacketWritable()) {
+                            bsWriter.writePacketHead(hBuff.getBuffer(),
+                                                     hBuff.getLength(), 
+                                                     false,sopUsed,ephUsed);
+                            bsWriter.writePacketBody(pktEnc.getLastBodyBuf(),
+                                                     pktEnc.getLastBodyLen(),
+                                                     false,pktEnc.isROIinPkt(),
+                                                     pktEnc.getROILen());
+                        }
+                        
+                    } // End loop on precincts
 		} // End loop on components
 	    } // End loop on layers
 	} // End loop on resolution levels
@@ -1053,522 +996,652 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * Write a piece of bit stream according to the
      * LY_RES_COMP_POS_PROG progression mode and between given bounds
      *
-     * @param t Tile index
+     * @param t Tile index.
      *
-     * @param rs First resolution level index
+     * @param rs First resolution level index.
      *
-     * @param re Last resolution level index
+     * @param re Last resolution level index.
      *
-     * @param cs First component index
+     * @param cs First component index.
      *
-     * @param ce Last component index
+     * @param ce Last component index.
      *
-     * @param lys First layer index for each component and resolution
+     * @param lys First layer index for each component and resolution.
      *
-     * @param lye Index of the last layer
+     * @param lye Index of the last layer.
      * */
     public void writeLyResCompPos(int t,int rs,int re,int cs,int ce,
-				  int[][] lys,int lye) throws IOException{
-
+				  int[][] lys,int lye) throws IOException {
+        
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-	int[][] mrl = packetEnc.getMRL();
-        int numComps = src.getNumComps();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	int precinctIdxA[][][];
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+	int mrl;
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
+        int nPrec = 0;
 
-	// Max number of decomposition levels in each tile
-	int numLvls = mrl[t][0];
-	for(int c=0; c < numComps; c++)
-	    if(mrl[t][c]>numLvls)
-		numLvls = mrl[t][c];
-	numLvls++;
-	
-	int minlys; // minimum layer start index of each component and
-	// resolution
-	minlys = 10000;
-	for(int c=cs; c<ce; c++){ //loop on components
-            if(c>=lys.length) continue;
-
-	    for(int r=rs; r<re; r++) {//loop on resolution levels
-                if(r>=lys[c].length) continue;
-		if(lys[c][r]<minlys)
+	int minlys = 100000; // minimum layer start index of each component
+        for(int c=cs; c<ce; c++) {
+            for(int r=0; r<lys.length; r++) {
+                if(lys[c]!=null && r<lys[c].length && lys[c][r]<minlys ) {
 		    minlys = lys[c][r];
-	    }
-	}
+                }
+            }
+        }
 
-	for(int l=minlys; l<lye; l++){ //loop on layers
-	    threshold = layers[l].rdThreshold;
-	    for(int r=rs; r<re; r++) {//loop on resolution levels
-		for(int c=cs; c<ce; c++){ //loop on components
-                    
-                    // if no more decomposition levels for this component
-		    if(r>mrl[t][c]) continue;
-		    
-		    if(l<lys[c][r]) continue;
+        for(int l=minlys; l<lye; l++) { // loop on layers
+            for(int r=rs; r<re; r++) { // loop on resolution level
+                for(int c=cs; c<ce; c++) { // loop on components
+                    mrl = src.getAnSubbandTree(t,c).resLvl;
+                    if(r>mrl) continue;
+                    if(r>=lys[c].length) continue;
+                    if(l<lys[c][r]) continue;
 
-		    precinctIdxA = new int[numComps][numLvls][numLayers];
-		    
-		    xys = packetEnc.getSotEotArrayMax(t,c);
-		    x0 = xys[0].x;
-		    y0 = xys[0].y;
-		    x1 = xys[1].x;
-		    y1 = xys[1].y;
-		    
-		    xyInc = packetEnc.getIncArrayMax(t, c);
-		    x_inc = xyInc.x;
-		    y_inc = xyInc.y;
-		    
-		    xyInc = packetEnc.getIncArray(t,c,r);
-		    x_inc_rl = xyInc.x;
-		    y_inc_rl = xyInc.y;
-		    
-		    xys = packetEnc.getSotEotArray(t,c,r);
-		    x0_rl = xys[0].x;
-		    y0_rl = xys[0].y;
-		    
-		    for(int yr=y0 ; yr<y1 ; yr+=y_inc )
-			for(int xr=x0 ; xr<x1 ; xr+=x_inc )
-			    if ( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-				 ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-				
-				precinctIdx = precinctIdxA[c][r][l];
-				
-                                if(precinctIdxA[c][r][l]>=
-                                   maxNumPrec[t][c][r].x*maxNumPrec[t][c][r].y)
-                                    continue;
+                    nPrec = numPrec[t][c][r].x*numPrec[t][c][r].y;
+                    for(int p=0; p<nPrec; p++) { // loop on precincts
+                        
+			// set boolean sopUsed here (SOP markers)
+                        sopUsed = ((String)encSpec.sops.
+                                   getTileDef(t)).equals("on");
+			// set boolean ephUsed here (EPH markers)
+                        ephUsed = ((String)encSpec.ephs.
+                                   getTileDef(t)).equals("on");
 
-				// set boolean sopUsed here (SOP
-				// markers)
-				sopUsed = ((String)encSpec.sops.
-					   getTileDef(t)).equals("on");
+                        sb = src.getAnSubbandTree(t,c);
+                        for(int i=mrl; i>r; i--) {
+                            sb = sb.subb_LL;
+                        }
+
+                        threshold = layers[l].rdThreshold;
+                        findTruncIndices(l,c,r,t,sb,threshold,p);
 				
-				// set boolean ephUsed here (EPH
-				// markers)
-				ephUsed = ((String)encSpec.ephs.
-					   getTileDef(t)).equals("on");
-				
-				sb = src.getSubbandTree(t,c);
-				for(int i=numLvls-1; i>r; i--){
-				    sb = sb.subb_LL;
-				}
-				findTruncIndices(l,c,r,t,sb,threshold,
-						 precinctIdx);
-				
-				hBuff = packetEnc.
-				    encodePacket(l+1,c,r,t,
-						 cblks[t][c][r],
-						 truncIdxs[t][l][c][r], 
-						 hBuff,bBuff,precinctIdx);
+                        hBuff = pktEnc.encodePacket(l+1,c,r,t,cblks[t][c][r],
+                                                    truncIdxs[t][l][c][r],
+                                                    hBuff,bBuff,p);
 					    
-                                if( packetEnc.isPacketWritable() ){
-                                    bsWriter.
-                                        writePacketHead(hBuff.getBuffer(),
-                                                        hBuff.getLength(), 
-                                                        false,sopUsed,ephUsed);
-                                    bsWriter.
-                                        writePacketBody(packetEnc.
-                                                        getLastBodyBuf(),
-                                                        packetEnc.
-                                                        getLastBodyLen(),
-                                                        false,
-                                                        packetEnc.isROIinPkt(),
-                                                        packetEnc.getROILen());
-                                }
-				precinctIdxA[c][r][l]++;
-			    } // End loop on precincts
-		} // End loop on components
-	    } // End loop on resolution levels
-	} // End loop on layers
+                        if(pktEnc.isPacketWritable()) {
+                            bsWriter.writePacketHead(hBuff.getBuffer(),
+                                                     hBuff.getLength(), 
+                                                     false,sopUsed,ephUsed);
+                            bsWriter.writePacketBody(pktEnc.getLastBodyBuf(),
+                                                     pktEnc.getLastBodyLen(),
+                                                     false,pktEnc.isROIinPkt(),
+                                                     pktEnc.getROILen());
+                        }
+                    } // end loop on precincts
+                } // end loop on components
+            } // end loop on resolution levels
+        } // end loop on layers
     }
 
     /** 
      * Write a piece of bit stream according to the
      * COMP_POS_RES_LY_PROG progression mode and between given bounds
      *
-     * @param t Tile index
+     * @param t Tile index.
      *
-     * @param rs First resolution level index
+     * @param rs First resolution level index.
      *
-     * @param re Last resolution level index
+     * @param re Last resolution level index.
      *
-     * @param cs First component index
+     * @param cs First component index.
      *
-     * @param ce Last component index
+     * @param ce Last component index.
      *
-     * @param lys First layer index for each component and resolution
+     * @param lys First layer index for each component and resolution.
      *
-     * @param lye Index of the last layer
+     * @param lye Index of the last layer.
      * */
     public void writePosCompResLy(int t,int rs,int re,int cs,int ce,
-				  int[][] lys,int lye) throws IOException{
+				  int[][] lys,int lye) throws IOException {
 
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-	int[][] mrl = packetEnc.getMRL();
-        int numComps = src.getNumComps();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	int precinctIdxA[][][];
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+	int mrl;
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
 
-	// Max number of decomposition levels in each tile
-	int numLvls = mrl[t][0];
-	for(int c=0; c < numComps; c++)
-	    if(mrl[t][c]>numLvls)
-		numLvls = mrl[t][c];
-	numLvls++;
-	
-	precinctIdxA = new int[numComps][numLvls][numLayers];
-	
-	// Coord[] xys = packetEnc.getSotEotArrayMax(t, c);
-	xys = packetEnc.getSotEotArrayMax(t,0);
-	x0 = xys[0].x;
-	y0 = xys[0].y;
-	x1 = xys[1].x;
-	y1 = xys[1].y;
-	
-	// Coord xyInc = packetEnc.getIncArrayMax(t, c);
-	xyInc = packetEnc.getIncArrayMax(t,0);
-	x_inc = xyInc.x;
-	y_inc = xyInc.y;
-	
-	for(int yr=y0 ; yr<y1 ; yr+=y_inc){
-	    for(int xr=x0 ; xr<x1 ; xr+=x_inc ){
-		
-		// Loop on each component
-		for(int c=cs; c<ce; c++ ){
-		    // set boolean sopUsed here (SOP markers)
-		    sopUsed = ((String)encSpec.sops.getTileDef(t)).
-			equalsIgnoreCase("on");
-		    // set boolean ephUsed here (EPH markers)
-		    ephUsed = ((String)encSpec.ephs.getTileDef(t)).
-			equalsIgnoreCase("on");
-				
-		    // Loop on each resolution level
-		    for(int r=rs ; r<re ; r++){
-			if(r>mrl[t][c]) continue;
-			
-			sb = src.getSubbandTree(t,c);
-			numLvls = sb.resLvl+1;
-			for(int i=numLvls-1; i>r; i--){
-			    sb = sb.subb_LL;
-			}
-			
-			xyInc = packetEnc.getIncArray(t,c,r);
-			x_inc_rl = xyInc.x;
-			y_inc_rl = xyInc.y;
-			xys = packetEnc.getSotEotArray(t,c,r);
-			x0_rl = xys[0].x;
-			y0_rl = xys[0].y;
-			
-			if( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-			    ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-			    
-			    //loop on layers
-			    for(int l=lys[c][r];l<lye;l++){
+        // Computes current tile offset in the reference grid
+        Coord nTiles = src.getNumTiles(null);
+        Coord tileI = src.getTile(null);
+        int x0siz = src.getImgULX();
+        int y0siz = src.getImgULY();
+        int xsiz = x0siz + src.getImgWidth();
+        int ysiz = y0siz + src.getImgHeight();
+        int xt0siz = src.getTilePartULX();
+        int yt0siz = src.getTilePartULY();
+        int xtsiz = src.getNomTileWidth();
+        int ytsiz = src.getNomTileHeight();
+        int tx0 = (tileI.x==0) ? x0siz : xt0siz+tileI.x*xtsiz;
+        int ty0 = (tileI.y==0) ? y0siz : yt0siz+tileI.y*ytsiz;
+        int tx1 = (tileI.x!=nTiles.x-1) ? xt0siz+(tileI.x+1)*xtsiz : xsiz;
+        int ty1 = (tileI.y!=nTiles.y-1) ? yt0siz+(tileI.y+1)*ytsiz : ysiz;
 
-                                if(precinctIdxA[c][r][l]>=
-                                   maxNumPrec[t][c][r].x*maxNumPrec[t][c][r].y)
-                                    continue;
+        // Get precinct information (number,distance between two consecutive
+        // precincts in the reference grid) in each component and resolution
+        // level
+        PrecInfo prec; // temporary variable
+        int p; // Current precinct index
+        int gcd_x = 0; // Horiz. distance between 2 precincts in the ref. grid
+        int gcd_y = 0; // Vert. distance between 2 precincts in the ref. grid
+        int nPrec = 0; // Total number of found precincts
+        int[][] nextPrec = new int [ce][]; // Next precinct index in each
+        // component and resolution level
+        int minlys = 100000; // minimum layer start index of each component
+        int minx = tx1; // Horiz. offset of the second precinct in the
+        // reference grid
+        int miny = ty1; // Vert. offset of the second precinct in the
+        // reference grid. 
+        int maxx = tx0; // Max. horiz. offset of precincts in the ref. grid
+        int maxy = ty0; // Max. vert. offset of precincts in the ref. grid
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            nextPrec[c] = new int[mrl+1];
+            for(int r=rs; r<re; r++) {
+                if(r>mrl) continue;
+                if (r<lys[c].length && lys[c][r]<minlys) {
+		    minlys = lys[c][r];
+                }
+                p = numPrec[t][c][r].y*numPrec[t][c][r].x-1;
+                for(; p>=0; p--) {
+                    prec = pktEnc.getPrecInfo(t,c,r,p);
+                    if(prec.rgulx!=tx0) {
+                        if(prec.rgulx<minx) minx = prec.rgulx;
+                        if(prec.rgulx>maxx) maxx = prec.rgulx;
+                    }
+                    if(prec.rguly!=ty0){
+                        if(prec.rguly<miny) miny = prec.rguly;
+                        if(prec.rguly>maxy) maxy = prec.rguly;
+                    }
 
-				precinctIdx = precinctIdxA[c][r][l];
-				
-				threshold = layers[l].rdThreshold;
-				findTruncIndices(l,c,r,t,sb, 
-						 threshold,precinctIdx);
-				hBuff = packetEnc.
-				    encodePacket(l+1,c,r,t,cblks[t][c][r],
-						 truncIdxs[t][l][c][r],
-						 hBuff, bBuff, precinctIdx);
-				
-				if( packetEnc.isPacketWritable() ){
-				    bsWriter.
-					writePacketHead(hBuff.getBuffer(),
-							hBuff.getLength(), 
-							false,sopUsed,ephUsed);
-				    bsWriter.
-					writePacketBody(packetEnc.
-							getLastBodyBuf(),
-							packetEnc.
-							getLastBodyLen(),
-                                                        false,packetEnc.
-                                                        isROIinPkt(),packetEnc.
-                                                        getROILen());
-				}
-				precinctIdxA[c][r][l]++;
-			    } // End loop on layers
-			} // test packet
-		    } // end loop on resolution levels
-		} // end loop on components
-	    }
-	} // end loop on precincts
+                    if(nPrec==0) {
+                        gcd_x = prec.rgw;
+                        gcd_y = prec.rgh;
+                    } else {
+                        gcd_x = MathUtil.gcd(gcd_x,prec.rgw);
+                        gcd_y = MathUtil.gcd(gcd_y,prec.rgh);
+                    }
+                    nPrec++;
+                } // precincts
+            } // resolution levels
+        } // components
+
+        if(nPrec==0) {
+            throw new Error("Image cannot have no precinct");
+        }
+
+        int pyend = (maxy-miny)/gcd_y+1;
+        int pxend = (maxx-minx)/gcd_x+1;
+        int y = ty0;
+        int x = tx0;
+        for(int py=0; py<=pyend; py++) { // Vertical precincts
+            for(int px=0; px<=pxend; px++) { // Horiz. precincts
+                for(int c=cs; c<ce; c++) { // Components
+                    mrl = src.getAnSubbandTree(t,c).resLvl;
+                    for(int r=rs; r<re; r++) { // Resolution levels
+                        if(r>mrl) continue;                        
+                        if(nextPrec[c][r] >=
+                           numPrec[t][c][r].x*numPrec[t][c][r].y) {
+                            continue;
+                        }
+                        prec = pktEnc.getPrecInfo(t,c,r,nextPrec[c][r]);
+                        if((prec.rgulx!=x) || (prec.rguly!=y)) {
+                            continue;
+                        } 
+                        for(int l=minlys; l<lye; l++) { // Layers
+                            if(r>=lys[c].length) continue;
+                            if(l<lys[c][r]) continue;
+                        
+                            // set boolean sopUsed here (SOP markers)
+                            sopUsed = ((String)encSpec.sops.
+                                       getTileDef(t)).equals("on");
+                            // set boolean ephUsed here (EPH markers)
+                            ephUsed = ((String)encSpec.ephs.
+                                       getTileDef(t)).equals("on");
+                            
+                            sb = src.getAnSubbandTree(t,c);
+                            for(int i=mrl; i>r; i--) {
+                                sb = sb.subb_LL;
+                            }
+                            
+                            threshold = layers[l].rdThreshold;
+                            findTruncIndices(l,c,r,t,sb,threshold,
+                                             nextPrec[c][r]);
+                            
+                            hBuff = pktEnc.encodePacket(l+1,c,r,t,
+                                                        cblks[t][c][r],
+                                                        truncIdxs[t][l][c][r],
+                                                        hBuff,bBuff,
+                                                        nextPrec[c][r]);
+					    
+                            if(pktEnc.isPacketWritable()) {
+                                bsWriter.writePacketHead(hBuff.getBuffer(),
+                                                         hBuff.getLength(), 
+                                                         false,sopUsed,
+                                                         ephUsed);
+                                bsWriter.writePacketBody(pktEnc.
+                                                         getLastBodyBuf(),
+                                                         pktEnc.
+                                                         getLastBodyLen(),
+                                                         false,
+                                                         pktEnc.isROIinPkt(),
+                                                         pktEnc.getROILen());
+                            }
+                        } // layers
+                        nextPrec[c][r]++;
+                    } // Resolution levels
+                } // Components
+                if(px!=pxend) {
+                    x = minx+px*gcd_x;
+                } else {
+                    x = tx0;
+                }
+            } // Horizontal precincts
+            if(py!=pyend) {
+                y = miny+py*gcd_y;
+            } else {
+                y = ty0;
+            }
+        } // Vertical precincts
+
+        // Check that all precincts have been written
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            for(int r=rs; r<re; r++) {
+                if(r>mrl) continue;
+                if(nextPrec[c][r]<numPrec[t][c][r].x*numPrec[t][c][r].y-1) {
+                    throw new Error("JJ2000 bug: One precinct at least has "+
+                                    "not been written for resolution level "+r
+                                    +" of component "+c+" in tile "+t+".");
+                }
+            }
+        }
     }
 
     /** 
      * Write a piece of bit stream according to the
      * COMP_POS_RES_LY_PROG progression mode and between given bounds
      *
-     * @param t Tile index
+     * @param t Tile index.
      *
-     * @param rs First resolution level index
+     * @param rs First resolution level index.
      *
-     * @param re Last resolution level index
+     * @param re Last resolution level index.
      *
-     * @param cs First component index
+     * @param cs First component index.
      *
-     * @param ce Last component index
+     * @param ce Last component index.
      *
-     * @param lys First layer index for each component and resolution
+     * @param lys First layer index for each component and resolution.
      *
-     * @param lye Index of the last layer
+     * @param lye Index of the last layer.
      * */
     public void writeCompPosResLy(int t,int rs,int re,int cs,int ce,
-				  int[][] lys,int lye) throws IOException{
+				  int[][] lys,int lye) throws IOException {
 
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-	int[][] mrl = packetEnc.getMRL();
-        int numComps = src.getNumComps();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	int precinctIdxA[][][];
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+	int mrl;
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
-	int numLvls;
 
-	// Loop on each component
-	for(int c=cs ; c<ce ; c++){
-	    // set boolean sopUsed here (SOP markers)
-	    sopUsed = ((String)encSpec.sops.getTileDef(t)).
-		equalsIgnoreCase("on");
-	    // set boolean ephUsed here (EPH markers)
-	    ephUsed = ((String)encSpec.ephs.getTileDef(t)).
-		equalsIgnoreCase("on");
-	    
-	    precinctIdxA = new int[numComps][mrl[t][c]+1][numLayers];
-	    
-	    xys = packetEnc.getSotEotArrayMax(t,c);
-	    x0 = xys[0].x;
-	    y0 = xys[0].y;
-	    x1 = xys[1].x;
-	    y1 = xys[1].y;
-	    
-	    xyInc = packetEnc.getIncArrayMax(t,c);
-	    x_inc = xyInc.x;
-	    y_inc = xyInc.y;
-	    
-	    for(int yr=y0 ; yr<y1 ; yr+=y_inc ){
-		for(int xr=x0 ; xr<x1 ; xr+=x_inc ){
-		    
-		    // Loop on each resolution level
-		    for(int r=rs ; r<re ; r++){
-			if(r>mrl[t][c]) continue;
+        // Computes current tile offset in the reference grid
+        Coord nTiles = src.getNumTiles(null);
+        Coord tileI = src.getTile(null);
+        int x0siz = src.getImgULX();
+        int y0siz = src.getImgULY();
+        int xsiz = x0siz + src.getImgWidth();
+        int ysiz = y0siz + src.getImgHeight();
+        int xt0siz = src.getTilePartULX();
+        int yt0siz = src.getTilePartULY();
+        int xtsiz = src.getNomTileWidth();
+        int ytsiz = src.getNomTileHeight();
+        int tx0 = (tileI.x==0) ? x0siz : xt0siz+tileI.x*xtsiz;
+        int ty0 = (tileI.y==0) ? y0siz : yt0siz+tileI.y*ytsiz;
+        int tx1 = (tileI.x!=nTiles.x-1) ? xt0siz+(tileI.x+1)*xtsiz : xsiz;
+        int ty1 = (tileI.y!=nTiles.y-1) ? yt0siz+(tileI.y+1)*ytsiz : ysiz;
 
-			sb = src.getSubbandTree(t,c);
-			numLvls = sb.resLvl+1;
-			for(int i=numLvls-1; i>r; i--){
-			    sb = sb.subb_LL;
-			}
-			
-			xyInc = packetEnc.getIncArray(t,c,r);
-			x_inc_rl = xyInc.x;
-			y_inc_rl = xyInc.y;
-			xys = packetEnc.getSotEotArray(t,c,r);
-			x0_rl = xys[0].x;
-			y0_rl = xys[0].y;
-			
-			if( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-			    ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-			    
-			    for(int l=lys[c][r] ; l<lye ; l++){ //loop on
-                                //layers
-				
-                                if(precinctIdxA[c][r][l]>=
-                                   maxNumPrec[t][c][r].x*maxNumPrec[t][c][r].y)
-                                    continue;
+        // Get precinct information (number,distance between two consecutive
+        // precincts in the reference grid) in each component and resolution
+        // level
+        PrecInfo prec; // temporary variable
+        int p; // Current precinct index
+        int gcd_x = 0; // Horiz. distance between 2 precincts in the ref. grid
+        int gcd_y = 0; // Vert. distance between 2 precincts in the ref. grid
+        int nPrec = 0; // Total number of found precincts
+        int[][] nextPrec = new int [ce][]; // Next precinct index in each
+        // component and resolution level
+        int minlys = 100000; // minimum layer start index of each component
+        int minx = tx1; // Horiz. offset of the second precinct in the
+        // reference grid
+        int miny = ty1; // Vert. offset of the second precinct in the
+        // reference grid. 
+        int maxx = tx0; // Max. horiz. offset of precincts in the ref. grid
+        int maxy = ty0; // Max. vert. offset of precincts in the ref. grid
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            for(int r=rs; r<re; r++) {
+                if(r>mrl) continue;
+                nextPrec[c] = new int[mrl+1];
+                if (r<lys[c].length && lys[c][r]<minlys) {
+		    minlys = lys[c][r];
+                }
+                p = numPrec[t][c][r].y*numPrec[t][c][r].x-1;
+                for(; p>=0; p--) {
+                    prec = pktEnc.getPrecInfo(t,c,r,p);
+                    if(prec.rgulx!=tx0) {
+                        if(prec.rgulx<minx) minx = prec.rgulx;
+                        if(prec.rgulx>maxx) maxx = prec.rgulx;
+                    }
+                    if(prec.rguly!=ty0){
+                        if(prec.rguly<miny) miny = prec.rguly;
+                        if(prec.rguly>maxy) maxy = prec.rguly;
+                    }
 
-				precinctIdx = precinctIdxA[c][r][l];
-				
-				threshold = layers[l].rdThreshold;
-				findTruncIndices(l,c,r,t,sb,threshold,
-						 precinctIdx);
-				
-				hBuff = packetEnc.
-				    encodePacket(l+1,c,r,t,cblks[t][c][r],
-						 truncIdxs[t][l][c][r],
-						 hBuff,bBuff,precinctIdx);
-				
-				if( packetEnc.isPacketWritable() ){
-				    bsWriter.
-					writePacketHead(hBuff.getBuffer(),
-							hBuff.getLength(), 
-							false,sopUsed,ephUsed);
-				    bsWriter.
-					writePacketBody(packetEnc.
-							getLastBodyBuf(),
-							packetEnc.
-							getLastBodyLen(),
-                                                        false,packetEnc.
-                                                        isROIinPkt(),packetEnc.
-                                                        getROILen());
-				}
-				precinctIdxA[c][r][l]++;
-			    } // End loop on layers
-			} // test packet
-		    } // end loop on resolution levels
-		}
-	    } // end loop on precincts
-	} // end loop on components
+                    if(nPrec==0) {
+                        gcd_x = prec.rgw;
+                        gcd_y = prec.rgh;
+                    } else {
+                        gcd_x = MathUtil.gcd(gcd_x,prec.rgw);
+                        gcd_y = MathUtil.gcd(gcd_y,prec.rgh);
+                    }
+                    nPrec++;
+                } // precincts
+            } // resolution levels
+        } // components
+
+        if(nPrec==0) {
+            throw new Error("Image cannot have no precinct");
+        }
+
+        int pyend = (maxy-miny)/gcd_y+1;
+        int pxend = (maxx-minx)/gcd_x+1;
+        int y;
+        int x;
+        for(int c=cs; c<ce; c++) { // Loop on components
+            y = ty0;
+            x = tx0;
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            for(int py=0; py<=pyend; py++) { // Vertical precincts
+                for(int px=0; px<=pxend; px++) { // Horiz. precincts
+                    for(int r=rs; r<re; r++) { // Resolution levels
+                        if(r>mrl) continue;
+                        if(nextPrec[c][r] >=
+                           numPrec[t][c][r].x*numPrec[t][c][r].y) {
+                            continue;
+                        }
+                        prec = pktEnc.getPrecInfo(t,c,r,nextPrec[c][r]);
+                        if((prec.rgulx!=x) || (prec.rguly!=y)) {
+                            continue;
+                        } 
+
+                        for(int l=minlys; l<lye; l++) { // Layers
+                            if(r>=lys[c].length) continue;
+                            if(l<lys[c][r]) continue;
+
+                            // set boolean sopUsed here (SOP markers)
+                            sopUsed = ((String)encSpec.sops.
+                                       getTileDef(t)).equals("on");
+                            // set boolean ephUsed here (EPH markers)
+                            ephUsed = ((String)encSpec.ephs.
+                                       getTileDef(t)).equals("on");
+                            
+                            sb = src.getAnSubbandTree(t,c);
+                            for(int i=mrl; i>r; i--) {
+                                sb = sb.subb_LL;
+                            }
+                            
+                            threshold = layers[l].rdThreshold;
+                            findTruncIndices(l,c,r,t,sb,threshold,
+                                             nextPrec[c][r]);
+                            
+                            hBuff = pktEnc.encodePacket(l+1,c,r,t,
+                                                        cblks[t][c][r],
+                                                        truncIdxs[t][l][c][r],
+                                                        hBuff,bBuff,
+                                                        nextPrec[c][r]);
+					    
+                            if(pktEnc.isPacketWritable()) {
+                                bsWriter.writePacketHead(hBuff.getBuffer(),
+                                                         hBuff.getLength(), 
+                                                         false,sopUsed,
+                                                         ephUsed);
+                                bsWriter.writePacketBody(pktEnc.
+                                                         getLastBodyBuf(),
+                                                         pktEnc.
+                                                         getLastBodyLen(),
+                                                         false,
+                                                         pktEnc.isROIinPkt(),
+                                                         pktEnc.getROILen());
+                            }
+ 
+                        } // Layers
+                        nextPrec[c][r]++;
+                    } // Resolution levels                    
+                    if(px!=pxend) {
+                        x = minx+px*gcd_x;
+                    } else {
+                        x = tx0;
+                    }
+                } // Horizontal precincts
+                if(py!=pyend) {
+                    y = miny+py*gcd_y;
+                } else {
+                    y = ty0;
+                }
+            } // Vertical precincts
+        } // components
+
+        // Check that all precincts have been written
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            for(int r=rs; r<re; r++) {                
+                if(r>mrl) continue;
+                if(nextPrec[c][r]<numPrec[t][c][r].x*numPrec[t][c][r].y-1) {
+                    throw new Error("JJ2000 bug: One precinct at least has "+
+                                    "not been written for resolution level "+r
+                                    +" of component "+c+" in tile "+t+".");
+                }
+            }
+        }
     }
 
     /** 
      * Write a piece of bit stream according to the
      * RES_POS_COMP_LY_PROG progression mode and between given bounds
      *
-     * @param t Tile index
+     * @param t Tile index.
      *
-     * @param rs First resolution level index
+     * @param rs First resolution level index.
      *
-     * @param re Last resolution level index
+     * @param re Last resolution level index.
      *
-     * @param cs First component index
+     * @param cs First component index.
      *
-     * @param ce Last component index
+     * @param ce Last component index.
      *
-     * @param lys First layer index for each component and resolution
+     * @param lys First layer index for each component and resolution.
      *
-     * @param lye Last layer index
+     * @param lye Last layer index.
      * */
     public void writeResPosCompLy(int t,int rs,int re,int cs,int ce,
-				  int[][] lys,int lye) throws IOException{
+				  int[][] lys,int lye) throws IOException {
 
         boolean sopUsed; // Should SOP markers be used ?
         boolean ephUsed; // Should EPH markers be used ?
-	int[][] mrl = packetEnc.getMRL();
-        int numComps = src.getNumComps();
-	int x0, y0, x1, y1;
-	int x_inc, y_inc, x_inc_rl, y_inc_rl;
-	int x0_rl, y0_rl, precinctIdx;
-	int precinctIdxA[][][];
-	Coord xys[],xyInc;
+        int nc = src.getNumComps();
+	int mrl;
         SubbandAn sb;
         float threshold;
         BitOutputBuffer hBuff = null;
         byte[] bBuff = null;
-	int numLvls;
 
-	// Max number of decomposition levels in each tile
-	numLvls = mrl[t][0];
-	for(int c=0; c < numComps; c++)
-	    if(mrl[t][c]>numLvls)
-		numLvls = mrl[t][c];
-	numLvls++;
-	
-	precinctIdxA = new int[numComps][numLvls][numLayers];
-	
-	// Coord[] xys = packetEnc.getSotEotArrayMax(t, c);
-	xys = packetEnc.getSotEotArrayMax(t, 0);
-	x0 = xys[0].x;
-	y0 = xys[0].y;
-	x1 = xys[1].x;
-	y1 = xys[1].y;
-	
-	// Coord xyInc = packetEnc.getIncArrayMax(t, c);
-	xyInc = packetEnc.getIncArrayMax(t, 0);
-	x_inc = xyInc.x;
-	y_inc = xyInc.y;
-	
-	for(int r=rs ; r<re ; r++){// Loop on resolution levels
-	    
-	    // Loop on packets
-	    for(int yr=y0; yr<y1; yr+=y_inc ){
-		for(int xr=x0; xr<x1; xr+=x_inc ){
-		    
-		    for(int c=cs ; c<ce ; c++){ // Loop on each component
-			
-			// If no more decomposition levels for this
-			// component
-			if(r>mrl[t][c]) continue;
-			
-			// set boolean sopUsed here (SOP markers)
-			sopUsed = ((String)encSpec.sops.
-				   getTileDef(t)).equalsIgnoreCase("on");
-			// set boolean ephUsed here (EPH markers)
-			ephUsed = ((String)encSpec.
-				   ephs.getTileDef(t)).equalsIgnoreCase("on");
-			
-			sb = src.getSubbandTree(t,c);
-			numLvls = sb.resLvl+1;
-			for(int i=numLvls-1; i>r; i--){
-			    sb = sb.subb_LL;
-			}
-			
-			xyInc = packetEnc.getIncArray(t,c,r);
-			x_inc_rl = xyInc.x;
-			y_inc_rl = xyInc.y;
-			xys = packetEnc.getSotEotArray(t,c,r);
-			x0_rl = xys[0].x;
-			y0_rl = xys[0].y;
-			
-			if( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-			    ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-			    
-			    for(int l=lys[c][r] ;l<lye ;l++){ //loop on layers
-				
-                                if(precinctIdxA[c][r][l]>=
-                                   maxNumPrec[t][c][r].x*maxNumPrec[t][c][r].y)
-                                    continue;
+        // Computes current tile offset in the reference grid
+        Coord nTiles = src.getNumTiles(null);
+        Coord tileI = src.getTile(null);
+        int x0siz = src.getImgULX();
+        int y0siz = src.getImgULY();
+        int xsiz = x0siz + src.getImgWidth();
+        int ysiz = y0siz + src.getImgHeight();
+        int xt0siz = src.getTilePartULX();
+        int yt0siz = src.getTilePartULY();
+        int xtsiz = src.getNomTileWidth();
+        int ytsiz = src.getNomTileHeight();
+        int tx0 = (tileI.x==0) ? x0siz : xt0siz+tileI.x*xtsiz;
+        int ty0 = (tileI.y==0) ? y0siz : yt0siz+tileI.y*ytsiz;
+        int tx1 = (tileI.x!=nTiles.x-1) ? xt0siz+(tileI.x+1)*xtsiz : xsiz;
+        int ty1 = (tileI.y!=nTiles.y-1) ? yt0siz+(tileI.y+1)*ytsiz : ysiz;
 
-				precinctIdx = precinctIdxA[c][r][l];
-				
-				threshold = layers[l].rdThreshold;
+        // Get precinct information (number,distance between two consecutive
+        // precincts in the reference grid) in each component and resolution
+        // level
+        PrecInfo prec; // temporary variable
+        int p; // Current precinct index
+        int gcd_x = 0; // Horiz. distance between 2 precincts in the ref. grid
+        int gcd_y = 0; // Vert. distance between 2 precincts in the ref. grid
+        int nPrec = 0; // Total number of found precincts
+        int[][] nextPrec = new int [ce][]; // Next precinct index in each
+        // component and resolution level
+        int minlys = 100000; // minimum layer start index of each component
+        int minx = tx1; // Horiz. offset of the second precinct in the
+        // reference grid
+        int miny = ty1; // Vert. offset of the second precinct in the
+        // reference grid. 
+        int maxx = tx0; // Max. horiz. offset of precincts in the ref. grid
+        int maxy = ty0; // Max. vert. offset of precincts in the ref. grid
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            nextPrec[c] = new int[mrl+1];
+            for(int r=rs; r<re; r++) {
+                if(r>mrl) continue;
+                if (r<lys[c].length && lys[c][r]<minlys) {
+		    minlys = lys[c][r];
+                }
+                p = numPrec[t][c][r].y*numPrec[t][c][r].x-1;
+                for(; p>=0; p--) {
+                    prec = pktEnc.getPrecInfo(t,c,r,p);
+                    if(prec.rgulx!=tx0) {
+                        if(prec.rgulx<minx) minx = prec.rgulx;
+                        if(prec.rgulx>maxx) maxx = prec.rgulx;
+                    }
+                    if(prec.rguly!=ty0){
+                        if(prec.rguly<miny) miny = prec.rguly;
+                        if(prec.rguly>maxy) maxy = prec.rguly;
+                    }
 
-				findTruncIndices(l,c,r,t,sb,threshold,
-						 precinctIdx);
-				
-				hBuff = packetEnc.
-				    encodePacket(l+1,c,r,t,cblks[t][c][r],
-						 truncIdxs[t][l][c][r],
-						 hBuff, bBuff, precinctIdx);
-				
-				if( packetEnc.isPacketWritable() ){
-				    bsWriter.
-					writePacketHead(hBuff.getBuffer(),
-							hBuff.getLength(), 
-							false,sopUsed,ephUsed);
-				    bsWriter.
-					writePacketBody(packetEnc.
-							getLastBodyBuf(),
-							packetEnc.
-							getLastBodyLen(),
-                                                        false,packetEnc.
-                                                        isROIinPkt(),packetEnc.
-                                                        getROILen());
-				}
-				precinctIdxA[c][r][l]++;
-			    } // End loop on layers
-			} // test packet
-		    } // end loop on components
-		}
-	    } // end loop on precincts
-	} // end loop on resolution levels
+                    if(nPrec==0) {
+                        gcd_x = prec.rgw;
+                        gcd_y = prec.rgh;
+                    } else {
+                        gcd_x = MathUtil.gcd(gcd_x,prec.rgw);
+                        gcd_y = MathUtil.gcd(gcd_y,prec.rgh);
+                    }
+                    nPrec++;
+                } // precincts
+            } // resolution levels
+        } // components
+
+        if(nPrec==0) {
+            throw new Error("Image cannot have no precinct");
+        }
+
+        int pyend = (maxy-miny)/gcd_y+1;
+        int pxend = (maxx-minx)/gcd_x+1;
+        int x,y;
+        for(int r=rs; r<re; r++) { // Resolution levels
+            y = ty0;
+            x = tx0;
+            for(int py=0; py<=pyend; py++) { // Vertical precincts
+                for(int px=0; px<=pxend; px++) { // Horiz. precincts
+                    for(int c=cs; c<ce; c++) { // Components
+                        mrl = src.getAnSubbandTree(t,c).resLvl;
+                        if(r>mrl) continue;
+                        if(nextPrec[c][r] >=
+                           numPrec[t][c][r].x*numPrec[t][c][r].y) {
+                            continue;
+                        }
+                        prec = pktEnc.getPrecInfo(t,c,r,nextPrec[c][r]);
+                        if((prec.rgulx!=x) || (prec.rguly!=y)) {
+                            continue;
+                        } 
+                        for(int l=minlys; l<lye; l++) {
+                            if(r>=lys[c].length) continue;
+                            if(l<lys[c][r]) continue;
+ 
+                            // set boolean sopUsed here (SOP markers)
+                            sopUsed = ((String)encSpec.sops.
+                                       getTileDef(t)).equals("on");
+                            // set boolean ephUsed here (EPH markers)
+                            ephUsed = ((String)encSpec.ephs.
+                                       getTileDef(t)).equals("on");
+                            
+                            sb = src.getAnSubbandTree(t,c);
+                            for(int i=mrl; i>r; i--) {
+                                sb = sb.subb_LL;
+                            }
+                            
+                            threshold = layers[l].rdThreshold;
+                            findTruncIndices(l,c,r,t,sb,threshold,
+                                             nextPrec[c][r]);
+                            
+                            hBuff = pktEnc.encodePacket(l+1,c,r,t,
+                                                        cblks[t][c][r],
+                                                        truncIdxs[t][l][c][r],
+                                                        hBuff,bBuff,
+                                                        nextPrec[c][r]);
+					    
+                            if(pktEnc.isPacketWritable()) {
+                                bsWriter.writePacketHead(hBuff.getBuffer(),
+                                                         hBuff.getLength(), 
+                                                         false,sopUsed,
+                                                         ephUsed);
+                                bsWriter.writePacketBody(pktEnc.
+                                                         getLastBodyBuf(),
+                                                         pktEnc.
+                                                         getLastBodyLen(),
+                                                         false,
+                                                         pktEnc.isROIinPkt(),
+                                                         pktEnc.getROILen());
+                            }
+                           
+                        } // layers
+                        nextPrec[c][r]++;
+                    } // Components
+                    if(px!=pxend) {
+                        x = minx+px*gcd_x;
+                    } else {
+                        x = tx0;
+                    }
+                } // Horizontal precincts
+                if(py!=pyend) {
+                    y = miny+py*gcd_y;
+                } else {
+                    y = ty0;
+                }
+            } // Vertical precincts
+        } // Resolution levels
+
+        // Check that all precincts have been written
+        for(int c=cs; c<ce; c++) {
+            mrl = src.getAnSubbandTree(t,c).resLvl;
+            for(int r=rs; r<re; r++) {
+                if(r>mrl) continue;
+                if(nextPrec[c][r]<numPrec[t][c][r].x*numPrec[t][c][r].y-1) {
+                    throw new Error("JJ2000 bug: One precinct at least has "+
+                                    "not been written for resolution level "+r
+                                    +" of component "+c+" in tile "+t+".");
+                }
+            }
+        }
     }
 
     /**
@@ -1597,10 +1670,9 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
                                           int maxBytes, int prevBytes) 
         throws IOException {
 
-        int numTiles;         // The total number of tiles
-        int numComp;          // The total number of components
+        int nt;         // The total number of tiles
+        int nc;          // The total number of components
         int numLvls;          // The total number of resolution levels
-        int c, n, t;          // Component, rsolution and tile indexes
         int actualBytes;      // Actual number of bytes for a layer
         float fmint;          // Minimum of the current threshold interval
         float ft;             // Current threshold
@@ -1611,17 +1683,13 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         boolean sopUsed;      // Should SOP markers be used ?
         boolean ephUsed;      // Should EPH markers be used ?
         int precinctIdx;      // Precinct index for current packet
-        int x0, y0, x1, y1;   // Coordinates of tile-component
-        int x_inc, y_inc;     // Steps for precinct loop 
-        int x_inc_rl, y_inc_rl;   // Steps for precinct loop
-        int x0_rl, y0_rl;         // Tile-component coordinates in res level
-        Coord xys[], xyInc;       // Start coordinates and increment
+        int nPrec; // Number of precincts in the current resolution level
 
         // Save the packet encoder state
-        packetEnc.save();
+        pktEnc.save();
 
-        numTiles = src.getNumTiles();
-        numComp = src.getNumComps();
+        nt = src.getNumTiles();
+        nc = src.getNumComps();
         hBuff = null;
         bBuff = null;
         
@@ -1631,19 +1699,21 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         // non-zero.
 
         // Look for the summary entry that gives 'maxBytes' or more data
-        for (sidx=RD_SUMMARY_SIZE-1; sidx > 0; sidx--)
-            if (RDSlopesRates[sidx] >= maxBytes)
+        for (sidx=RD_SUMMARY_SIZE-1; sidx > 0; sidx--) {
+            if (RDSlopesRates[sidx] >= maxBytes) {
                 break;
+            }
+        }
         // Get the corresponding minimum slope
         fmint = getSlopeFromSIndex(sidx);
         // Ensure that it is smaller the maximum slope
-        if (fmint >= fmaxt) {
+        if (fmint>=fmaxt) {
             sidx--;
             fmint = getSlopeFromSIndex(sidx);
         }
         // If we are using the last entry of the summary, then that
         // corresponds to all the data, Thus, set the minimum slope to 0.
-        if (sidx <= 0) fmint = 0;
+        if (sidx<=0) fmint = 0;
 
         // We look for the best threshold 'ft', which is the lowest threshold
         // that generates no more than 'maxBytes' code bytes.
@@ -1667,14 +1737,13 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         if (ft <= fmint) ft = fmaxt;
 
         do {
-        
             // Get the number of bytes used by this layer, if 'ft' is the
             // threshold, by simulation.
             actualBytes = prevBytes;
             src.setTile(0,0);
 
-	    for (t=0; t < numTiles; t++){
-		for (c=0; c < numComp; c++) {
+	    for (int t=0; t<nt; t++){
+		for (int c=0; c<nc; c++) {
 		    // set boolean sopUsed here (SOP markers)
 		    sopUsed = ((String)encSpec.sops.getTileDef(t)).
 			equalsIgnoreCase("on");
@@ -1683,76 +1752,45 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 			equalsIgnoreCase("on");
 		    
 		    // Get LL subband
-                    sb = (SubbandAn) src.getSubbandTree(t,c);
+                    sb = (SubbandAn) src.getAnSubbandTree(t,c);
                     numLvls = sb.resLvl + 1;
 		    sb = (SubbandAn) sb.getSubbandByIdx(0,0);
 		    //loop on resolution levels
 		    for(int r=0; r<numLvls; r++) { 
-                        precinctIdx = 0;
+                        
+                        nPrec = numPrec[t][c][r].x*numPrec[t][c][r].y;
+                        for(int p=0; p<nPrec; p++) {
+                            
+                            findTruncIndices(layerIdx,c,r,t,sb,ft,p);
+                            hBuff = pktEnc.encodePacket(layerIdx+1,c,r,t,
+                                                        cblks[t][c][r], 
+                                                        truncIdxs[t][layerIdx]
+                                                        [c][r],hBuff,bBuff,p);
 
-			// Start-end of tile-component
-			xys = packetEnc.getSotEotArrayMax(t,c);
-			x0 = xys[0].x;
-			y0 = xys[0].y;
-			x1 = xys[1].x;
-			y1 = xys[1].y;
-			
-			xyInc = packetEnc.getIncArrayMax(t,c);
-			x_inc = xyInc.x;
-			y_inc = xyInc.y;
-			
-			xyInc = packetEnc.getIncArray(t,c,r);
-			x_inc_rl = xyInc.x;
-			y_inc_rl = xyInc.y;
-			
-			xys = packetEnc.getSotEotArray(t,c,r);
-			x0_rl = xys[0].x;
-			y0_rl = xys[0].y;
-
-			for(int yr=y0 ; yr<y1 ; yr+=y_inc )
-			    for(int xr=x0 ; xr<x1 ; xr+=x_inc )
-				if ( ( (xr==x0) || (xr%x_inc_rl==0) ) &&
-				     ( (yr==y0) || (yr%y_inc_rl==0) ) ){
-
-                                    if(precinctIdx>=maxNumPrec[t][c][r].x*
-                                       maxNumPrec[t][c][r].y)
-                                        continue;
-
-                                    findTruncIndices(layerIdx,c,r,t,sb,ft,
-                                                     precinctIdx);
-                                    hBuff = packetEnc.
-                                        encodePacket(layerIdx+1,c,r,t,
-                                                     cblks[t][c][r], 
-                                                     truncIdxs[t][layerIdx]
-                                                     [c][r],
-                                                     hBuff,bBuff,
-                                                     precinctIdx);
-                                    bBuff = packetEnc.getLastBodyBuf();
-                                    actualBytes += bsWriter.
-                                        writePacketHead(hBuff.getBuffer(),
-                                                        hBuff.getLength(), 
-                                                        true, sopUsed,ephUsed);
-                                    actualBytes += bsWriter.
-                                        writePacketBody(bBuff,
-                                                        packetEnc.
-                                                        getLastBodyLen(), 
-                                                        true,packetEnc.
-                                                        isROIinPkt(),packetEnc.
-                                                        getROILen());
-                                    precinctIdx++;
-                                } // end loop on precincts
+                            if(pktEnc.isPacketWritable()) {
+                                bBuff = pktEnc.getLastBodyBuf();
+                                actualBytes += bsWriter.
+                                    writePacketHead(hBuff.getBuffer(),
+                                                    hBuff.getLength(), 
+                                                    true, sopUsed,ephUsed);
+                                actualBytes += bsWriter.
+                                    writePacketBody(bBuff,
+                                                    pktEnc.getLastBodyLen(), 
+                                                    true,pktEnc.isROIinPkt(),
+                                                    pktEnc.getROILen());
+                            }
+                        } // end loop on precincts
 			sb = sb.parent;
-		    }
-		}
+		    } // End loop on resolution levels
+		} // End loop on components
 	    } // End loop on tiles
 
             // Move the interval bounds according to simulation result
-            if (actualBytes > maxBytes) {
+            if (actualBytes>maxBytes) {
                 // 'ft' is too low and generates too many bytes, make it the
                 // new minimum.
                 fmint = ft;
-            }
-            else {
+            } else {
                 // 'ft' is too high and does not generate as many bytes as we
                 // are allowed too, make it the new maximum.
                 fmaxt = ft;
@@ -1768,7 +1806,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
             if (ft <= fmint) ft = fmaxt;
             
             // Restore previous packet encoder state
-            packetEnc.restore();
+            pktEnc.restore();
 
             // We continue to iterate, until the threshold reaches the upper
             // limit of the interval, within a FLOAT_REL_PRECISION relative
@@ -1783,8 +1821,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
         // FLOAT_ABS_PRECISION value as a measure of "close" to 0.
         if (ft <= FLOAT_ABS_PRECISION) {
             ft = 0f;
-        }
-        else {
+        } else {
             // Otherwise make the threshold 'fmaxt', just to be sure that we
             // will not send more bytes than allowed.
             ft = fmaxt;
@@ -1947,7 +1984,7 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * @param tileIdx The index of the current tile
      *
      * @param subb The LL subband in the resolution level lvlIdx, which is
-     * parent of all the subbands in the packet. Except for resolution level 0 
+     * parent of all the subbands in the packet. Except for resolution level 0
      * this subband is always a node.
      *
      * @param fthresh The value of the rate-distortion threshold
@@ -1955,43 +1992,48 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
     private void findTruncIndices(int layerIdx, int compIdx, int lvlIdx,
                                   int tileIdx, SubbandAn subb,
                                   float fthresh, int precinctIdx) {
-        int minsbi, maxsbi, s, b, bIdx, n;
+        int minsbi, maxsbi, b, bIdx, n;
         Coord ncblks = null;
         SubbandAn sb;
         CBlkRateDistStats cur_cblk;
-        Vector cbvec = null; // Vector object which will contain all the
-                             // code-blocks for a given packet
+        PrecInfo prec = pktEnc.getPrecInfo(tileIdx,compIdx,lvlIdx,precinctIdx);
+        Coord cbCoord;
 
         sb = subb;
         while(sb.subb_HH != null) {
             sb = sb.subb_HH;
         }
-        maxsbi = sb.sbandIdx + 1;
-        minsbi = maxsbi >> 2;
+        minsbi = (lvlIdx==0) ? 0 : 1;
+        maxsbi = (lvlIdx==0) ? 1 : 4;
+
+        int yend,xend;
 
         sb = (SubbandAn)subb.getSubbandByIdx(lvlIdx, minsbi);
-        for(s=minsbi; s<maxsbi; s++) { //loop on subbands
-        
-            cbvec = packetEnc.getCBlkInPrec(tileIdx,compIdx,lvlIdx,s, 
-                                            precinctIdx, cbvec);
-        
-            for ( bIdx=1 ; bIdx<cbvec.size() ; bIdx++ ) {
-                //Get the current code-block
-                b = ((Integer)cbvec.elementAt(bIdx)).intValue();
-                cur_cblk = cblks[tileIdx][compIdx][lvlIdx][s][b];
-                for(n=0; n<cur_cblk.nVldTrunc; n++) {
-                    if(cur_cblk.truncSlopes[n] < fthresh) {
-                        break;
+        for(int s=minsbi; s<maxsbi; s++) { //loop on subbands
+            yend = (prec.cblk[s]!=null) ? prec.cblk[s].length : 0;
+            for(int y=0; y<yend; y++) {
+                xend = (prec.cblk[s][y]!=null) ? prec.cblk[s][y].length : 0;
+                for (int x=0; x<xend; x++) {
+                    cbCoord = prec.cblk[s][y][x].idx;
+                    b = cbCoord.x+cbCoord.y*sb.numCb.x;
+            
+                    //Get the current code-block
+                    cur_cblk = cblks[tileIdx][compIdx][lvlIdx][s][b];
+                    for(n=0; n<cur_cblk.nVldTrunc; n++) {
+                        if(cur_cblk.truncSlopes[n] < fthresh) {
+                            break;
+                        } else {
+                            continue;
+                        }
                     }
-                    else
-                        continue;
-                }
-                // Store the index in the codBlock.truncIdxs that gives the
-                // real truncation index.
-                truncIdxs[tileIdx][layerIdx][compIdx][lvlIdx][s][b] = n-1;
-            }
+                    // Store the index in the code-block truncIdxs that gives
+                    // the real truncation index.
+                    truncIdxs[tileIdx][layerIdx][compIdx][lvlIdx][s][b] = n-1;
+
+                } // End loop on horizontal code-blocks
+            } // End loop on vertical code-blocks
             sb = (SubbandAn)sb.nextSubband();
-        }
+        } // End loop on subbands
     }
     
     /**
@@ -2000,8 +2042,8 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
      * maximum exponent, base 2, that yields a value not larger than the slope
      * itself.
      *
-     * <P>If the value to return is lower than 0, 0 is returned. If it is
-     * larger than the maximum table index, then the maximum is returned.
+     * <p>If the value to return is lower than 0, 0 is returned. If it is
+     * larger than the maximum table index, then the maximum is returned.</p>
      *
      * @param slope The slope value
      *
@@ -2014,11 +2056,9 @@ public class EBCOTRateAllocator extends PostCompRateAllocator {
 
         if (idx < 0) {
             return 0;
-        }
-        else if (idx >= RD_SUMMARY_SIZE) {
+        } else if (idx >= RD_SUMMARY_SIZE) {
             return RD_SUMMARY_SIZE-1;
-        }
-        else {
+        } else {
             return idx;
         }
     }

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CoordInfo.java,v 1.9 2001/02/14 10:30:42 grosbois Exp $
+ * $Id: CoordInfo.java,v 1.10 2001/09/14 09:32:11 grosbois Exp $
  *
  * Class:                   CoordInfo
  *
@@ -96,6 +96,6 @@ public abstract class CoordInfo {
      * @return String with object's information
      * */
     public String toString() {
-        return "ulx="+ulx+", uly="+uly+", w="+w+", h="+h;
+        return "ulx="+ulx+",uly="+uly+",w="+w+",h="+h;
     }
 }

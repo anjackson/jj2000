@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ImgDataJoiner.java,v 1.11 2001/01/24 14:58:50 grosbois Exp $
+ * $Id: ImgDataJoiner.java,v 1.12 2001/09/14 09:17:00 grosbois Exp $
  *
  * Class:                   ImgDataJoiner
  *
@@ -51,16 +51,15 @@ import jj2000.j2k.*;
  * different components (Red, Green, Blue, alpha, ...) from different input
  * files (i.e. from different ImgReader objects).
  *
- * <P>All input ImgData must not be tiled (i.e. must have only 1 tile) and the
+ * <p>All input ImgData must not be tiled (i.e. must have only 1 tile) and the
  * image origin must be the canvas origin. The different inputs can have
  * different dimensions though (this will lead to different subsampling
- * factors for each component).
+ * factors for each component).</p>
  *
- * <P>The input ImgData and component index list must be defined when
- * constructing this class and can not be modified later.
+ * <p>The input ImgData and component index list must be defined when
+ * constructing this class and can not be modified later.</p>
  *
  * @see ImgData
- *
  * @see jj2000.j2k.image.input.ImgReader
  * */
 public class ImgDataJoiner implements BlkImgDataSrc {
@@ -132,10 +131,12 @@ public class ImgDataJoiner implements BlkImgDataSrc {
         // canvas origin.
         for(i=0; i<nc; i++) {
             if (imD[i].getNumTiles() != 1 ||
-                imD[i].getULX(cIdx[i]) != 0 || imD[i].getULY(cIdx[i]) != 0) {
+                imD[i].getCompULX(cIdx[i])!=0 || 
+                imD[i].getCompULY(cIdx[i])!=0) {
                 throw
                     new IllegalArgumentException("All input components must, "+
-                                                 "not use tiles and must have "+
+                                                 "not use tiles and must "+
+                                                 "have "+
                                                  "the origin at the canvas "+
                                                  "origin");
             }
@@ -189,7 +190,7 @@ public class ImgDataJoiner implements BlkImgDataSrc {
      *
      * @return The total current tile's width in pixels.
      * */
-    public int getWidth(){
+    public int getTileWidth(){
 	return w;
     }
 
@@ -199,8 +200,18 @@ public class ImgDataJoiner implements BlkImgDataSrc {
      *
      * @return The total current tile's height in pixels.
      * */
-    public int getHeight(){
+    public int getTileHeight(){
 	return h;
+    }
+
+    /** Returns the nominal tiles width */
+    public int getNomTileWidth() {
+        return w;
+    }
+
+    /** Returns the nominal tiles height */
+    public int getNomTileHeight() {
+        return h;
     }
 
     /**
@@ -266,29 +277,30 @@ public class ImgDataJoiner implements BlkImgDataSrc {
 
 
     /**
-     * Returns the width in pixels of the specified component in the
-     * current tile.
+     * Returns the width in pixels of the specified tile-component
+     *
+     * @param t Tile index
      *
      * @param c The index of the component, from 0 to N-1.
      *
-     * @return The width in pixels of component <tt>c</tt> in the current
-     * tile.
+     * @return The width in pixels of component <tt>c</tt> in tile<tt>t</tt>.
      * */
-    public int getCompWidth(int c){
-	return imageData[c].getCompWidth(compIdx[c]);
+    public int getTileCompWidth(int t,int c){
+	return imageData[c].getTileCompWidth(t,compIdx[c]);
     }
 
     /**
-     * Returns the height in pixels of the specified component in the current
-     * tile.
+     * Returns the height in pixels of the specified tile-component.
+     *
+     * @param t The tile index.
      *
      * @param c The index of the component, from 0 to N-1.
      *
      * @return The height in pixels of component <tt>c</tt> in the current
      * tile.
      * */
-    public int getCompHeight(int c){
-	return imageData[c].getCompHeight(compIdx[c]);
+    public int getTileCompHeight(int t,int c){
+	return imageData[c].getTileCompHeight(t,compIdx[c]);
     }
 
     /**
@@ -494,64 +506,32 @@ public class ImgDataJoiner implements BlkImgDataSrc {
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, in the component coordinates (not in the reference grid
-     * coordinates). These are the coordinates of the current tile's (not
-     * active tile) upper-left corner relative to the canvas.
-     *
-     * @param co If not null the object is used to return the values, if null
-     * a new one is created and returned.
-     *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal and vertical offsets of the upper-left corner of
-     * the current tile, for the specified component, relative to the canvas
-     * origin, in the component coordinates.
-     * */
-    public Coord getTileOff(Coord co, int c) {
-        // In an ImgDataJoiner there is no tiling and the partitioning origin
-        // is the canvas origin, so (0,0) is always returned.
-        if (co != null) {
-            co.x = 0;
-            co.y = 0;
-            return co;
-        }
-        else {
-            return new Coord(0,0);
-        }
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component. This is actually the
-     * horizontal coordinate of the top-left corner of the image data withing
-     * the current tile.
+     * specified component in the current tile.
      *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, for component 'n', in
-     * the canvas coordinates.
+     * @param c The component index.
      * */
-    public int getULX(int c) {
+    public int getCompULX(int c) {
         return 0;
     }
 
     /**
-     * Returns the vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, in the component coordinates,
-     * for the specified component. This is actually the vertical coordinate
-     * of the top-left corner of the image data withing the current tile.
+     * Returns the vertical coordinate of the upper-left corner of the
+     * specified component in the current tile.
      *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'c', in the
-     * canvas coordinates.
+     * @param c The component index.
      * */
-    public int getULY(int c) {
+    public int getCompULY(int c) {
+        return 0;
+    }
+
+    /** Returns the horizontal tile partition offset in the reference grid */
+    public int getTilePartULX() {
+        return 0;
+    }
+
+    /** Returns the vertical tile partition offset in the reference grid */
+    public int getTilePartULY() {
         return 0;
     }
 

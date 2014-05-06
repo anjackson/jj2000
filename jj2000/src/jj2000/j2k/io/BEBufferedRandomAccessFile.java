@@ -1,7 +1,7 @@
 /*
  * CVS Identifier:
  *
- * $Id: BEBufferedRandomAccessFile.java,v 1.17 2000/10/09 09:03:01 grosbois Exp $
+ * $Id: BEBufferedRandomAccessFile.java,v 1.18 2001/07/17 13:13:35 grosbois Exp $
  *
  * Interface:           RandomAccessIO.java
  *
@@ -39,23 +39,23 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
-
+ * */
 package jj2000.j2k.io;
 
 import java.io.*;
 
 /**
  * This class defines a Buffered Random Access File, where all I/O is
- * considered to be big-endian, and extends the
+ * considered to be big-endian. It extends the
  * <tt>BufferedRandomAccessFile</tt> class.
  *
  * @see RandomAccessIO
  * @see BinaryDataOutput
  * @see BinaryDataInput
- * @see BufferedRandomAccessFile */
+ * @see BufferedRandomAccessFile 
+ * */
 public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile 
-    implements RandomAccessIO, EndianType{
+    implements RandomAccessIO, EndianType {
     
     /**
      * Constructor. Always needs a size for the buffer.
@@ -71,9 +71,8 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public BEBufferedRandomAccessFile(File file, 
-				      String mode,
-				      int bufferSize) throws IOException{
+    public BEBufferedRandomAccessFile(File file, String mode,
+				      int bufferSize) throws IOException {
 	super(file, mode, bufferSize);
 	byteOrdering = BIG_ENDIAN;
     }
@@ -91,8 +90,8 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public BEBufferedRandomAccessFile(File file, 
-				      String mode ) throws IOException{
+    public BEBufferedRandomAccessFile(File file, String mode ) 
+        throws IOException {
 	super(file, mode);
 	byteOrdering = BIG_ENDIAN;
     }
@@ -111,9 +110,8 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public BEBufferedRandomAccessFile(String name, 
-				      String mode,
-				      int bufferSize) throws IOException{
+    public BEBufferedRandomAccessFile(String name, String mode,
+				      int bufferSize) throws IOException {
 	super(name, mode, bufferSize);
 	byteOrdering = BIG_ENDIAN;
     }
@@ -131,8 +129,8 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public BEBufferedRandomAccessFile(String name, 
-				      String mode ) throws IOException{
+    public BEBufferedRandomAccessFile(String name, String mode) 
+        throws IOException {
 	super(name, mode);
 	byteOrdering = BIG_ENDIAN;
     }
@@ -142,16 +140,16 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      * to the output. Prior to writing, the output should be realigned at the
      * byte level.
      * 
-     * <P>Signed or unsigned data can be written. To write a signed value just
+     * <p>Signed or unsigned data can be written. To write a signed value just
      * pass the <tt>short</tt> value as an argument. To write unsigned data
      * pass the <tt>int</tt> value as an argument (it will be automatically
-     * casted, and only the 16 least significant bits will be written).
+     * casted, and only the 16 least significant bits will be written).</p>
      * 
      * @param v The value to write to the output
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final void writeShort(int v) throws IOException{
+    public final void writeShort(int v) throws IOException {
 	write(v>>>8);
 	write(v);
     }
@@ -165,7 +163,7 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final void writeInt(int v)throws IOException{
+    public final void writeInt(int v)throws IOException {
  	write(v>>>24);
  	write(v>>>16);
 	write(v>>>8);
@@ -181,7 +179,7 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final void writeLong(long v)throws IOException{
+    public final void writeLong(long v) throws IOException {
 	write((int)(v>>>56));
 	write((int)(v>>>48));
  	write((int)(v>>>40));
@@ -201,7 +199,7 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final void writeFloat(float v) throws IOException{
+    public final void writeFloat(float v) throws IOException {
 	int intV = Float.floatToIntBits(v);
 	
 	write(intV>>>24);
@@ -219,7 +217,7 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final void writeDouble(double v)throws IOException{
+    public final void writeDouble(double v) throws IOException {
 	long longV = Double.doubleToLongBits(v);
 	
 	write((int)(longV>>>56));
@@ -233,22 +231,18 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
     }
     
     /**
-     * Reads a signed short (i.e., 16 bit) from the input. Prior to reading,
+     * Reads a signed short (i.e. 16 bit) from the input. Prior to reading,
      * the input should be realigned at the byte level.
      * 
-     * @return The next byte-aligned signed short (16 bit) from the
-     * input.
+     * @return The next byte-aligned signed short (16 bit) from the input.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final short readShort() throws IOException, EOFException{
-	return (short)(
-		       (read()<<8)|
-		       (read())
-		       );
+    public final short readShort() throws IOException, EOFException {
+	return (short)( (read()<<8) | (read()) );
     }
     
     /**
@@ -257,40 +251,31 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      * type. Prior to reading, the input should be realigned at the byte
      * level.
      * 
-     * @return The next byte-aligned unsigned short (16 bit) from the
-     * input, as an <tt>int</tt>.
+     * @return The next byte-aligned unsigned short (16 bit) from the input,
+     * as an <tt>int</tt>.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final int readUnsignedShort() throws IOException, EOFException{
-	return (
-		(read()<<8)|
-		read()
-		);
+    public final int readUnsignedShort() throws IOException, EOFException {
+	return ( (read()<<8) | read() );
     }
     
     /**
      * Reads a signed int (i.e., 32 bit) from the input. Prior to reading, the
      * input should be realigned at the byte level.
      * 
-     * @return The next byte-aligned signed int (32 bit) from the
-     * input.
+     * @return The next byte-aligned signed int (32 bit) from the input.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final int readInt() throws IOException, EOFException{
-	return (
-		(read()<<24)|
-		(read()<<16)|
-		(read()<<8)|
-		read()
-		);
+    public final int readInt() throws IOException, EOFException {
+	return ( (read()<<24) | (read()<<16) | (read()<<8) | read() );
     }
     
     /**
@@ -298,46 +283,33 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      * a <tt>long</tt> since Java does not have an unsigned short type. Prior
      * to reading, the input should be realigned at the byte level.
      * 
-     * @return The next byte-aligned unsigned int (32 bit) from the
-     * input, as a <tt>long</tt>.
+     * @return The next byte-aligned unsigned int (32 bit) from the input, as
+     * a <tt>long</tt>.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final long readUnsignedInt() throws IOException, EOFException{
-	return (long)(
-		      (read()<<24)|
-		      (read()<<16)|
-		      (read()<<8)|
-		      read()
-		      );
+    public final long readUnsignedInt() throws IOException, EOFException {
+	return (long)( (read()<<24) | (read()<<16) | (read()<<8) | read() );
     }
     
     /**
      * Reads a signed long (i.e., 64 bit) from the input. Prior to reading,
      * the input should be realigned at the byte level.
      * 
-     * @return The next byte-aligned signed long (64 bit) from the
-     * input.
+     * @return The next byte-aligned signed long (64 bit) from the input.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final long readLong() throws IOException, EOFException{
-	return (
-		((long)read()<<56)|
-		((long)read()<<48)|
-		((long)read()<<40)|
-		((long)read()<<32)|
-		((long)read()<<24)|
-		((long)read()<<16)|
-		((long)read()<<8)|
-		((long)read())
-		);
+    public final long readLong() throws IOException, EOFException {
+	return ( ((long)read()<<56) | ((long)read()<<48) | ((long)read()<<40)|
+		((long)read()<<32) | ((long)read()<<24) | ((long)read()<<16)|
+		((long)read()<<8) | ((long)read()) );
     }
     
     /**
@@ -345,21 +317,16 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      * from the input. Prior to reading, the input should be realigned at the
      * byte level.
      * 
-     * @return The next byte-aligned IEEE float (32 bit) from the
-     * input.
+     * @return The next byte-aligned IEEE float (32 bit) from the input.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final float readFloat() throws EOFException, IOException{
-	return Float.intBitsToFloat(
-				    (read()<<24)|
-				    (read()<<16)|
-				    (read()<<8)|
-				    (read())
-				    );
+    public final float readFloat() throws EOFException, IOException {
+	return Float.intBitsToFloat( (read()<<24) | (read()<<16)|
+                                     (read()<<8) | (read()) );
     }
     
     /**
@@ -367,30 +334,27 @@ public class BEBufferedRandomAccessFile extends BufferedRandomAccessFile
      * from the input. Prior to reading, the input should be realigned at the
      * byte level.
      * 
-     * @return The next byte-aligned IEEE double (64 bit) from the
-     * input.
+     * @return The next byte-aligned IEEE double (64 bit) from the input.
      *
      * @exception java.io.EOFException If the end-of file was reached before
      * getting all the necessary data.
      *
      * @exception java.io.IOException If an I/O error ocurred.
      * */
-    public final double readDouble() throws IOException, EOFException{
-	return Double.longBitsToDouble(
-				       ((long)read()<<56)|
-				       ((long)read()<<48)|
-				       ((long)read()<<40)|
-				       ((long)read()<<32)|
-				       ((long)read()<<24)|
-				       ((long)read()<<16)|
-				       ((long)read()<<8)|
-				       ((long)read())
-				       );
+    public final double readDouble() throws IOException, EOFException {
+	return Double.longBitsToDouble( ((long)read()<<56)|
+                                        ((long)read()<<48)|
+                                        ((long)read()<<40)|
+                                        ((long)read()<<32)|
+                                        ((long)read()<<24)|
+                                        ((long)read()<<16)|
+                                        ((long)read()<<8)|
+                                        ((long)read()) );
     }
     
     /**
-     * Returns a string of information about the file and the endianess
-     */
+     * Returns a string of information about the file and the endianess 
+     * */
     public String toString(){
 	return super.toString()+"\nBig-Endian ordering";
     }

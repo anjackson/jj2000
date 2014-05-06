@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: BitstreamReaderAgent.java,v 1.18 2001/02/16 09:28:00 grosbois Exp $
+ * $Id: BitstreamReaderAgent.java,v 1.27 2002/07/25 14:59:32 grosbois Exp $
  *
  * Class:                   BitstreamReaderAgent
  *
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.codestream.reader;
 
 import jj2000.j2k.quantization.dequantizer.*;
@@ -56,23 +56,22 @@ import jj2000.j2k.*;
 
 import java.io.*;
 
-
 /**
  * This is the generic interface for bit stream reader agents. A bit stream
  * reader agent is an entity that allows reading from a bit stream and
  * requesting compressed code-blocks. It can be a simple file reader, or a
  * network connection, or anything else.
  *
- * <P>The bit stream reader agent allows to make request for compressed block
+ * <p>The bit stream reader agent allows to make request for compressed block
  * data in any order. The amount of data returned would normally depend on the
  * data available at the time of the request, be it from a file or from a
- * network connection.
+ * network connection.</p>
  *
- * <P>The bit stream reader agent has the notion of a current tile, and
- * coordinates are relative to the current tile, where applicable.
+ * <p>The bit stream reader agent has the notion of a current tile, and
+ * coordinates are relative to the current tile, where applicable.</p>
  *
- * <P>Resolution level 0 is the lowest resolution level, i.e. the LL subband
- * alone.
+ * <p>Resolution level 0 is the lowest resolution level, i.e. the LL subband
+ * alone.</p>
  * */
 public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
 
@@ -124,7 +123,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
     protected final int nc;
 
     /** Image resolution level to generate */
-    protected int res;
+    protected int targetRes;
 
     /**
      * The subband trees for each component in the current tile. Each element
@@ -188,6 +187,9 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
     /** The number of tiles in the vertical direction */
     protected final int ntY;
 
+    /** The total number of tiles */
+    protected final int nt;
+
     /** The current tile horizontal index */
     protected int ctX;
 
@@ -220,7 +222,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @param decSpec The decoder specifications
      * */
-    protected BitstreamReaderAgent(HeaderDecoder hd,DecoderSpecs decSpec){
+    protected BitstreamReaderAgent(HeaderDecoder hd,DecoderSpecs decSpec) {
         Coord co;
         int i,j,max;
 
@@ -248,32 +250,23 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
         ntH = hd.getNomTileHeight();
         ntX = (ax+imgW-px+ntW-1) / ntW;
         ntY = (ay+imgH-py+ntH-1) / ntH;
+        nt = ntX * ntY;
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal code-block partition origin. Allowable values
+     * are 0 and 1, nothing else.
      * */
-    public final int getPartitionULX() {
-        return hd.getPartitionULX();
+    public final int getCbULX() {
+        return hd.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical code-block partition origin. Allowable values are
+     * 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return hd.getPartitionULY();
+    public int getCbULY() {
+        return hd.getCbULY();
     }
 
     /**
@@ -295,7 +288,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @return The horizontal subsampling factor of component 'c'
      *
-     * @see ImgData
+     * @see jj2000.j2k.image.ImgData
      * */
     public final int getCompSubsX(int c) {
         return hd.getCompSubsX(c);
@@ -311,7 +304,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @return The vertical subsampling factor of component 'c'
      *
-     * @see ImgData
+     * @see jj2000.j2k.image.ImgData
      * */
     public int getCompSubsY(int c) {
         return hd.getCompSubsY(c);
@@ -322,22 +315,22 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * (tile) resolution level. This is the tile's width without accounting
      * for any component subsampling.
      *
-     * <P>Note: Tile resolution level indexes may be different from
+     * <p>Note: Tile resolution level indexes may be different from
      * tile-component resolution index. They are indeed indexed starting from
      * the lowest number of decomposition levels of each component of the
-     * tile.
+     * tile.</p>
      *
-     * <P>For an image (1 tile) with 2 components (component 0 having 2
+     * <p>For an image (1 tile) with 2 components (component 0 having 2
      * decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-)component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the tile has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The (tile) resolution level.
      *
      * @return The current tile's width in pixels.
      * */
-    public int getWidth(int rl){
+    public int getTileWidth(int rl) {
 	// The minumum number of decomposition levels between all the
 	// components
 	int mindl = decSpec.dls.getMinInTile(getTileIdx());
@@ -352,9 +345,9 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
 	// resolution
 
         // Calculate starting X of current tile at hi-res
-        ctulx = (ctX == 0) ? ax : px+ctX*ntW;
+        ctulx = (ctX==0) ? ax : px+ctX*ntW;
         // Calculate starting X of next tile X-wise at hi-res
-        ntulx = (ctX < ntX-1) ? px+(ctX+1)*ntW : ax+imgW;
+        ntulx = (ctX<ntX-1) ? px+(ctX+1)*ntW : ax+imgW;
 
         // The difference at the rl resolution level is the width
         return (ntulx+(1<<dl)-1)/(1<<dl)-(ctulx+(1<<dl)-1)/(1<<dl);
@@ -365,22 +358,22 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * resolution level. This is the tile's height without accounting for any
      * component subsampling.
      *
-     * <P>Note: Tile resolution level indexes may be different from
+     * <p>Note: Tile resolution level indexes may be different from
      * tile-component resolution index. They are indeed indexed starting from
      * the lowest number of decomposition levels of each component of the
-     * tile.
+     * tile.</p>
      *
-     * <P>For an image (1 tile) with 2 components (component 0 having 2
+     * <p>For an image (1 tile) with 2 components (component 0 having 2
      * decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-)component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the tile has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The (tile) resolution level.
      *
      * @return The total current tile's height in pixels.
      * */
-    public int getHeight(int rl){
+    public int getTileHeight(int rl) {
 	// The minumum number of decomposition levels between all the
 	// components
 	int mindl = decSpec.dls.getMinInTile(getTileIdx());
@@ -396,9 +389,9 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
 	// resolution
 
         // Calculate starting Y of current tile at hi-res
-        ctuly = (ctY == 0) ? ay : py+ctY*ntH;
+        ctuly = (ctY==0) ? ay : py+ctY*ntH;
         // Calculate starting Y of next tile Y-wise at hi-res
-        ntuly = (ctY < ntY-1) ? py+(ctY+1)*ntH : ay+imgH;
+        ntuly = (ctY<ntY-1) ? py+(ctY+1)*ntH : ay+imgH;
         // The difference at the rl level is the height
         return (ntuly+(1<<dl)-1)/(1<<dl)-(ctuly+(1<<dl)-1)/(1<<dl);        
     }
@@ -408,21 +401,21 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * resolution level. This is the image's width without accounting for any
      * component subsampling or tiling.
      *
-     * <P>Note: Image resolution level indexes may differ from tile-component
+     * <p>Note: Image resolution level indexes may differ from tile-component
      * resolution index. They are indeed indexed starting from the lowest
-     * number of decomposition levels of each component of each tile.
+     * number of decomposition levels of each component of each tile.</p>
      *
-     * <P>Example: For an image (1 tile) with 2 components (component 0 having
+     * <p>Example: For an image (1 tile) with 2 components (component 0 having
      * 2 decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-) component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the image has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The image resolution level.
      *
      * @return The total image's width in pixels.
      * */
-    public int getImgWidth(int rl){
+    public int getImgWidth(int rl) {
 	// The minimum number of decomposition levels of each
 	// tile-component
 	int mindl = decSpec.dls.getMin();
@@ -442,21 +435,21 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * resolution level. This is the image's height without accounting for any
      * component subsampling or tiling.
      *
-     * <P>Note: Image resolution level indexes may differ from tile-component
+     * <p>Note: Image resolution level indexes may differ from tile-component
      * resolution index. They are indeed indexed starting from the lowest
-     * number of decomposition levels of each component of each tile.
+     * number of decomposition levels of each component of each tile.</p>
      *
-     * <P>Example: For an image (1 tile) with 2 components (component 0 having
+     * <p>Example: For an image (1 tile) with 2 components (component 0 having
      * 2 decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-) component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the image has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The image resolution level, from 0 to L.
      *
      * @return The total image's height in pixels.
      * */
-    public int getImgHeight(int rl){
+    public int getImgHeight(int rl) {
 	int mindl = decSpec.dls.getMin();
         if(rl>mindl){
             throw new IllegalArgumentException("Requested resolution level"+
@@ -474,22 +467,22 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * corner, in the canvas system, on the reference grid at the specified
      * resolution level.
      *
-     * <P>Note: Image resolution level indexes may differ from tile-component
+     * <p>Note: Image resolution level indexes may differ from tile-component
      * resolution index. They are indeed indexed starting from the lowest
-     * number of decomposition levels of each component of each tile.
+     * number of decomposition levels of each component of each tile.</p>
      *
-     * <P>Example: For an image (1 tile) with 2 components (component 0 having
+     * <p>Example: For an image (1 tile) with 2 components (component 0 having
      * 2 decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-) component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the image has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The horizontal coordinate of the image origin in the canvas
      * system, on the reference grid.
      * */
-    public int getImgULX(int rl){
+    public int getImgULX(int rl) {
 	int mindl = decSpec.dls.getMin();
         if(rl>mindl){
             throw new IllegalArgumentException("Requested resolution level"+
@@ -507,22 +500,22 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * corner, in the canvas system, on the reference grid at the specified
      * resolution level.
      *
-     * <P>Note: Image resolution level indexes may differ from tile-component
+     * <p>Note: Image resolution level indexes may differ from tile-component
      * resolution index. They are indeed indexed starting from the lowest
-     * number of decomposition levels of each component of each tile.
+     * number of decomposition levels of each component of each tile.</p>
      *
-     * <P>Example: For an image (1 tile) with 2 components (component 0 having
+     * <p>Example: For an image (1 tile) with 2 components (component 0 having
      * 2 decomposition levels and component 1 having 3 decomposition levels),
      * the first (tile-) component has 3 resolution levels and the second one
      * has 4 resolution levels, whereas the image has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The vertical coordinate of the image origin in the canvas
      * system, on the reference grid.
      * */
-    public int getImgULY(int rl){
+    public int getImgULY(int rl) {
 	int mindl = decSpec.dls.getMin();
         if(rl>mindl){
             throw new IllegalArgumentException("Requested resolution level"+
@@ -536,17 +529,24 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
     }
 
     /**
-     * Returns the width in pixels of the specified component in the current
-     * tile, for the given (tile-component) resolution level.
+     * Returns the width in pixels of the specified tile-component for the
+     * given (tile-component) resolution level.
+     *
+     * @param t The tile index
      *
      * @param c The index of the component, from 0 to N-1.
      *
      * @param rl The resolution level, from 0 to L.
      *
-     * @return The width in pixels of component <tt>c</tt> in the current
-     * tile.
+     * @return The width in pixels of component <tt>c</tt> in tile <tt>t</tt>
+     * for resolution level <tt>rl</tt>.
      * */
-    public final int getCompWidth(int c,int rl) {
+    public final int getTileCompWidth(int t,int c,int rl) {
+        int tIdx = getTileIdx();
+        if(t!=tIdx) {
+            throw new Error("Asking the tile-component width of a tile "+
+                            "different  from the current one.");
+        }
         int ntulx;
         int dl = mdl[c]-rl;
 	// Calculate starting X of next tile X-wise at reference grid hi-res
@@ -559,8 +559,10 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
     }
 
     /**
-     * Returns the height in pixels of the specified component in the current
-     * tile, for the given (tile-component) resolution level.
+     * Returns the height in pixels of the specified tile-component for the
+     * given (tile-component) resolution level.
+     *
+     * @param t The tile index.
      *
      * @param c The index of the component, from 0 to N-1.
      *
@@ -569,7 +571,12 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * @return The height in pixels of component <tt>c</tt> in the current
      * tile.
      * */
-    public final int getCompHeight(int c, int rl){
+    public final int getTileCompHeight(int t,int c,int rl) {
+        int tIdx = getTileIdx();
+        if(t!=tIdx) {
+            throw new Error("Asking the tile-component width of a tile "+
+                            "different  from the current one.");
+        }
         int ntuly;
         int dl = mdl[c]-rl; // Revert level indexation (0 is hi-res)
         // Calculate starting Y of next tile Y-wise at reference grid hi-res
@@ -585,16 +592,16 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * Returns the width in pixels of the specified component in the overall
      * image, for the given (component) resolution level.
      *
-     * <P>Note: Component resolution level indexes may differ from
+     * <p>Note: Component resolution level indexes may differ from
      * tile-component resolution index. They are indeed indexed starting from
      * the lowest number of decomposition levels of same component of each
-     * tile.
+     * tile.</p>
      *
-     * <P>Example: For an image (2 tiles) with 1 component (tile 0 having 2
+     * <p>Example: For an image (2 tiles) with 1 component (tile 0 having 2
      * decomposition levels and tile 1 having 3 decomposition levels), the
      * first tile(-component) has 3 resolution levels and the second one has 4
      * resolution levels, whereas the component has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param c The index of the component, from 0 to N-1.
      *
@@ -603,7 +610,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * @return The width in pixels of component <tt>c</tt> in the overall
      * image.
      * */
-    public final int getCompImgWidth(int c,int rl){
+    public final int getCompImgWidth(int c,int rl) {
         int sx,ex;
 	int dl = decSpec.dls.getMinInComp(c)-rl;
 	// indexation (0 is hi-res)
@@ -619,16 +626,16 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * Returns the height in pixels of the specified component in the overall
      * image, for the given (component) resolution level.
      *
-     * <P>Note: Component resolution level indexes may differ from
+     * <p>Note: Component resolution level indexes may differ from
      * tile-component resolution index. They are indeed indexed starting from
      * the lowest number of decomposition levels of same component of each
-     * tile.
+     * tile.</p>
      *
-     * <P>Example: For an image (2 tiles) with 1 component (tile 0 having 2
+     * <p>Example: For an image (2 tiles) with 1 component (tile 0 having 2
      * decomposition levels and tile 1 having 3 decomposition levels), the
      * first tile(-component) has 3 resolution levels and the second one has 4
      * resolution levels, whereas the component has only 3 resolution levels
-     * available.
+     * available.</p>
      *
      * @param c The index of the component, from 0 to N-1.
      *
@@ -637,7 +644,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * @return The height in pixels of component <tt>c</tt> in the overall
      * image.
      * */
-    public final int getCompImgHeight(int c,int rl){
+    public final int getCompImgHeight(int c,int rl) {
         int sy,ey;
 	int dl = decSpec.dls.getMinInComp(c)-rl;
 	// indexation (0 is hi-res)
@@ -698,65 +705,14 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, for the specified resolution level. This is returned in the
-     * component coordinates (not in the reference grid coordinates) reduced
-     * to the specified resolution. These are the coordinates of the current
-     * tile's (not active tile) upper-left corner relative to the canvas, in
-     * the specified component, at the specified resolution.
-     *
-     * @param co If not null the object is used to return the values, if null
-     * a new one is created and returned.
-     *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The horizontal and vertical offsets of the upper-left corner of
-     * the current tile, for the specified component and resolution level,
-     * relative to the canvas origin, in the component coordinates.
-     * */
-    public final Coord getTileOff(Coord co, int c, int rl) {
-        int x,y;
-
-        int dl = mdl[c]-rl;
-        if(dl<0){
-            throw new IllegalArgumentException("Requested resolution level"+
-                                               " is not available for, at "+
-                                               "least, one component in "+
-					       "tile: "+ctX+"x"+ctY);
-        }
-        // Convert coordinates from hi-res component grid to level rl
-        x = (offX[c]+(1<<dl)-1)/(1<<dl);
-        y = (offY[c]+(1<<dl)-1)/(1<<dl);
-
-        if (co != null) {
-            co.x = x;
-            co.y = y;
-            return co;
-        }
-        else {
-            return new Coord(x,y);
-        }
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component and resolution level. This is
-     * actually the horizontal coordinate of the top-left corner of the image
-     * data within the current tile.
+     * specified resolution in the given component of the current tile.
      *
-     * @param c The index of the component (between 0 and N-1)
+     * @param c The component index.
      *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, for component 'c', in
-     * the component coordinates, at resolution level 'rl'.
+     * @param rl The resolution level index.
      * */
-    public final int getULX(int c, int rl) {
+    public final int getResULX(int c,int rl) {
 	int dl = mdl[c]-rl;
         if(dl<0){
             throw new IllegalArgumentException("Requested resolution level"+
@@ -764,25 +720,20 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
                                                "least, one component in "+
 					       "tile: "+ctX+"x"+ctY);
         }
-        return (culx[c]+(1<<dl)-1)/(1<<dl);
+        int tx0 = (int)Math.max(px+ctX*ntW,ax);
+        int tcx0 = (int)Math.ceil(tx0/(double)getCompSubsX(c));
+        return (int)Math.ceil(tcx0/(double)(1<<dl));
     }
 
     /**
-     * Returns the vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, in the component coordinates,
-     * for the specified component and resolution level. This is actually the
-     * vertical coordinate of the top-left corner of the image data within the
-     * current tile.
+     * Returns the vertical coordinate of the upper-left corner of the
+     * specified component in the given component of the current tile.
      *
-     * @param c The index of the component (between 0 and N-1)
+     * @param c The component index.
      *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'c', in the
-     * component coordinates, at resolution level 'rl'.
+     * @param rl The resolution level index.
      * */
-    public final int getULY(int c, int rl) {
+    public final int getResULY(int c,int rl) {
 	int dl = mdl[c]-rl;
         if(dl<0){
             throw new IllegalArgumentException("Requested resolution level"+
@@ -790,7 +741,9 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
                                                "least, one component in "+
 					       "tile: "+ctX+"x"+ctY);
         }
-        return (culy[c]+(1<<dl)-1)/(1<<dl);
+        int ty0 = (int)Math.max(py+ctY*ntH,ay);
+        int tcy0 = (int)Math.ceil(ty0/(double)getCompSubsY(c));
+        return (int)Math.ceil(tcy0/(double)(1<<dl));
     }
 
     /**
@@ -827,11 +780,11 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * returns the root element of the subband tree structure, see Subband and
      * SubbandSyn. The tree comprises all the available resolution levels.
      *
-     * <P>Note: this method is not able to return subband tree for a tile
-     * different than the current one.
+     * <p>Note: this method is not able to return subband tree for a tile
+     * different than the current one.</p>
      *
-     * <P>The number of magnitude bits ('magBits' member variable) for each
-     * subband is not initialized.
+     * <p>The number of magnitude bits ('magBits' member variable) for each
+     * subband is not initialized.</p>
      *
      * @param t The tile index
      *
@@ -839,125 +792,16 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @return The root of the tree structure.
      * */
-    public final SubbandSyn getSubbandTree(int t,int c) {
-        if(t!=getTileIdx()){
+    public final SubbandSyn getSynSubbandTree(int t,int c) {
+        if(t!=getTileIdx()) {
             throw new IllegalArgumentException("Can not request subband"+
                                                " tree of a different tile"+
                                                " than the current one");
         }
-        if(c<0 || c>=nc){
+        if(c<0 || c>=nc) {
             throw new IllegalArgumentException("Component index out of range");
         }
         return subbTrees[c];
-    }
-
-    /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param c The component where the subband is.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public final Coord getNumCodeBlocks(SubbandSyn sb, int c, Coord co) {
-        int pox = getPartitionULX();
-        int poy = getPartitionULY();
-        
-        if (co == null) {
-            co = new Coord();
-        }
-        if ( sb.w==0 || sb.h==0 ) {
-            co.x = 0;
-            co.y = 0;
-        } 
-        else {
-            int apox, apoy; // Projected code-block partition origin
-            int tmp;
-
-            // Project code-block partition origin to subband. Since the
-            // origin is always 0 or 1, it projects to the low-pass side
-            // (throught the ceil operator) as itself (i.e. no change) and to
-            // the high-pass side (through the floor operator) as 0, always.
-            apox = pox;
-            apoy = poy;
-            
-            Subband sb2;
-            switch (sb.gOrient) {
-            case Subband.WT_ORIENT_LL:
-                // No need to project since all low-pass => nothing to do
-                break;
-            case Subband.WT_ORIENT_HL:
-                // There is at least a high-pass step on the horizontal
-                // decomposition => project to 0
-                apox = 0;
-                // We need to find out if there has been a high-pass step on
-                // the vertical decomposition
-                sb2 = sb;
-                do {
-                    if (sb2.orientation == Subband.WT_ORIENT_HH ||
-                        sb2.orientation == Subband.WT_ORIENT_LH) {
-                        // Vertical high-pass step => project to 0 and done
-                        apoy = 0;
-                        break;
-                    }
-                    if (sb2.gOrient == Subband.WT_ORIENT_LL) {
-                        // Only low-pass steps left, no need to continue
-                        // checking
-                        break;
-                    }
-                    sb2 = sb2.getParent();
-                } while (sb2 != null);
-                break;
-            case Subband.WT_ORIENT_LH:
-                // We need to find out if there has been a high-pass step on
-                // the horizontal decomposition
-                sb2 = sb;
-                do {
-                    if (sb2.orientation == Subband.WT_ORIENT_HH ||
-                        sb2.orientation == Subband.WT_ORIENT_HL) {
-                        // Horizontal high-pass step => project to 0 and done
-                        apox = 0;
-                        break;
-                    }
-                    if (sb2.gOrient == Subband.WT_ORIENT_LL) {
-                        // Only low-pass steps left, no need to continue
-                        // checking
-                        break;
-                    }
-                    sb2 = sb2.getParent();
-                } while (sb2 != null);
-                // There is at least a high-pass step on the vertical
-                // decomposition => project to 0
-                apoy = 0;
-                break;
-            case Subband.WT_ORIENT_HH:
-                // There is at least a high-pass step on the horiz. and
-                // vertical decomposition => project to 0
-                apox = 0;
-                apoy = 0;
-                break;
-            default:
-                throw new Error("Internal JJ2000 error");
-            }
-            // NOTE: when calculating "floor()" by integer division the
-            // dividend and divisor must be positive, we ensure that by adding
-            // the divisor to the dividend and then substracting 1 to the
-            // result of the division
-        
-            tmp = sb.ulcx-apox+sb.nomCBlkW;
-            co.x = (tmp+sb.w-1)/sb.nomCBlkW - (tmp/sb.nomCBlkW-1);
-
-            tmp = sb.ulcy-apoy+sb.nomCBlkH;
-            co.y = (tmp+sb.h-1)/sb.nomCBlkH - (tmp/sb.nomCBlkH-1);
-        }
-        return co;
     }
 
     /**
@@ -974,28 +818,29 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @param decSpec The decoder specifications
      *
+     * @param cdstrInfo Whether or not to print information found in
+     * codestream. 
+     *
+     * @param hi Reference to the HeaderInfo instance.
+     *
      * @exception IOException If an I/O error occurs while reading initial
      * data from the bit stream.
-     *
      * @exception IllegalArgumentException If an unrecognised bit stream
      * reader option is present.
      * */
-    public static
-        BitstreamReaderAgent createInstance(RandomAccessIO in,
-                                            HeaderDecoder hd,
-                                            ParameterList pl,
-                                            DecoderSpecs decSpec)
+    public static BitstreamReaderAgent createInstance(RandomAccessIO in,
+                                                      HeaderDecoder hd,
+                                                      ParameterList pl,
+                                                      DecoderSpecs decSpec,
+                                                      boolean cdstrInfo,
+                                                      HeaderInfo hi)
         throws IOException {
 
         // Check parameters
         pl.checkList(BitstreamReaderAgent.OPT_PREFIX,
                      pl.toNameArray(BitstreamReaderAgent.getParameterInfo()));
 
-        // Check header length
-        if (in.getPos() != hd.getTotalHeaderLength() + hd.initPos) {
-            throw new IllegalArgumentException("Invalid header length");
-        }
-        return new FileBitstreamReaderAgent(hd,in,decSpec,pl);
+        return new FileBitstreamReaderAgent(hd,in,decSpec,pl,cdstrInfo,hi);
     }
 
     /**
@@ -1028,7 +873,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * @return the precinct partition width for the specified component,
      * resolution level and tile.
      * */
-    public final int getPPX(int t,int c,int rl){
+    public final int getPPX(int t,int c,int rl) {
         return decSpec.pss.getPPX(t,c,rl);
     }
 
@@ -1045,22 +890,22 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * @return The precinct partition height in the specified component, for
      * the specified resolution level, for the current tile.
      * */
-    public final int getPPY(int t,int c,int rl){
+    public final int getPPY(int t,int c,int rl) {
         return decSpec.pss.getPPY(t,c,rl);
     }
     
     /** 
-     * Initialises subbands fields, such as code-blocks dimension and number
-     * of magnitude bits, in the subband tree. The nominal code-block
-     * width/height depends on the precincts dimensions if used. The way the
-     * number of magnitude bits is computed depends on the quantization type
-     * (reversible, derived, expounded).
+     * Initialises subbands fields, such as number of code-blocks, code-blocks
+     * dimension and number of magnitude bits, in the subband tree. The
+     * nominal code-block width/height depends on the precincts dimensions if
+     * used. The way the number of magnitude bits is computed depends on the
+     * quantization type (reversible, derived, expounded).
      *
      * @param c The component index
      *
      * @param sb The subband tree to be initialised.
      * */
-    protected void initSubbandsFields(int c,SubbandSyn sb){
+    protected void initSubbandsFields(int c,SubbandSyn sb) {
         int t = getTileIdx();
         int rl = sb.resLvl;
         int cbw, cbh;
@@ -1068,8 +913,9 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
         cbw = decSpec.cblks.getCBlkWidth(ModuleSpec.SPEC_TILE_COMP,t,c);
         cbh = decSpec.cblks.getCBlkHeight(ModuleSpec.SPEC_TILE_COMP,t,c);
 
-        if( !sb.isNode ){
-            if( hd.precinctPartitionUsed() ){
+        if (!sb.isNode) {
+            // Code-block dimensions
+            if( hd.precinctPartitionUsed() ) {
                 // The precinct partition is used
                 int ppxExp, ppyExp, cbwExp, cbhExp;
                 
@@ -1094,20 +940,72 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
                             (1<<cbhExp) : (1<<(ppyExp-1)) );
                         break;
                 }
-            }
-            else {
+            } else {
                 sb.nomCBlkW = cbw;
                 sb.nomCBlkH = cbh;
             }
 
-            if(derived[c]){
-                sb.magbits = gb[c]+(params[c].exp[0][0]-(mdl[c]-sb.level))-1;
+            // Number of code-blocks
+            if(sb.numCb == null) sb.numCb = new Coord();
+            if (sb.w==0 || sb.h==0) {
+                sb.numCb.x = 0;
+                sb.numCb.y = 0;
+            } else {
+                int cb0x = getCbULX();
+                int cb0y = getCbULY();
+                int tmp;
+
+                // Projects code-block partition origin to subband. Since the
+                // origin is always 0 or 1, it projects to the low-pass side
+                // (throught the ceil operator) as itself (i.e. no change) and
+                // to the high-pass side (through the floor operator) as 0,
+                // always.
+                int acb0x = cb0x;
+                int acb0y = cb0y;
+            
+                switch (sb.sbandIdx) {
+                case Subband.WT_ORIENT_LL:
+                    // No need to project since all low-pass => nothing to do
+                    break;
+                case Subband.WT_ORIENT_HL:
+                    acb0x = 0;
+                    break;
+                case Subband.WT_ORIENT_LH:
+                    acb0y = 0;
+                    break;
+                case Subband.WT_ORIENT_HH:
+                    acb0x = 0;
+                    acb0y = 0;
+                    break;
+                default:
+                    throw new Error("Internal JJ2000 error");
+                }
+                if(sb.ulcx-acb0x<0 || sb.ulcy-acb0y<0) {
+                    throw new IllegalArgumentException("Invalid code-blocks "+
+                                                       "partition origin or "+
+                                                       "image offset in the "+
+                                                       "reference grid.");
+                }
+
+                // NOTE: when calculating "floor()" by integer division the
+                // dividend and divisor must be positive, we ensure that by
+                // adding the divisor to the dividend and then substracting 1
+                // to the result of the division
+
+                tmp = sb.ulcx-acb0x+sb.nomCBlkW;
+                sb.numCb.x = (tmp+sb.w-1)/sb.nomCBlkW - (tmp/sb.nomCBlkW-1);
+                
+                tmp = sb.ulcy-acb0y+sb.nomCBlkH;
+                sb.numCb.y = (tmp+sb.h-1)/sb.nomCBlkH - (tmp/sb.nomCBlkH-1);
             }
-            else {
+
+            // Number of magnitude bits
+            if(derived[c]) {
+                sb.magbits = gb[c]+(params[c].exp[0][0]-(mdl[c]-sb.level))-1;
+            } else {
                 sb.magbits = gb[c]+params[c].exp[sb.resLvl][sb.sbandIdx]-1;
             }
-        }
-        else {
+        } else {
             initSubbandsFields(c,(SubbandSyn)sb.getLL());
             initSubbandsFields(c,(SubbandSyn)sb.getHL());
             initSubbandsFields(c,(SubbandSyn)sb.getLH());
@@ -1122,8 +1020,8 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @return The image  resolution level
      * */
-    public int getImgRes(){
-	return res;
+    public int getImgRes() {
+	return targetRes;
     }
 
     /** 
@@ -1131,7 +1029,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * 
      * @return Target decoding rate in bpp.
      * */
-    public float getTargetRate(){
+    public float getTargetRate() {
         return trate;
     }
 
@@ -1140,8 +1038,8 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      *
      * @return Actual decoding rate in bpp.
      * */
-    public float getActualRate(){
-        arate = anbytes*8f/hd.getImgWidth()/hd.getImgHeight();
+    public float getActualRate() {
+        arate = anbytes*8f/hd.getMaxCompImgWidth()/hd.getMaxCompImgHeight();
         return arate;
     }
 
@@ -1150,7 +1048,7 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * 
      * @return Target decoding rate in bytes.
      * */
-    public int getTargetNbytes(){
+    public int getTargetNbytes() {
         return tnbytes;
     }
 
@@ -1161,5 +1059,25 @@ public abstract class BitstreamReaderAgent implements CodedCBlkDataSrcDec {
      * */
     public int getActualNbytes(){
         return anbytes;
+    }
+
+    /** Returns the horizontal offset of tile partition */
+    public int getTilePartULX() {
+        return hd.getTilingOrigin(null).x;
+    }
+
+    /** Returns the vertical offset of tile partition */
+    public int getTilePartULY() {
+        return hd.getTilingOrigin(null).y;
+    }
+
+    /** Returns the nominal tile width */
+    public int getNomTileWidth() {
+        return hd.getNomTileWidth();
+    }
+
+    /** Returns the nominal tile height */
+    public int getNomTileHeight() {
+        return hd.getNomTileHeight();
     }
 }

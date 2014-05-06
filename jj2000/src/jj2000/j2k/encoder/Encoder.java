@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: Encoder.java,v 1.55 2001/02/26 10:12:54 grosbois Exp $
+ * $Id: Encoder.java,v 1.68 2002/05/22 14:59:08 grosbois Exp $
  *
  * Class:                   Encoder
  *
@@ -63,22 +63,24 @@ import java.io.*;
 /**
  * This class is the main class of JJ2000's encoder. It instantiates all
  * objects of the chain and launchs the encoding process. It then writes the
- * header and the compressed bit stream to the output file.
+ * header and the compressed bit stream to the output file. Finally,
+ * packed packet headers (through codestream post-manipulation) and
+ * file-format may be created if needed.
  *
- * <P>First the encoder should be initialized with a ParameterList object
+ * <p>First the encoder should be initialized with a ParameterList object
  * provided through the constructor. Then, the run() method is invoked and the
  * encoder executes. The exit code of the class can be obtained with the
  * getExitCode() method, after the constructor and after the run method. A
- * non-zero value indicates that an error has occurred.
+ * non-zero value indicates that an error has occurred.</p>
  *
- * <P>The modules are inserted in the encoding chain with the following
- * order:
+ * <p>The modules are inserted in the encoding chain with the following
+ * order:</p>
  *
  * <ul>
  * <li>ImgReader</li>
  * <li>ImgDataJoiner (if multiple image readers)</li>
- * <li>ForwCompTransf</li>
  * <li>Tiler</li>
+ * <li>ForwCompTransf</li>
  * <li>ImgDataConverter</li>
  * <li>ForwardWT</li>
  * <li>Quantizer</li>
@@ -87,16 +89,20 @@ import java.io.*;
  * <li>PostCompRateAllocator</li>
  * </ul>
  *
- * <P>The encoder uses a pull model. This means that the last module
- * (PostCompRateAllocator) requests data from its source (EntropyCoder), ...
+ * <p>The encoder uses a pull model. This means that the last module
+ * (PostCompRateAllocator) requests data from its source (EntropyCoder),
+ * ...</p>
  *
- * <P>Writing of the codestream writing (header+bit stream) is realized by
- * HeaderEncoder and CodestreamWriter.
+ * <p>Writing of the codestream writing (header+bit stream) is realized by
+ * HeaderEncoder and CodestreamWriter modules.</p>
  *
- * <P>Many modules of the encoder may behave differently depending on the
+ * <p>Packed packet headers and file-format creation are carried out by
+ * CodestreamManipulator and FileFormatWriter modules respectively.</p>
+ *
+ * <p>Many modules of the encoder may behave differently depending on the
  * tile-component. The specifications of their behaviour are kept in
  * specialized modules extending ModuleSpec class. All these modules are
- * accessible through an instance of EncoderSpecs class.
+ * accessible through an instance of EncoderSpecs class.</p>
  *
  * @see ImgReader
  * @see ImgDataJoiner
@@ -110,10 +116,12 @@ import java.io.*;
  * @see PostCompRateAllocator
  * @see HeaderEncoder
  * @see CodestreamWriter
+ * @see CodestreamManipulator
+ * @see FileFormatWriter
  * @see ModuleSpec
  * @see EncoderSpecs
  * */
-public class Encoder implements Runnable{
+public class Encoder implements Runnable {
 
     /** The exit code of the run method */
     private int exitCode;
@@ -131,6 +139,7 @@ public class Encoder implements Runnable{
 	ForwardWT.OPT_PREFIX, // Wavelets module
 	Quantizer.OPT_PREFIX, // Quantizer module
 	ROIScaler.OPT_PREFIX, // ROI module
+        HeaderEncoder.OPT_PREFIX, // HeaderEncoder module
 	EntropyCoder.OPT_PREFIX, // Coding modules
 	PostCompRateAllocator.OPT_PREFIX, // Rate allocator
 	PktEncoder.OPT_PREFIX, // Packet encoder
@@ -179,7 +188,11 @@ public class Encoder implements Runnable{
           "specified can not be larger than the 'x' one specified in the ref "+
           "option.","0 0"},
         { "rate", "<output bitrate in bpp>",
-          "This is the output bitrate in bits per pixel.","100"},
+          "This is the output bitrate of the codestream in bits per pixel."+
+          " When equal to -1, no image information (beside quantization "+
+          "effects) is discarded during compression.\n"+
+          "Note: In the case where '-file_format' option is used, the "+
+          "resulting file may have a larger bitrate.","-1"},
         { "lossless", "[on|off]", 
           "Specifies a lossless compression for the encoder. This options"+
           " is equivalent to use reversible quantization ('-Qtype "+
@@ -188,9 +201,11 @@ public class Encoder implements Runnable{
           "this option cannot be used with '-rate'. When this option is "+
           "off, the quantization type and the filters pair is defined by "+
           "'-Qtype' and '-Ffilters' respectively.","off"},
-        { "i", "<image file> [<image file> [<image file> ... ]]",
+        { "i", "<image file> [,<image file> [,<image file> ... ]]",
           "Mandatory argument. This option specifies the name of the input "+
-          "image files. Supported formats are PGM (raw), PPM (raw) and PGX, "+
+          "image files. If several image files are provided, they have to be"+
+          " separated by commas in the command line. Supported formats are "+
+          "PGM (raw), PPM (raw) and PGX, "+
           "which is a simple extension of the PGM file format for single "+
           "component data supporting arbitrary bitdepths. If the extension "+
           "is '.pgm', PGM-raw file format is assumed, if the extension is "+
@@ -212,11 +227,11 @@ public class Encoder implements Runnable{
     };
 
     /**
-     * Instantiates an encoder object, width the ParameterList object
-     * given as argument. It also retrieves the default ParameterList.
+     * Instantiates an encoder object, width the ParameterList object given as
+     * argument. It also retrieves the default ParameterList.
      *
-     * @param pl The ParameterList for this decoder (contains also
-     * defaults values);
+     * @param pl The ParameterList for this decoder (contains also defaults
+     * values);
      * */
     public Encoder(ParameterList pl) {
 	this.pl = pl;
@@ -224,8 +239,8 @@ public class Encoder implements Runnable{
     }
 
     /**
-     * Returns the exit code of the class. This is only initialized
-     * after the constructor and when the run method returns.
+     * Returns the exit code of the class. This is only initialized after the
+     * constructor and when the run method returns.
      *
      * @return The exit code of the constructor and the run() method.
      * */
@@ -234,8 +249,8 @@ public class Encoder implements Runnable{
     }
 
     /**
-     * Runs the encoder. After completion the exit code is set, a
-     * non-zero value indicates that an error ocurred.
+     * Runs the encoder. After completion the exit code is set, a non-zero
+     * value indicates that an error ocurred.
      *
      * @see #getExitCode
      * */
@@ -293,23 +308,21 @@ public class Encoder implements Runnable{
                 }
                 // Do we print info ?
                 verbose = pl.getBooleanParameter("verbose");
-            }
-            catch (StringFormatException e) {
+            } catch (StringFormatException e) {
                 error("An error occured while parsing the arguments:\n"+
                       e.getMessage(),1);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 error("An error occured while parsing the arguments:\n"+
                       e.getMessage(),1);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -329,8 +342,15 @@ public class Encoder implements Runnable{
             }
             outname = pl.getParameter("o");
 
-            if (pl.getParameter("file_format").equals("on"))
+            if (pl.getParameter("file_format").equals("on")) {
                 useFileFormat = true;
+                if(pl.getParameter("rate")!=null && 
+                   pl.getFloatParameter("rate")!=
+                   defpl.getFloatParameter("rate")) {
+                    warning("Specified bit-rate applies only on the "+
+                            "codestream but not on the whole file.");
+                }
+            }
 
             if(useFileFormat) {
                 String outext = null;
@@ -372,16 +392,15 @@ public class Encoder implements Runnable{
                 if(pl.getParameter("Peph").equals("off")){
                     pl.put("Peph","on");
                     tempEph = true;
-                    tempSop = true;
                 }                  
             }
 
             if (pl.getParameter("pph_main").equals("on")){
                 pphMain = true;
-                tempSop = true;
                 
                 if(pl.getParameter("Psop").equals("off")){
                     pl.put("Psop","on");
+                    tempSop = true;
                 }
                 if(pl.getParameter("Peph").equals("off")){
                     pl.put("Peph","on");
@@ -395,7 +414,7 @@ public class Encoder implements Runnable{
 
             if(pl.getBooleanParameter("lossless") && 
                pl.getParameter("rate")!=null && 
-               pl.getFloatParameter("rate")!=100 )
+               pl.getFloatParameter("rate")!=defpl.getFloatParameter("rate"))
                 throw new IllegalArgumentException("Cannot use '-rate' and "+
                                                    "'-lossless' option at "+
                                                    " the same time.");
@@ -406,13 +425,15 @@ public class Encoder implements Runnable{
             }
             try {
                 rate = pl.getFloatParameter("rate");
-            }
-            catch (NumberFormatException e) {
+                if(rate==-1) {
+                    rate = Float.MAX_VALUE;
+                }
+            } catch (NumberFormatException e) {
                 error("Invalid value in 'rate' option: "+
                       pl.getParameter("rate"),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -429,20 +450,19 @@ public class Encoder implements Runnable{
                         tempEph = true;
                     }   
                 }               
-            }            
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 error("Invalid value in 'tile_parts' option: "+
                       pl.getParameter("tile_parts"),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
             }
 
             // **** ImgReader ****
-            sgtok = new StringTokenizer(pl.getParameter("i"));
+            sgtok = new StringTokenizer(pl.getParameter("i"),",");
             ncomp = 0;
             ppminput = false;
             imreadervec = new Vector();
@@ -459,15 +479,13 @@ public class Encoder implements Runnable{
                     if (infile.lastIndexOf('.') != -1) {
                         inext = infile.substring(infile.lastIndexOf('.'),
                                                  infile.length());
-                    }
-                    else {
+                    } else {
                         inext = null;
                     }
                     if (".PGM".equalsIgnoreCase(inext)) { // PGM file
                         imreadervec.addElement(new ImgReaderPGM(infile));
                         ncomp += 1;
-                    }
-                    else if (".PPM".equalsIgnoreCase(inext)) { // PPM file
+                    } else if (".PPM".equalsIgnoreCase(inext)) { // PPM file
                         if (ncomp > 0) {
                             error("With PPM input format only 1 input "+
                                   "file can be specified",2);
@@ -476,19 +494,17 @@ public class Encoder implements Runnable{
                         imreadervec.addElement(new ImgReaderPPM(infile));
                         ppminput = true;
                         ncomp += 3;
-                    }
-                    else { // Should be PGX
+                    } else { // Should be PGX
                         imreadervec.addElement(new ImgReaderPGX(infile));
                         ncomp+=1;
                     }
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     error("Could not open or read from file "+infile +
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),3);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
@@ -502,9 +518,7 @@ public class Encoder implements Runnable{
                                  elementAt(imreadervec.size()-1)).close();
                                 imreadervec.
                                     removeElementAt(imreadervec.size()-1);
-                            }
-                            catch (Exception e) {
-                            }
+                            } catch (Exception e) { }
                         }
                     }
                 }
@@ -521,8 +535,7 @@ public class Encoder implements Runnable{
                 for (i=0; i<ncomp; i++) {
                     imsigned[i] = imreader[0].isOrigSigned(i);
                 }
-            }
-            else { // More than one reader => join all readers into 1
+            } else { // More than one reader => join all readers into 1
                 imgcmpidxs = new int[ncomp];
                 for (i=0; i<ncomp; i++) {
                     imsigned[i] = imreader[i].isOrigSigned(0);
@@ -557,13 +570,11 @@ public class Encoder implements Runnable{
             try {
                 refx = Integer.parseInt(sgtok.nextToken());
                 refy = Integer.parseInt(sgtok.nextToken());
-            }
-            catch (NoSuchElementException e) {
+            } catch (NoSuchElementException e) {
                 throw
                     new IllegalArgumentException("Error while parsing 'ref' "+
                                                  "option");
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid number type in "+
                                                    "'ref' option");
             }
@@ -577,13 +588,11 @@ public class Encoder implements Runnable{
             try {
                 trefx = Integer.parseInt(sgtok.nextToken());
                 trefy = Integer.parseInt(sgtok.nextToken());
-            }
-            catch (NoSuchElementException e) {
+            } catch (NoSuchElementException e) {
                 throw
                     new IllegalArgumentException("Error while parsing 'tref' "+
                                                  "option");
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid number type in "+
                                                    "'tref' option");
             }
@@ -595,14 +604,13 @@ public class Encoder implements Runnable{
             // Instantiate tiler
             try {
                 imgtiler = new Tiler(imgsrc,refx,refy,trefx,trefy,tw,th);
-            }
-            catch (IllegalArgumentException e) {
+            }  catch (IllegalArgumentException e) {
                 error("Could not tile image"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -624,15 +632,14 @@ public class Encoder implements Runnable{
             }
             try {
                 fctransf = new ForwCompTransf(imgtiler,encSpec);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 error("Could not instantiate forward component "+
                       "transformation"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -645,14 +652,13 @@ public class Encoder implements Runnable{
             // **** ForwardWT ****
             try {
                 dwt = ForwardWT.createInstance(converter,pl,encSpec);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 error("Could not instantiate wavelet transform"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -661,14 +667,13 @@ public class Encoder implements Runnable{
             // **** Quantizer ****
             try{
                 quant = Quantizer.createInstance(dwt,encSpec);
-            }
-            catch(IllegalArgumentException e) {
+            } catch(IllegalArgumentException e) {
                 error("Could not instantiate quantizer"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -677,14 +682,13 @@ public class Encoder implements Runnable{
             // **** ROIScaler ****
             try{
                 rois = ROIScaler.createInstance(quant,pl,encSpec);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 error("Could not instantiate ROI scaler"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -692,15 +696,18 @@ public class Encoder implements Runnable{
 
             // **** EntropyCoder ****
             try {
-                ecoder = EntropyCoder.createInstance(rois,encSpec,pl);
-            }
-            catch (IllegalArgumentException e) {
+                ecoder = EntropyCoder.createInstance(rois,pl,encSpec.cblks,
+                                                     encSpec.pss,encSpec.bms,
+                                                     encSpec.mqrs,encSpec.rts,
+                                                     encSpec.css,encSpec.sss,
+                                                     encSpec.lcs,encSpec.tts);
+            } catch (IllegalArgumentException e) {
                 error("Could not instantiate entropy coder"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -710,14 +717,13 @@ public class Encoder implements Runnable{
             try {
                 // Rely on rate allocator to limit amount of data
                 bwriter = new FileCodestreamWriter(outname,Integer.MAX_VALUE);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 error("Could not open output file"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
@@ -727,22 +733,21 @@ public class Encoder implements Runnable{
             try {
                 ralloc = PostCompRateAllocator.createInstance(ecoder,pl,rate,
                                                               bwriter,encSpec);
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 error("Could not instantiate rate allocator"+
                       ((e.getMessage() != null) ?
                        (":\n"+e.getMessage()) : ""),2);
-                if(pl.getParameter("debug").equals("on"))
+                if(pl.getParameter("debug").equals("on")) {
                     e.printStackTrace();
-                else {
+                } else {
                     error("Use '-debug' option for more details",2);
                 }
                 return;
             }
 
-            // Instantiate the HeaderEncoder
+            // **** HeaderEncoder ****
             headenc = new HeaderEncoder(imgsrc,imsigned,dwt,imgtiler,encSpec,
-                                        rois,ralloc);
+                                        rois,ralloc,pl);
 	    ralloc.setHeaderEncoder(headenc);
 
             // **** Write header to be able to estimate header overhead ****
@@ -759,14 +764,16 @@ public class Encoder implements Runnable{
             // Insert header into the codestream
             bwriter.commitBitstreamHeader(headenc);
 
-
             // **** Report info ****
             if (verbose) {
                 // Print target rate info
-                FacilityManager.getMsgLogger().
-                    println("Target bitrate = "+rate+" bpp (i.e. "+
-                            (int)(rate*imgsrc.getImgWidth()
-                                  *imgsrc.getImgHeight()/8)+ " bytes)",4,6);
+                if(pl.getFloatParameter("rate")!=-1) {
+                    FacilityManager.getMsgLogger().
+                        println("Target bitrate = "+rate+" bpp (i.e. "+
+                                (int)(rate*imgsrc.getImgWidth()
+                                      *imgsrc.getImgHeight()/8)+ " bytes)",
+                                4,6);
+                }
             }
 
             // **** Now do the rate-allocation and write result ****
@@ -779,38 +786,39 @@ public class Encoder implements Runnable{
             fileLength = bwriter.getLength();
 
             // **** Tile-parts and packed packet headers ****
-            if(pktspertp>0 || pphTile || pphMain){
+            if(pktspertp>0 || pphTile || pphMain) {
                 int headInc;
-                try{
+                try {
                     CodestreamManipulator cm = new 
-                        CodestreamManipulator(outname, ntiles, pktspertp,
-                                              pphMain, pphTile, tempSop,
-                                              tempEph);
+                        CodestreamManipulator(outname,ntiles,pktspertp,
+                                              pphMain,pphTile,tempSop,tempEph);
                     fileLength += cm.doCodestreamManipulation();
                     String res="";
-                    if(pktspertp>0)
+                    if(pktspertp>0) {
                         FacilityManager.
                             getMsgLogger().println("Created tile-parts "+
                                                    "containing at most "+
                                                    pktspertp+
                                                    " packets per tile.",4,6);
-                    if(pphTile)
+                    }
+                    if(pphTile) {
                         FacilityManager.getMsgLogger().
                             println("Moved packet headers "+
                                     "to tile headers",4,6);
-                    if(pphMain)
+                    }
+                    if(pphMain) {
                         FacilityManager.getMsgLogger().
                             println("Moved packet headers "+
                                     "to main header",4,6);
-                }
-                catch(IOException e){
+                    }
+                } catch(IOException e) {
                     error("Error while creating tileparts or packed packet"+
                           " headers"+
                           ((e.getMessage() != null) ?
                            (":\n"+e.getMessage()) : ""),2);
-                    if(pl.getParameter("debug").equals("on"))
+                    if(pl.getParameter("debug").equals("on")) {
                         e.printStackTrace();
-                    else {
+                    } else {
                         error("Use '-debug' option for more details",2);
                     }
                     return;
@@ -818,20 +826,19 @@ public class Encoder implements Runnable{
             }
                 
             // **** File Format ****
-            if(useFileFormat){
+            if(useFileFormat) {
                 try{
                     int nc= imgsrc.getNumComps() ;
                     int[] bpc=new int[nc];
-                    for(int comp = 0; comp<nc; comp++)
+                    for(int comp = 0; comp<nc; comp++) {
                         bpc[comp]=imgsrc.getNomRangeBits(comp);
+                    }
                     
-                    ffw = new FileFormatWriter(outname, 
-                                               imgsrc.getImgHeight(),
-                                               imgsrc.getImgWidth(), nc, bpc,
+                    ffw = new FileFormatWriter(outname,imgsrc.getImgHeight(),
+                                               imgsrc.getImgWidth(),nc,bpc,
                                                fileLength);
                     fileLength += ffw.writeFileFormat();
-                }
-                catch(IOException e){
+                } catch(IOException e) {
                     throw new Error("Error while writing JP2 file format");
                 }
             }
@@ -856,37 +863,40 @@ public class Encoder implements Runnable{
                                              imgsrc.getImgHeight()))+" bpp)");
                     
                 }
+		FacilityManager.getMsgLogger().flush();
             }
-        }
-	catch(IllegalArgumentException e){
+
+            // **** Close image reader(s) ***
+            for(i=0; i<imreader.length; i++) {
+                imreader[i].close();
+            }
+        } catch(IllegalArgumentException e) {
 	    error(e.getMessage(),2);
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
+            }
 	    return;
-	}
-        catch (Error e) {
+	} catch (Error e) {
             error("An uncaught error has occurred: "+e.getMessage(),2);
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             error("An uncaught runtime exception has occurred: "+
                   e.getMessage(),2);
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             error("An unchecked exception has occurred: "+
                   e.getMessage(),2);
-            if(pl.getParameter("debug").equals("on"))
+            if(pl.getParameter("debug").equals("on")) {
                 e.printStackTrace();
-            else {
+            } else {
                 error("Use '-debug' option for more details",2);
             }
             return;
@@ -921,7 +931,7 @@ public class Encoder implements Runnable{
      *
      * @see #getParameterInfo
      * */
-    public static String[][] getAllParameters(){
+    public static String[][] getAllParameters() {
         Vector vec = new Vector();
         
         String[][] str = getParameterInfo();
@@ -958,6 +968,11 @@ public class Encoder implements Runnable{
 	if(str!=null)
 	    for(int i=str.length-1; i>=0; i--)
 		vec.addElement(str[i]);
+
+        str = HeaderEncoder.getParameterInfo();
+        if(str!=null)
+            for(int i=str.length-1; i>=0; i--)
+                vec.addElement(str[i]);
         
 	str = PostCompRateAllocator.getParameterInfo();
 	if(str!=null)
@@ -1083,8 +1098,7 @@ public class Encoder implements Runnable{
                 out.println("-" + pinfo[i][0] +
                          ((pinfo[i][1] != null) ? " "+pinfo[i][1]+" " : " ") +
                          "(default = "+defval+")",4,8);
-            }
-            else { // There is no default value
+            } else { // There is no default value
                 out.println("-" + pinfo[i][0] +
                          ((pinfo[i][1] != null) ? " "+pinfo[i][1] : ""),4,8);
             }

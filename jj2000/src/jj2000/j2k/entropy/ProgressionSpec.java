@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ProgressionSpec.java,v 1.15 2001/02/19 11:17:25 grosbois Exp $
+ * $Id: ProgressionSpec.java,v 1.19 2001/05/02 14:08:42 grosbois Exp $
  *
  * Class:                   ProgressionSpec
  *
@@ -38,7 +38,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.entropy;
 
 import java.util.*;
@@ -53,9 +53,9 @@ import jj2000.j2k.*;
  * This class extends ModuleSpec class for progression type(s) and progression
  * order changes holding purposes.
  * 
- * <P>It stores the progression type(s) used in the codestream. There can be
- * only one progression type or several ones if progression order changes are
- * used (POC markers).
+ * <p>It stores  the progression type(s) used in the  codestream. There can be
+ *  several progression  type(s) if  progression order  changes are  used (POC
+ * markers).</p>
  * */
 public class ProgressionSpec extends ModuleSpec {
 
@@ -79,8 +79,8 @@ public class ProgressionSpec extends ModuleSpec {
     }
     
     /**
-     * Creates a new ProgressionSpec object for the specified number of
-     * tiles, components and the ParameterList instance.
+     * Creates a new ProgressionSpec object for the specified number of tiles,
+     * components and the ParameterList instance.
      *
      * @param nt The number of tiles
      *
@@ -101,7 +101,7 @@ public class ProgressionSpec extends ModuleSpec {
 
         String param  = pl.getParameter("Aptype");
 	Progression[] prog;
-	int mode=-1;
+	int mode = -1;
 
         if(param == null){ // No parameter specified
             if(pl.getParameter("Rroi") == null) {
@@ -129,9 +129,9 @@ public class ProgressionSpec extends ModuleSpec {
         String errMsg = null; // Error message
 	boolean needInteger = false; // True if an integer value is expected
 	int intType = 0; // Type of read integer value (0=index of first
-	// component, 1= index of first resolution level, 2=index of last 
-	// layer, 3= index of last component, 4= index of last resolution
-        // level) 
+	// resolution level, 1= index of first component, 2=index of first  
+	// layer not included, 3= index of first resolution level not
+        // included, 4= index of  first component not included
 	Vector progression = new Vector();
 	int tmp = 0;
 	Progression curProg = null;
@@ -142,7 +142,7 @@ public class ProgressionSpec extends ModuleSpec {
             switch(word.charAt(0)){
             case 't': 
 		// If progression were previously found, store them
-		if(progression.size()>0){
+		if(progression.size()>0) {
 		    // Ensure that all information has been taken
 		    curProg.ce = nc;
 		    curProg.lye = nl;
@@ -160,7 +160,7 @@ public class ProgressionSpec extends ModuleSpec {
 		    }
 		}
 		progression.removeAllElements();
-		intType=0;
+		intType = -1;
 		needInteger = false;
 
                 // Tiles specification
@@ -168,10 +168,10 @@ public class ProgressionSpec extends ModuleSpec {
 		curSpecType = SPEC_TILE_DEF;
   		break;
             default:
-		// Here, words is either a Integer (progression bound
-		// index) or a String (progression order type). This
-		// is determined by the value of needInteger.
-		if(needInteger){ // Progression bound info
+		// Here, words is either a Integer (progression bound index)
+		// or a String (progression order type). This is determined by
+		// the value of needInteger.
+		if(needInteger) { // Progression bound info
 		    try{
 			tmp = (new Integer(word)).intValue();
 		    }
@@ -187,67 +187,79 @@ public class ProgressionSpec extends ModuleSpec {
 
 		    switch(intType){
 		    case 0: // cs
-			if(tmp<0 || tmp>nc)
-			    throw new 
-				IllegalArgumentException("Invalid comp_start "+
-							 "in '-Aptype' option");
-			curProg.cs = tmp; break;
-		    case 1: // rs
 			if(tmp<0 || 
 			   tmp>(dls.getMax()+1))
 			    throw new 
 				IllegalArgumentException("Invalid res_start "+
-							 "in '-Aptype' option");
+							 "in '-Aptype'"+
+                                                         " option: "+tmp);
 			curProg.rs = tmp; break;
+		    case 1: // rs
+			if(tmp<0 || tmp>nc) {
+			    throw new 
+				IllegalArgumentException("Invalid comp_start "+
+							 "in '-Aptype' "+
+                                                         "option: "+tmp);
+                        }
+			curProg.cs = tmp; break;
 		    case 2: // lye
-			if(tmp<0 || tmp>nl)
+			if(tmp<0)
 			    throw new 
 				IllegalArgumentException("Invalid layer_end "+
-							 "in '-Aptype' option");
+							 "in '-Aptype'"+
+                                                         " option: "+tmp);
+                        if(tmp>nl) {
+                            tmp = nl;
+                        }
 			curProg.lye = tmp; break;
 		    case 3: // ce
-			if(tmp<0 || tmp>nc)
-			    throw new 
-				IllegalArgumentException("Invalid comp_end "+
-							 "in '-Aptype' option");
-			curProg.ce = tmp; break;
-		    case 4: // re
-			if(tmp<0 || 
-			   tmp>(dls.getMax()+1))
+			if(tmp<0)
 			    throw new 
 				IllegalArgumentException("Invalid res_end "+
-							 "in '-Aptype' option");
+							 "in '-Aptype'"+
+                                                         " option: "+tmp);
+                        if( tmp>(dls.getMax()+1)) {
+                            tmp = dls.getMax()+1;
+                        }
 			curProg.re = tmp; break;
+		    case 4: // re
+			if(tmp<0)
+			    throw new 
+				IllegalArgumentException("Invalid comp_end "+
+							 "in '-Aptype'"+
+                                                         " option: "+tmp);
+                        if (tmp>nc) {
+                            tmp = nc;
+                        }
+			curProg.ce = tmp; break;
 		    }
 		    
-		    if(intType<4){
+		    if(intType<4) {
 			intType++;
 			needInteger = true;
 			break;
-		    }
-		    else if(intType==4){
+		    } else if(intType==4) {
 			intType = 0;
 			needInteger = false;
 			break;
-		    }
-		    else{
+		    } else {
 			throw new Error("Error in usage of 'Aptype' "+
 					"option: "+param);
 		    }
 		}
 		
-		if(!needInteger){ // Progression type info
+		if(!needInteger) { // Progression type info
 		    mode = checkProgMode(word);
-		    if(mode==-1 ){
+		    if(mode==-1) {
 			errMsg = "Unknown progression type : '"+word+"'";
 			throw new IllegalArgumentException(errMsg);  
 		    }
 		    needInteger = true;
 		    intType = 0;
-		    if(progression.size()==0)
+		    if(progression.size()==0) {
 			curProg = new Progression(mode,0,nc,0,dls.getMax()+1,
                                                   nl);
-		    else{
+                    } else {
 			curProg = new Progression(mode,0,nc,0,dls.getMax()+1,
                                                   nl);
 		    }
@@ -256,11 +268,14 @@ public class ProgressionSpec extends ModuleSpec {
             } // switch
         } // while 
 
-	if(progression.size()==0){ // No progression defined
-            // Set it arbitrarily to layer progressive
-            param = "layer";
-	    mode = checkProgMode(param);
-	    if(mode==-1){
+	if(progression.size()==0) { // No progression defined
+            if(pl.getParameter("Rroi") == null) {
+                mode = checkProgMode("res");
+            }
+            else {
+                mode = checkProgMode("layer");
+            }
+	    if(mode==-1) {
 		errMsg = "Unknown progression type : '"+param+"'";
 		throw new IllegalArgumentException(errMsg);  
 	    }
@@ -290,7 +305,7 @@ public class ProgressionSpec extends ModuleSpec {
 	}
 
         // Check that default value has been specified
-        if(getDefault()==null){
+        if(getDefault()==null) {
             int ndefspec = 0;
             for(int t=nt-1; t>=0; t--){
                 for(int c=nc-1; c>=0 ; c--){
@@ -300,11 +315,15 @@ public class ProgressionSpec extends ModuleSpec {
                 }
             }
             
-            // If some tile-component have received no specification, they are
-            // arbitrarily set to 'layer' progressive.
+            // If some tile-component have received no specification, they
+            // receive the default progressiveness.
             if(ndefspec!=0){
-                param = "layer";
-                mode = checkProgMode(param);
+                if(pl.getParameter("Rroi") == null) {
+                    mode = checkProgMode("res");
+                }
+                else {
+                    mode = checkProgMode("layer");
+                }
                 if(mode==-1){
                     errMsg = "Unknown progression type : '"+param+"'";
                     throw new IllegalArgumentException(errMsg);  

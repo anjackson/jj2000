@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CBlkQuantDataSrcDec.java,v 1.8 2001/02/14 17:36:26 grosbois Exp $
+ * $Id: CBlkQuantDataSrcDec.java,v 1.9 2001/09/14 08:58:36 grosbois Exp $
  * 
  * Class:                   CBlkQuantDataSrcDec
  * 
@@ -75,44 +75,27 @@ import jj2000.j2k.image.*;
 public interface CBlkQuantDataSrcDec extends InvWTData {
 
     /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param n The component where the subband is.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int n, Coord co);
-
-    /**
      * Returns the specified code-block in the current tile for the specified
      * component, as a copy (see below).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
      * any problems after being returned. The 'offset' of the returned data is
      * 0, and the 'scanw' is the same as the code-block width. See the
-     * 'DataBlk' class.
+     * 'DataBlk' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
+     * <p>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
      * the coordinates of the top-left corner of the block, with respect to
-     * the tile, not the subband.
+     * the tile, not the subband.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -134,30 +117,29 @@ public interface CBlkQuantDataSrcDec extends InvWTData {
      *
      * @see DataBlk
      * */
-    public DataBlk getCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                  DataBlk cblk);
+    public DataBlk getCodeBlock(int c,int m,int n,SubbandSyn sb,DataBlk cblk);
 
     /**
      * Returns the specified code-block in the current tile for the specified
      * component (as a reference or copy).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'DataBlk' class.
+     * arbitrary. See the 'DataBlk' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
+     * <p>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
      * the coordinates of the top-left corner of the block, with respect to
-     * the tile, not the subband.
+     * the tile, not the subband.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -179,6 +161,6 @@ public interface CBlkQuantDataSrcDec extends InvWTData {
      *
      * @see DataBlk
      * */
-    public DataBlk getInternCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                        DataBlk cblk);
+    public DataBlk getInternCodeBlock(int c,int m,int n,SubbandSyn sb,
+                                      DataBlk cblk);
 }

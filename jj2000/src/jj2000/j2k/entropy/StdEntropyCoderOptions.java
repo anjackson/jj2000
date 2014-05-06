@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: StdEntropyCoderOptions.java,v 1.9 2000/11/28 10:35:01 grosbois Exp $
+ * $Id: StdEntropyCoderOptions.java,v 1.10 2001/03/27 09:57:20 grosbois Exp $
  * 
  * Class:                   StdEntropyCoderOptions
  * 
@@ -53,36 +53,37 @@ package jj2000.j2k.entropy;
 public interface StdEntropyCoderOptions{
 
     /** The flag bit to indicate that selective arithmetic coding bypass
-     * should be used. In this mode some of the coding passes bypass the
-     * arithmetic coder and raw bits are output. If this flag is turned on and
-     * the 'OPT_REG_TERM' one is turned off then the any non-bypass coding
-     * pass before a bypass coding pass must use MQ termination. */
+     * should be used.  In this mode, the significance propagation and
+     * magnitude refinement passes bypass the arithmetic encoder in the fourth
+     * bit-plane and latter ones (but not the cleanup pass). Note that the
+     * transition between raw and AC segments needs terminations (whether or
+     * not OPT_TERM_PASS is used). */
     public final static int OPT_BYPASS = 1;
 
     /** The flag bit to indicate that the MQ states for all contexts should be 
-     * reset at the end of each non-bypass coding pass. */
+     * reset at the end of each (non-bypassed) coding pass. */
     public final static int OPT_RESET_MQ = 1<<1;
 
-    /** The flag bit to indicate that regular termination should be used. When
-     * this is specified termination is performed after each coding
-     * pass. Termination is applied to both arithmetically coded and bypass
-     * (i.e. raw) passes . */
-    public final static int OPT_REG_TERM = 1<<2;
+    /** The flag bit to indicate that a termination should be performed after
+     * each coding pass.  Note that terminations are applied to both * *
+     * arithmetically coded and bypassed (i.e. raw) passes . */
+    public final static int OPT_TERM_PASS = 1<<2;
 
     /** The flag bit to indicate the vertically stripe-causal context
      * formation should be used. */
     public final static int OPT_VERT_STR_CAUSAL = 1<<3;
 
     /** The flag bit to indicate that error resilience info is embedded on MQ
-     * termination. The predictable error-resilient MQ termination at the
-     * encoder is necessary in this case. */
-    public final static int OPT_ER_TERM = 1<<4;
+     * termination. This corresponds to the predictable termination described
+     * in Annex D.4.2 of the FDIS */
+    public final static int OPT_PRED_TERM = 1<<4;
 
-    /** The flag bit to indicate that a segmentation marker is to be
-     * inserted at the end of each normalization coding pass. The segment
-     * marker is the four symbol sequence 1010 that are sent through the MQ
-     * coder using the UNIFORM context. */
-    public final static int OPT_SEG_MARKERS = 1<<5;
+    /** The flag bit to indicate that an error resilience segmentation symbol
+     * is to be inserted at the end of each cleanup coding pass. The
+     * segmentation symbol is the four symbol sequence 1010 that are sent
+     * through the MQ coder using the UNIFORM context (as explained in annex
+     * D.5 of FDIS). */
+    public final static int OPT_SEG_SYMBOLS = 1<<5;
 
     /** The minimum code-block dimension. The nominal width or height of a
      * code-block must never be less than this. It is 4. */

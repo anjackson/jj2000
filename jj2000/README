@@ -7,7 +7,7 @@ returns and will show all the file in 1 line.
 
              An Implementation of the JPEG 2000 Standard in Java(TM)
 
-                               Version 4.1
+                               Version 5.1
 ===============================================================================
 
 
@@ -35,11 +35,13 @@ Outline:
 1. General notes
 ================
 
-This document  describes the installation  and the utilization  of the
-JJ2000  decoder and  encoder under  several operating  systems (Linux,
-Unix, Windows, ...).  The implementation is purely in  Java(TM), so it
-can run on  any platform with a Java Virtual Machine  for Java 1.1 and
-later. The encoder and the decoder are compatible with FDIS text.
+This document  describes the  installation and the  use of  the JJ2000
+decoder  and encoder  under  several operating  systems (Linux,  Unix,
+Windows, ...).  The implementation  is purely written in Java(TM) 1.1,
+so  it can  run on  any  platform with  a Java  Virtual Machine  (JVM)
+version  1.1 or  later.   The  provided encoder  and  the decoder  are
+compatible  with the  International standard  IS 15444-1  (core coding
+system).
 
 If  you   find  some   bugs  or  if   you  have  problems   using  the
 encoder/decoder, please send an e-mail to jj2000-bugs@ltssg3.epfl.ch
@@ -47,89 +49,32 @@ encoder/decoder, please send an e-mail to jj2000-bugs@ltssg3.epfl.ch
 2. JJ2000 implementation status
 ===============================
 
-Version  4.1 contains  a  complete JPEG  2000  decoder as  well as  an
-encoder.  The functionalities  supported by  this codec  are compliant
-with the  JPEG 2000 part 1 algorithm  as it is described  in the Final
-Draft International Standard. 
+Version 5.1 contains a complete JPEG 2000 part 1 decoder as well as an
+encoder.  The  supported functionalities  are compliant with  the JPEG
+2000 part 1 algorithm as it is described in the International Standard
+IS 15444-1.  The major improvement of  this last version  comes from a
+complete support of the JP2 file format at the decoding side.
 
-As  for the  previous  versions, this  software  has been  extensively
-tested  and multiple  codestreams exchanges  have been  done  with the
-Verification   Model   software   (VM8.6)   and   some   other   known
-implementations of JPEG~2000 part 1.
-
-In  addition to  JPEG  2000  features, the  JJ2000  codec contains  an
-embedded  viewer for decoded  images (See  10, "JJ2000  Embedded image
-viewer"), a  simple applet  for the JJ2000  decoder (See  11, "Running
-JJ2000 decoder as  an applet") and special features  that can speed-up
-the  execution  by  exploiting  the multiple  CPUs  of  multiprocessor
-machines (See 12, "Enabling multiprocessor features on SMP machines").
+In addition, the JJ2000 codec  contains an embedded viewer for decoded
+images (See 10,  "JJ2000 Embedded image viewer"), a  simple applet for
+the JJ2000 decoder (See 11, "Running JJ2000 decoder as an applet") and
+special  features that can  speed-up the  execution by  exploiting the
+multiple   CPUs  of   multiprocessor  machines   (See   12,  "Enabling
+multiprocessor features on SMP machines").
 
 Finally, JJ2000 would like to acknowledge JJ2000 users for their valid
 feed-back that allowed improving the code and fixing bugs.
 
-2a. JJ2000 backward compatibility.
-----------------------------------
-
-JJ2000 encourages  all its users to  download and use  the version 4.1
-that is the only JJ2000 version compatible with current description of
-the standard  (FDIS). See  below to have  a list  of incompatibilities
-with older versions.
-
-* with version 4.0:
--------------------
-
-Because of  some modifications in  the writing of packet  headers, the
-latest  version is  not compatible  with  version 4.0  when using  the
-arithmetic   selective  bypass  mode   ('-Cbypass'  option)   or  when
-terminating  the arithmetic  coding at  the  end of  each coding  pass
-('-Creg_term' option).
-
-* with version 3.2.2 and previous:
-----------------------------------
-
-Due to some revisions in the First Draft International Standard (FDIS)
-and  some  corrections in  JJ2000  source  code,  version 4.1  is  not
-compatible with  releases 3.2.2 and previous  concerning the following
-points:
-
-- Filtering  with  9x7  filter  pair.  The FDIS  imposes  now  another
-convention for high pass coefficients signs.
-
-- Reversible  Component Transform:  the  2 last  components have  been
-swapped to conform the description given in FDIS.
-
-2b. Known issues.
------------------
-
-JJ2000  version 4.1  do  not  write any  packet  whenever the  formula
-computing  the number of  precincts in  each component  and resolution
-levels  gives  zero.  However,   this  may  contradict  the  following
-statement  of Annex  B.6  in the  Final  Draft International  Standard
-(FDIS) of JPEG 2000 part 1:
-
-'It  can happen  that a  precinct is  empty, meaning  that  no subband
-coefficients from the relevant resolution level actually contribute to
-the precinct.   This can occur, for  example, at the lower  right of a
-tile-component  due   to  sampling  with  respect   to  the  reference
-grid. When  this happens every  packet corresponding to  that precinct
-must still appear in the codestream (see Annex B.9).'
-
-This issue will be fixed as  soon as a clarification, about whether or
-not this situation is applicable to the case where no precinct exists,
-is obtained.
-
 3. Obtaining the code, documentation, etc.
 ==========================================
 
-The compiled Java(TM) byte code, the source code and the documentation
-can be downloaded by all WG1 members from the JJ2000 web site at:
+The  latest official  version corresponding  to the  compiled Java(TM)
+byte code, the source code  and the documentation can be downloaded by
+from the JJ2000 web site at:
 
         http://jj2000.epfl.ch
   or
         http://jpeg2000.epfl.ch
-
-The  download of  the software  is protected  by a  password  that can
-obtained by filling a form at http://jj2000.epfl.ch/jj_download.
 
 This  web site contains  also information,  tutorial and  useful links
 related to JPEG 2000.
@@ -141,29 +86,29 @@ are given towards the end of this document.
 4. Installing the JJ2000 byte code (i.e. compiled code)
 ======================================================
 
-- Download   the   latest   compressed  archive   (jj2000_4.1.zip   or
-jj2000_4.1.tar.gz) from the JJ2000 web site (http://jj2000.epfl.ch)
+- Download   the   latest   compressed  archive   (jj2000_5.1.zip   or
+jj2000_5.1.tar.bz2) from the JJ2000 web site (http://jj2000.epfl.ch)
 
 - Create the directory where you want to install the JJ2000 Codec.
 
 - Decompress  the  archive  in  this  directory. This  will  create  a
-'jj2000-4.1' directory with the necessary files in it.
+'jj2000-5.1' directory with the necessary files in it.
 
         * on Unix, Linux:
-                unzip jj2000_4.1.zip
+                unzip jj2000_5.1.zip
         or
-                gunzip -c jj2000_4.1.tar.gz | tar xvf -
+                bunzip2 -c jj2000_5.1.tar.bz2 | tar xvf -
 
-        * with Windows: use WinZip with jj2000_4.1.zip
+        * with Windows: use WinZip with jj2000_5.1.zip
 
-Note: If  you use the  tar.gz archive with  WinZip make sure  that the
+Note: If  you use the  tar.bz2 archive with  WinZip make sure  that the
 automatic CR-LF  conversion is  turned off, since  this will  ruin the
 files in the archive.
 
-- After this you should find the following files in the 'jj2000-4.1'
+- After this you should find the following files in the 'jj2000-5.1'
 directory:
 
-        * jj2000-4.1.jar - This file contains all the Java compiled code
+        * jj2000-5.1.jar - This file contains all the Java compiled code
         * README         - The file you are reading
         * COPYRIGHT      - Copyright statement of the JJ2000 software
 
@@ -197,15 +142,15 @@ installed on your machine, you don't need to install a new one and you
 can skip  the rest of  this point, unless  you want to try  with other
 JVMs. For other architectures ask your system administrator.
 
-If you  don't have  a JVM  version 1.1.x or  later installed,  you can
-download    one   from    JavaSoft   (for    Solaris    and   Windows:
-http://www.javasoft.com),          Apple          (for          MacOS:
-http://www.apple.com/java),   or   Microsoft   (for   Windows95/98/NT:
-http://www.microsoft.com/java),       Blackdown       (for      Linux:
-http://www.blackdown.org),                                          IBM
+If you don't have a JVM version 1.1.x or later installed, you can
+download one from JavaSoft (for Solaris and Windows:
+http://www.javasoft.com), Apple (for MacOS:
+http://www.apple.com/java), or Microsoft (for Windows95/98/NT:
+http://www.microsoft.com/java), Blackdown (for Linux:
+http://www.blackdown.org), IBM
 (http://www-105.ibm.com/developerworks/tools.nsf/dw/java-devkits-byname?OpenDocument&Count=100),
-among other sites.   For other platforms a list  of available ports is
-available           at          JavaSoft's           web          site
+among other sites.  For other platforms a list of available ports is
+available at JavaSoft's web site
 (http://java.sun.com/cgi-bin/java-ports.cgi).
 
 6. Running the JJ2000 bytecode (i.e. compiled code)
@@ -227,24 +172,24 @@ following way:
 
 - Windows 95/98/NT (in an MS-DOS window):
 
-        set CLASSPATH=<jjdir>/jj2000-4.1.jar;%CLASSPATH%
+        set CLASSPATH=<jjdir>/jj2000-5.1.jar;%CLASSPATH%
 
 - UNIX with Bourne Shell (i.e. sh):
 
-        CLASSPATH=<jjdir>/jj2000-4.1.jar:$CLASSPATH
+        CLASSPATH=<jjdir>/jj2000-5.1.jar:$CLASSPATH
         export CLASSPATH
 
 - UNIX with C-shell (i.e. csh or tcsh):
 
-        setenv CLASSPATH <jjdir>/jj2000-4.1.jar:$CLASSPATH
-	(or setenv CLASSPATH <jjdir>/jj2000-4.1.jar 
+        setenv CLASSPATH <jjdir>/jj2000-5.1.jar:$CLASSPATH
+	(or setenv CLASSPATH <jjdir>/jj2000-5.1.jar 
 	if CLASSPATH has not been already defined)
 
 where  <jjdir>   is  the  full   path  of  the  directory   where  the
-'jj2000-4.1.jar'  file  is  found.  For instance,  under  Windows,  if
-<jjdir> is 'C:\JJ2000\JJ2000-4.1\':
+'jj2000-5.1.jar'  file  is  found.  For instance,  under  Windows,  if
+<jjdir> is 'C:\JJ2000\JJ2000-5.1\':
 
-        set CLASSPATH=C:\JJ2000\JJ2000-4.1\jj2000-4.1.jar;%CLASSPATH%
+        set CLASSPATH=C:\JJ2000\JJ2000-5.1\jj2000-5.1.jar;%CLASSPATH%
 
 In order to make this setting  permanent you can add the line above at
 the end of your C:\AUTOEXEC.BAT file in Windows, or your ~/.profile or
@@ -273,18 +218,18 @@ CLASSPATH variable seems to have no effect):
 
 - Windows 95/98/NT:
 
-        jre -cp <jjdir>\jj2000-4.1.jar JJ2KEncoder <args>
+        jre -cp <jjdir>\jj2000-5.1.jar JJ2KEncoder <args>
 
-        jre -cp <jjdir>\jj2000-4.1.jar JJ2KDecoder <args>
+        jre -cp <jjdir>\jj2000-5.1.jar JJ2KDecoder <args>
 
 - UNIX:
 
-        jre -cp <jjdir>/jj2000-4.1.jar JJ2KEncoder <args>
+        jre -cp <jjdir>/jj2000-5.1.jar JJ2KEncoder <args>
 
-        jre -cp <jjdir>/jj2000-4.1.jar JJ2KDecoder <args>
+        jre -cp <jjdir>/jj2000-5.1.jar JJ2KDecoder <args>
 
 where, as above, <jjdir> is the full path of the directory where the
-file jj2000-4.1.jar is found.
+file jj2000-5.1.jar is found.
 
 More instructions on  how to use the encoder and  decoder can be found
 below.
@@ -298,12 +243,12 @@ following command-lines:
 
 - Windows 95/98/NT:
 
-        jview /cp:p <jjdir>\jj2000-4.1.jar JJ2KEncoder <args>
+        jview /cp:p <jjdir>\jj2000-5.1.jar JJ2KEncoder <args>
 
-        jview /cp:p <jjdir>\jj2000-4.1.jar JJ2KDecoder <args>
+        jview /cp:p <jjdir>\jj2000-5.1.jar JJ2KDecoder <args>
 
 where, as above, <jjdir> is the full path of the directory where the
-file jj2000-4.1.jar is found.
+file jj2000-5.1.jar is found.
 
 More instructions on  how to use the encoder and  decoder can be found
 below.
@@ -374,28 +319,28 @@ not know if one of those is installed.
 8a. Installing the source code
 ------------------------------
 
-- Download    the    compressed    archive   (jj2000_4.1-src.zip    or
-jj2000_4.1-src.tar.gz)      from     the      JJ2000      web     site
+- Download    the    compressed    archive   (jj2000_5.1-src.zip    or
+jj2000_5.1-src.tar.bz2)      from     the      JJ2000      web     site
 (http://jj2000.epfl.ch)
 
 - Create the directory where you want to install the JJ2000 Codec.
 
 - Decompress  the  archive  in  this  directory. This  will  create  a
-'jj2000-4.1' directory with the necessary files in it.
+'jj2000-5.1' directory with the necessary files in it.
 
         * on Unix, Linux:
-                unzip jj2000_4.1.zip
+                unzip jj2000_5.1.zip
         or
-                gunzip -c jj2000_4.1.tar.gz | tar xvf -
+                bunzip2 -c jj2000_5.1.tar.bz2 | tar xvf -
 
-        * with Windows: use WinZip with jj2000_4.1.zip
+        * with Windows: use WinZip with jj2000_5.1.zip
 
-Note: If  you use the  tar.gz archive with  WinZip make sure  that the
+Note: If  you use the  tar.bz2 archive with  WinZip make sure  that the
 automatic CR-LF  conversion is  turned off, since  this will  ruin the
 files in the archive.
 
 - After this  you should find  the following files and  directories in
-the 'jj2000-4.1' directory:
+the 'jj2000-5.1' directory:
 
         * src/         - This directory contains all the Java source code
 	* JNI-src/     - C source of methods using the Java Native Interface.
@@ -484,13 +429,23 @@ compiler to compile all the source code in one call to it.
 
 To compile the encoder type, in the 'src' directory:
 
-        javac -depend JJ2KDecoder.java
+        javac -depend JJ2KEncoder.java
 
 To compile the decoder type, in the 'src' directory:
 
         javac -depend JJ2KDecoder.java
 
-The "-depend" option forces the compilation of all necessary files.
+To compile the appler type, in the 'src' directory:
+
+	javac -depend jj2000\j2k\decoder\SimpleAppletDecoder.java
+ or
+	javac -depend jj2000/j2k/decoder/SimpleAppletDecoder.java
+
+ depending on your platform
+
+Note:  the "-depend" option  forces the  compilation of  all necessary
+files. This  option may have a  different name depending  on your java
+compiler. Check your compiler's documentation in case of trouble.
 
 8d. Running the compiled code
 -----------------------------
@@ -528,24 +483,24 @@ on-line from the same web site (http://jj2000.epfl.ch).
 
 Below are the instructions on how to download the documentation.
 
-- Download    the    compressed    archive   (jj2000_4.1-doc.zip    or
-jj2000_4.1-doc.tar.gz)      from     the      JJ2000      web     site
+- Download    the    compressed    archive   (jj2000_5.1-doc.zip    or
+jj2000_5.1-doc.tar.bz2)      from     the      JJ2000      web     site
 (http://jj2000.epfl.ch)
 
 - Create the directory where you want to install the JJ2000 Codec.
 
 - Decompress  the  archive  in  this  directory. This  will  create  a
-'jj2000-4.1' directory with the necessary files in it.
+'jj2000-5.1' directory with the necessary files in it.
 
         * on Unix, Linux:
-                unzip jj2000_4.1-doc.zip
+                unzip jj2000_5.1-doc.zip
         or
-                gunzip -c jj2000_4.1-doc.tar.gz | tar xvf -
+                bunzip2 -c jj2000_5.1-doc.tar.bz2 | tar xvf -
 
-        * with Windows: use WinZip with jj2000_4.1-doc.zip
+        * with Windows: use WinZip with jj2000_5.1-doc.zip
 
 - After this  you should find  the following files and  directories in
-the 'jj2000-4.1' directory:
+the 'jj2000-5.1' directory:
 
         * doc/            - This file contains all the HTML documentation
         * doc/index.html  - Main page of the documentation
@@ -754,8 +709,8 @@ for N = 2 will be close to 1.9 in most cases.
 - If you  have problems  when unpacking the  archive, you can  use the
 zipped java tool jar (Java ARchive):
 
-        - Rename the archive: jj2000_4.1-src.zip -> jj2000_4.1-src.jar
-        - uncompress the archive: jar xvf jj2000_4.1-src.jar
+        - Rename the archive: jj2000_5.1-src.zip -> jj2000_5.1-src.jar
+        - uncompress the archive: jar xvf jj2000_5.1-src.jar
 
 - If you can not run the decoder and the encoder:
 
@@ -781,17 +736,34 @@ zipped java tool jar (Java ARchive):
 14.  Change history
 ===================
 
-14a. Changes in 4.1, from version 4.0
--------------------------------------
+* Changes in 5.1, from version 5.0
+----------------------------------
 
-- Update of the optional JPEG~2000 part 1 file format (JP2)
+- Complete support of JP2 file format (at decoding side)
+
+* Changes in 5.0, from version 4.2
+----------------------------------
+
+- Support for constrained reconstruction (i.e. reconstruction with
+  limited number of layers, code-blocks, ...).
+- Several bug-fixes
+
+* Changes in 4.2, from version 4.1
+----------------------------------
+
+- Several bug-fixes
+
+* Changes in 4.1, from version 4.0
+----------------------------------
+
+- Update of the optional JPEG 2000 part 1 file format (JP2)
 - Implementation of  a tool  indicating the length  of the ROI  in the
 codestream (at the encoder side)
 - Add COM marker segment at the encoder side
 - Some bug fixes
 
-14b. Changes in 4.0, from version 3.2.2
----------------------------------------
+* Changes in 4.0, from version 3.2.2
+------------------------------------
 
 - Updated to be compliant with FDIS of JPEG 2000 Part-1 (IS 15444-1) 
 - ROI with arbitrary shape
@@ -804,8 +776,8 @@ codestream (at the encoder side)
   packages)
 - Applet for the decoder
 
-14c.  Changes in 3.2.2, from version 3.2.1
-------------------------------------------
+*  Changes in 3.2.2, from version 3.2.1
+----------------------------------------
 
 - Optimized the entropy encoding/decoding engines. The new engine packs
   coefficient states and has unrolled loops. Runs faster and uses less memory.
@@ -813,13 +785,13 @@ codestream (at the encoder side)
   Error detection is now selectable (i.e. can be turned on/off).
 - Fixed known bugs
 
-14d.  Changes in 3.2.1, from version 3.2
----------------------------------------- 
+*  Changes in 3.2.1, from version 3.2
+------------------------------------- 
 
 - Changed the license and copyright statement
 
-14e.  Changes in 3.2, from version 3.1
--------------------------------------- 
+*  Changes in 3.2, from version 3.1
+----------------------------------- 
 
 - User selectable parallel implementation of entropy encoding on
   multiprocessor machines (with appropriate Java(TM) Virtual Machine).
@@ -834,15 +806,15 @@ codestream (at the encoder side)
   reorganized to reflect the FCD terminology.
 - Part 2 functionalities and features removed.  
 
-14f.  Changes in 3.1, from version 3.0
---------------------------------------
+*  Changes in 3.1, from version 3.0
+-----------------------------------
 
 - Packet partition support at encoder side
 - Fixed all other known bugs
 
 
-14g.  Changes in 3.0, from version 2.9
---------------------------------------
+*  Changes in 3.0, from version 2.9
+-----------------------------------
 
 - Tile-component specific encoding/decoding options for almost all modules
   (quantizer, kernels, Region of interest, entropy coder modes, code-blocks
@@ -856,8 +828,8 @@ codestream (at the encoder side)
 - Fixed all other known bugs
  
 
-14h.  Changes in 2.9, from version 2.1.1
-----------------------------------------
+*  Changes in 2.9, from version 2.1.1
+-------------------------------------
 
 - Update of code-stream syntax (as from CD 1.0 specification)
 - Improved decoder's main header parser.
@@ -870,20 +842,20 @@ codestream (at the encoder side)
 - Fixed all other known bugs
 
 
-14i. Changes in 2.1.1, from version 2.1
----------------------------------------
+* Changes in 2.1.1, from version 2.1
+------------------------------------
 
 - Bug fixes on SSO-DWT.
 
 
-14j. Changes in 2.1, from version 2.0
--------------------------------------
+* Changes in 2.1, from version 2.0
+----------------------------------
 
 - Fully functional implementation of the SSO-DWT with the canvas.
 
 
-14k. Changes in 2.0, from version 1.1
--------------------------------------
+* Changes in 2.0, from version 1.1
+----------------------------------
 
 - Implemented the new entropy coder adopted in Vancouver, with all
   options.
@@ -902,8 +874,8 @@ codestream (at the encoder side)
 - Added decoding to bitrate by parsing, in addition to truncation.
 
 
-14l. Changes in 1.1, from 1.0
------------------------------
+* Changes in 1.1, from 1.0
+--------------------------
 
 - Standard syntax (from VM4.2 text) can now be generated by the
   encoder.
@@ -912,8 +884,8 @@ codestream (at the encoder side)
     - Spacl and Packet decomposition decoding.
 
 
-14m. Version 1.0
-----------------
+* Version 1.0
+-------------
 
 This was the first release to WG1, and was based on VM4 text.
 

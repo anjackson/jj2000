@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: AnWTFilterFloatLift9x7.java,v 1.17 2000/12/12 16:41:36 grosbois Exp $
+ * $Id: AnWTFilterFloatLift9x7.java,v 1.18 2002/01/22 13:31:31 grosbois Exp $
  *
  * Class:                   AnWTFilterFloatLift9x7
  *
@@ -84,13 +84,13 @@ public class AnWTFilterFloatLift9x7 extends AnWTFilterFloat {
     public final static float GAMMA = 0.8829110762f;
 
     /** The value of the fourth lifting step coefficient */
-    public final static float DELTA = 0.443568522f;
+    public final static float DELTA = 0.4435068522f;
 
     /** The value of the low-pass subband normalization factor */
-    public final static float KL = 0.8128930655f;//1.149604398f;
+    public final static float KL = 0.8128930655f;
 
     /** The value of the high-pass subband normalization factor */
-    public final static float KH = 1.230174106f;//0.8698644523f;
+    public final static float KH = 1.230174106f;
     
     /**
      * An implementation of the analyze_lpf() method that works on int

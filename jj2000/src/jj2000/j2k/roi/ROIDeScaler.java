@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ROIDeScaler.java,v 1.35 2001/03/01 09:37:14 grosbois Exp $
+ * $Id: ROIDeScaler.java,v 1.39 2001/10/24 12:02:51 grosbois Exp $
  *
  *
  * Class:                   ROIDeScaler
@@ -61,17 +61,17 @@ import java.io.*;
  * works on a tile basis and any mask that is generated is for the current
  * mask only
  *
- * <P>Default implementations of the methods in 'MultiResImgData' are provided
- * through the 'MultiResImgDataAdapter' abstract class.
+ * <p>Default implementations of the methods in 'MultiResImgData' are provided
+ * through the 'MultiResImgDataAdapter' abstract class.</p>
  *
- * <P>Sign magnitude representation is used (instead of two's complement) for
+ * <p>Sign-magnitude representation is used (instead of two's complement) for
  * the output data. The most significant bit is used for the sign (0 if
  * positive, 1 if negative). Then the magnitude of the quantized coefficient
  * is stored in the next most significat bits. The most significant magnitude
- * bit corresponds to the most significant bit-plane and so on.
+ * bit corresponds to the most significant bit-plane and so on.</p>
  * */
 public class ROIDeScaler extends MultiResImgDataAdapter
-    implements CBlkQuantDataSrcDec{
+    implements CBlkQuantDataSrcDec {
 
     /** The MaxShiftSpec containing the scaling values for all tile-components
      * */
@@ -121,34 +121,24 @@ public class ROIDeScaler extends MultiResImgDataAdapter
      *
      * @return The root of the tree structure.
      * */
-    public SubbandSyn getSubbandTree(int t,int c) {
-        return src.getSubbandTree(t,c);
+    public SubbandSyn getSynSubbandTree(int t,int c) {
+        return src.getSynSubbandTree(t,c);
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal code-block partition origin. Allowable values
+     * are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical code-block partition origin. Allowable values are
+     * 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**
@@ -169,46 +159,27 @@ public class ROIDeScaler extends MultiResImgDataAdapter
     }
 
     /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param n The component where the subband is.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int n, Coord co){
-        return src.getNumCodeBlocks(sb,n,co);
-    }
-
-    /**
      * Returns the specified code-block in the current tile for the specified
      * component, as a copy (see below).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
      * any problems after being returned. The 'offset' of the returned data is
      * 0, and the 'scanw' is the same as the code-block width. See the
-     * 'DataBlk' class.
+     * 'DataBlk' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
+     * <p>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
      * the coordinates of the top-left corner of the block, with respect to
-     * the tile, not the subband.
+     * the tile, not the subband.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -225,13 +196,12 @@ public class ROIDeScaler extends MultiResImgDataAdapter
      * "data" array of the object is non-null it will be reused, if possible,
      * to return the data.
      *
-     * @return The next code-block in the current tile for component 'n', or
+     * @return The next code-block in the current tile for component 'c', or
      * null if all code-blocks for the current tile have been returned.
      *
      * @see DataBlk
      * */
-    public DataBlk getCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                  DataBlk cblk){
+    public DataBlk getCodeBlock(int c,int m,int n,SubbandSyn sb,DataBlk cblk) {
         return getInternCodeBlock(c,m,n,sb,cblk);
     }
     
@@ -239,23 +209,23 @@ public class ROIDeScaler extends MultiResImgDataAdapter
      * Returns the specified code-block in the current tile for the specified
      * component (as a reference or copy).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'DataBlk' class.
+     * arbitrary. See the 'DataBlk' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
+     * <p>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
      * the coordinates of the top-left corner of the block, with respect to
-     * the tile, not the subband.
+     * the tile, not the subband.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -276,8 +246,8 @@ public class ROIDeScaler extends MultiResImgDataAdapter
      *
      * @see DataBlk
      * */
-    public DataBlk getInternCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                        DataBlk cblk){
+    public DataBlk getInternCodeBlock(int c,int m,int n,SubbandSyn sb,
+                                      DataBlk cblk) {
         int mi,i,j,k,wrap;
         int ulx, uly, w, h;
         int[] data;                       // local copy of quantized data
@@ -355,11 +325,11 @@ public class ROIDeScaler extends MultiResImgDataAdapter
         // Check if no_roi specified in command line or no roi signalled
 	// in bit stream
         noRoi = pl.getParameter("Rno_roi");
-        if (noRoi != null || decSpec.rois == null) {
+        if (noRoi!=null || decSpec.rois==null) {
             // no_roi specified in commandline!
 	    return new ROIDeScaler(src,null);
         }
 
-        return new ROIDeScaler( src, decSpec.rois );
+        return new ROIDeScaler(src,decSpec.rois);
     }
 }

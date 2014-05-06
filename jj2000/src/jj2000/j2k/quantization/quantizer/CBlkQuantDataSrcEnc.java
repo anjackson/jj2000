@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CBlkQuantDataSrcEnc.java,v 1.8 2000/09/19 14:12:19 grosbois Exp $
+ * $Id: CBlkQuantDataSrcEnc.java,v 1.10 2001/09/14 08:51:46 grosbois Exp $
  * 
  * Class:                   CBlkQuantDataSrcEnc
  * 
@@ -41,15 +41,13 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
-
-
+ * */
 package jj2000.j2k.quantization.quantizer;
 
-import jj2000.j2k.image.*;
-import jj2000.j2k.wavelet.*;
 import jj2000.j2k.wavelet.analysis.*;
 import jj2000.j2k.entropy.encoder.*;
+import jj2000.j2k.wavelet.*;
+import jj2000.j2k.image.*;
 
 /**
  * This interface defines a source of quantized wavelet coefficients and
@@ -57,10 +55,10 @@ import jj2000.j2k.entropy.encoder.*;
  * to 'getNextCodeBlock()' or 'getNextInternCodeBlock()' a new code-block is
  * returned. The code-blocks are returned in no specific order.
  *
- * <P>This class is the source of data for the entropy coder. See the
- * 'EntropyCoder' class.
+ * <p>This class is the source of data for the entropy coder. See the
+ * 'EntropyCoder' class.</p>
  *
- * <P>Code-block data is returned in sign-magnitude representation, instead of
+ * <p>Code-block data is returned in sign-magnitude representation, instead of
  * the normal two's complement one. Only integral types are used. The sign
  * magnitude representation is more adequate for entropy coding. In sign
  * magnitude representation, the most significant bit is used for the sign (0
@@ -68,38 +66,18 @@ import jj2000.j2k.entropy.encoder.*;
  * in the next M most significant bits. The rest of the bits (least
  * significant bits) can contain a fractional value of the quantized
  * coefficient. The number 'M' of magnitude bits is communicated in the
- * 'magbits' member variable of the 'CBlkWTData'.
+ * 'magbits' member variable of the 'CBlkWTData'.</p>
  *
- * <P>Note that no more of one object may request data, otherwise one object
+ * <p>Note that no more of one object may request data, otherwise one object
  * would get some of the data and another one another part, in no defined
- * manner.
+ * manner.</p>
  *
  * @see ForwWTDataProps
- *
  * @see CBlkWTDataSrc
- *
  * @see Quantizer
- *
  * @see EntropyCoder
  * */
 public interface CBlkQuantDataSrcEnc extends ForwWTDataProps {
-
-    /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     *
-     *
-     * */
-    public abstract Coord getNumCodeBlocks(SubbandAn sb, Coord co);
 
     /**
      * Returns the next code-block in the current tile for the specified
@@ -110,35 +88,33 @@ public interface CBlkQuantDataSrcEnc extends ForwWTDataProps {
      * the code-blocks have been returned for the current tile calls to this
      * method will return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
-     * any problems after being returned. The 'offset' of the returned data is 
+     * any problems after being returned. The 'offset' of the returned data is
      * 0, and the 'scanw' is the same as the code-block width. See the
-     * 'CBlkWTData' class.
+     * 'CBlkWTData' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
+     * <p>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
      * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * respect to the tile, not the subband.</p>
      *
-     * @param n The component for which to return the next code-block.
+     * @param c The component for which to return the next code-block.
      *
      * @param cblk If non-null this object will be used to return the new
      * code-block. If null a new one will be allocated and returned. If the
      * "data" array of the object is non-null it will be reused, if possible,
      * to return the data.
      *
-     * @return The next code-block in the current tile for component 'n', or
+     * @return The next code-block in the current tile for component 'c', or
      * null if all code-blocks for the current tile have been returned.
      *
      * @see CBlkWTData
-     *
-     *
      * */
-    public CBlkWTData getNextCodeBlock(int n, CBlkWTData cblk);
+    public CBlkWTData getNextCodeBlock(int c,CBlkWTData cblk);
 
     /**
      * Returns the next code-block in the current tile for the specified
@@ -149,20 +125,20 @@ public interface CBlkQuantDataSrcEnc extends ForwWTDataProps {
      * have been returned for the current tile calls to this method will
      * return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'CBlkWTData' class.
+     * arbitrary. See the 'CBlkWTData' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
+     * <p>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
      * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * respect to the tile, not the subband.</p>
      *
-     * @param n The component for which to return the next code-block.
+     * @param c The component for which to return the next code-block.
      *
      * @param cblk If non-null this object will be used to return the new
      * code-block. If null a new one will be allocated and returned. If the
@@ -174,5 +150,5 @@ public interface CBlkQuantDataSrcEnc extends ForwWTDataProps {
      *
      * @see CBlkWTData
      * */
-    public CBlkWTData getNextInternCodeBlock(int n, CBlkWTData cblk);
+    public CBlkWTData getNextInternCodeBlock(int c,CBlkWTData cblk);
 }

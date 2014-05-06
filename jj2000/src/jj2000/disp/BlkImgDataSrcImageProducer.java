@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: BlkImgDataSrcImageProducer.java,v 1.13 2000/12/04 17:18:54 grosbois Exp $
+ * $Id: BlkImgDataSrcImageProducer.java,v 1.19 2002/08/08 14:08:42 grosbois Exp $
  * 
  * Class:                   BlkImgDataSrcImageProducer
  * 
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.disp;
 
 import jj2000.j2k.image.*;
@@ -51,23 +51,21 @@ import java.awt.image.*;
 import java.util.*;
 import java.awt.*;
 
-
 /**
  * This class provides an ImageProducer for the BlkImgDataSrc interface. It
  * will request data from the BlkImgDataSrc source and deliver it to the
  * registered image consumers. The data is requested line by line, starting at
  * the top of each tile. The tiles are requested in raster-scan order.
  *
- * <P>The image data is not rescaled to fit the available dynamic range (not
- * even the alpha values for RGBA data).
+ * <p>The image data is not rescaled to fit the available dynamic range (not
+ * even the alpha values for RGBA data).</p>
  *
- * <P>BlkImgDataSrc sources with 1, 3 and 4 components are supported. If 1,
- * it is assumed to be gray-level data. If 3 it is assumed to be RGB data, in
+ * <p>BlkImgDataSrc sources with 1, 3 and 4 components are supported. If 1, it
+ * is assumed to be gray-level data. If 3 it is assumed to be RGB data, in
  * that order. If 4 it is assumed to be RGBA data (RGB plus alpha plane), in
- * that order. All components must have the same size.
+ * that order. All components must have the same size.</p>
  *
  * @see ImageProducer
- *
  * @see BlkImgDataSrc
  * */
 public class BlkImgDataSrcImageProducer implements ImageProducer {
@@ -102,11 +100,11 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
      * Creates an image producer which uses 'src' as the source of image
      * data. If 'once' is true then the image is produced only once.
      *
-     * @param src The source of image data
+     * @param src The source of image data.
      *
      * @param once If the image is to be produced only once or not.
      * */
-    public BlkImgDataSrcImageProducer(BlkImgDataSrc src){
+    public BlkImgDataSrcImageProducer(BlkImgDataSrc src) {
         int i;
 
         // Check for image type
@@ -124,18 +122,20 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
             throw new IllegalArgumentException("Only 1, 3, and 4 components "+
                                                "supported");
         }
-        // Check component sizes and bitdepths
-        for (i=src.getNumComps()-1; i>=0; i--) {
-            if (src.getCompImgHeight(i) != src.getImgHeight() ||
-                src.getCompImgWidth(i) != src.getImgWidth()) {
+        // Check component sizes and bit depths
+        int imh = src.getCompImgHeight(0);
+        int imw = src.getCompImgWidth(0);
+        for(i=src.getNumComps()-1; i>=0; i--) {
+            if(src.getCompImgHeight(i) != imh ||
+                src.getCompImgWidth(i) != imw) {
                 throw new IllegalArgumentException("All components must have "+
-                                                   "the same dimensions and no"+
-                                                   "subsampling");
+                                                   "the same dimensions and "+
+                                                   "no subsampling");
             }
-            if (src.getNomRangeBits(i) > 8) {
+            if(src.getNomRangeBits(i)>8) {
                 throw new IllegalArgumentException("Depths greater than 8 "+
-                                                   "bits per component is not "+
-                                                   "supported");
+                                                   "bits per component is "+
+                                                   "not supported");
             }
         }
         this.src = src;
@@ -146,18 +146,17 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
      * Returns an Image object given an BlkImgDataSrc source. It will use a
      * new J2KImageProducer object as the underlying image producer.
      *
-     * <P>This method uses the JVM default Toolkit, which might not be what it
-     * is desired.
+     * <p>This method uses the JVM default Toolkit, which might not be what it
+     * is desired.</p>
      *
-     * @param src The source of image data
+     * @param src The source of image data.
      *
      * @return An image which has a J2KImageProducer object as the underlying
      * image producer.
      * */
-    public static Image createImage(BlkImgDataSrc src){
+    public static Image createImage(BlkImgDataSrc src) {
         // Use the system toolkit's createImage method
-        return
-            Toolkit.getDefaultToolkit().
+        return Toolkit.getDefaultToolkit().
             createImage(new BlkImgDataSrcImageProducer(src));
     }
 
@@ -165,11 +164,11 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
      * Returns an Image object given an BlkImgDataSrc source. It will use a
      * new J2KImageProducer object as the underlying image producer.
      *
-     * <P>This method uses the component's toolkit. The toolkit of a component 
+     * <p>This method uses the component's toolkit. The toolkit of a component
      * may change if it is moved from one frame to another one, since it is
-     * the frame that controls which toolkit is used.
+     * the frame that controls which toolkit is used.</p>
      *
-     * @param src The source of image data
+     * @param src The source of image data.
      *
      * @param c The component to use to generate the 'Image' object from the
      * 'ImageProducer'.
@@ -229,21 +228,21 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
      * to this consumer and any other consumer which may have already been
      * registered with the producer.
      *
-     * <P> Delivery is performed in "parallel" to all the registered image
+     * <p>Delivery is performed in "parallel" to all the registered image
      * consumers. By "parallel" it is meant that each line of the image is
-     * delivered to all consumers before delivering the next line.
+     * delivered to all consumers before delivering the next line.</p>
      *
-     * <P>If the data returned by the BlkImgDataSrc source happens to be
+     * <p>If the data returned by the BlkImgDataSrc source happens to be
      * progressive (see BlkImgDataSrc and DataBlk) then the abort condition is
-     * sent to the image consumers and no further data is delivered.
+     * sent to the image consumers and no further data is delivered.</p>
      *
-     * <P>Once all the data is sent to a consumer this one is automatically
-     * removed from the list of registered ones, unless an abort happens.
+     * <p>Once all the data is sent to a consumer this one is automatically
+     * removed from the list of registered ones, unless an abort happens.</p>
      *
-     * <P>To start the BlkImgDataSrc is set to tile (0,0), and the tiles are
+     * <p>To start the BlkImgDataSrc is set to tile (0,0), and the tiles are
      * produced in raster sacn order. Once the last tile is produced,
      * setTile(0,0) is called again, which signals that we are done with the
-     * current tile, which might free up resources.
+     * current tile, which might free up resources.</p>
      *
      * @param ic The image consumer to register
      * */
@@ -278,7 +277,7 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
             consumers.copyInto(cons);
         }
 
-        if (src == null) {
+        if(src == null) {
             // We cant't render with no source
             for (i=cons.length-1; i>=0; i--) {
                 cons[i].imageComplete(ImageConsumer.IMAGEERROR);
@@ -323,38 +322,41 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
         if (nT.x == 1) {
             hints |= ImageConsumer.COMPLETESCANLINES|
                 ImageConsumer.TOPDOWNLEFTRIGHT;
-        }
-        else {
+        } else {
             hints |= ImageConsumer.RANDOMPIXELORDER;
         }
         for (i=cons.length-1; i>=0; i--) {
             cons[i].setColorModel(cm);
-            cons[i].setDimensions(src.getImgWidth(),src.getImgHeight());
+            cons[i].setDimensions(src.getCompImgWidth(0),
+                                  src.getCompImgHeight(0));
             cons[i].setHints(hints);
         }
 
-        // Start the data delivery to the cached consumers tile by tile
-
-        for(int y=0; y<nT.y; y++){
-            // Loop on horizontal tiles
-            for(int x=0; x<nT.x; x++, tIdx++){
+        // Start the data delivery to the cached consumers tile by tile 
+       for(int y=0; y<nT.y; y++) {
+           // Loop on horizontal tiles
+           for(int x=0; x<nT.x; x++, tIdx++) {
 		src.setTile(x,y);
 
 		// Initialize tile
-		height = src.getHeight();
-		width = src.getWidth();
+		height = src.getTileCompHeight(tIdx,0);
+		width = src.getTileCompWidth(tIdx,0);
+
 		if(pixbuf == null || pixbuf.length < width){
 		    pixbuf = new int[width];
 		}
 		// The offset of the active tiles is the same for all
-		// components,
-		// since we don't support different component dimensions.
-		tOffx = src.getULX(0)-
-		    (src.getImgULX()+src.getCompSubsX(0)-1)/src.getCompSubsX(0);
-		tOffy = src.getULY(0)-
-		    (src.getImgULY()+src.getCompSubsY(0)-1)/src.getCompSubsY(0);
+		// components, since we don't support different component
+		// dimensions.
+		tOffx = src.getCompULX(0) -
+                    (int)Math.ceil(src.getImgULX()/
+                                   (double)src.getCompSubsX(0));
+		tOffy = src.getCompULY(0) -
+		    (int)Math.ceil(src.getImgULY()/
+                                   (double)src.getCompSubsY(0));
+
 		// Deliver in lines to reduce memory usage
-		for (l=0; l < height;l++) {
+		for(l=0; l<height; l++) {
 		    // Request line data
 		    prog = false;
 		    switch (type) {
@@ -403,7 +405,8 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
 			k1 = db1.offset+width-1;
 			for (i=width-1; i>=0; i--) {
 			    tmp1 = (data1[k1--]>>fb1)+ls1;
-			    tmp1 = (tmp1 < 0) ? 0 : ((tmp1 > mv1) ? mv1 : tmp1);
+			    tmp1 = (tmp1 < 0) ? 0 : 
+                                ((tmp1 > mv1) ? mv1 : tmp1);
 			    pixbuf[i] = (0xFF<<24)|(tmp1<<16)|(tmp1<<8)|tmp1;
 			}
 			break;
@@ -416,11 +419,14 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
 			k3 = db3.offset+width-1;
 			for (i=width-1; i>=0; i--) {
 			    tmp1 = (data1[k1--]>>fb1)+ls1;
-			    tmp1 = (tmp1 < 0) ? 0 : ((tmp1 > mv1) ? mv1 : tmp1);
+			    tmp1 = (tmp1 < 0) ? 0 : 
+                                ((tmp1 > mv1) ? mv1 : tmp1);
 			    tmp2 = (data2[k2--]>>fb2)+ls2;
-			    tmp2 = (tmp2 < 0) ? 0 : ((tmp2 > mv2) ? mv2 : tmp2);
+			    tmp2 = (tmp2 < 0) ? 0 : 
+                                ((tmp2 > mv2) ? mv2 : tmp2);
 			    tmp3 = (data3[k3--]>>fb3)+ls3;
-			    tmp3 = (tmp3 < 0) ? 0 : ((tmp3 > mv3) ? mv3 : tmp3);
+			    tmp3 = (tmp3 < 0) ? 0 : 
+                                ((tmp3 > mv3) ? mv3 : tmp3);
 			    pixbuf[i] = (0xFF<<24)|(tmp1<<16)|(tmp2<<8)|tmp3;
 			}
 			break;
@@ -435,13 +441,17 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
 			k4 = db4.offset+width-1;
 			for (i=width-1; i>=0; i--) {
 			    tmp1 = (data1[k1--]>>fb1)+ls1;
-			    tmp1 = (tmp1 < 0) ? 0 : ((tmp1 > mv1) ? mv1 : tmp1);
+			    tmp1 = (tmp1 < 0) ? 0 : 
+                                ((tmp1 > mv1) ? mv1 : tmp1);
 			    tmp2 = (data2[k2--]>>fb2)+ls2;
-			    tmp2 = (tmp2 < 0) ? 0 : ((tmp2 > mv2) ? mv2 : tmp2);
+			    tmp2 = (tmp2 < 0) ? 0 : 
+                                ((tmp2 > mv2) ? mv2 : tmp2);
 			    tmp3 = (data3[k3--]>>fb3)+ls3;
-			    tmp3 = (tmp3 < 0) ? 0 : ((tmp3 > mv3) ? mv3 : tmp3);
+			    tmp3 = (tmp3 < 0) ? 0 : 
+                                ((tmp3 > mv3) ? mv3 : tmp3);
 			    tmp4 = (data4[k4--]>>fb4)+ls4;
-			    tmp4 = (tmp4 < 0) ? 0 : ((tmp4 > mv4) ? mv4 : tmp4);
+			    tmp4 = (tmp4 < 0) ? 0 : 
+                                ((tmp4 > mv4) ? mv4 : tmp4);
 			    pixbuf[i] = (tmp4<<24)|(tmp1<<16)|(tmp2<<8)|tmp3;
 			}
 			break;
@@ -455,9 +465,6 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
             } // End loop on horizontal tiles            
         } // End loop on vertical tiles
 
-        // Go back to first tile (this might free up resources, since it
-        // indicates that we are done with the current tile)
-//          src.setTile(0,0);
         // Signal that this frame is complete. This is so that display of the
         // last tile occurs as soon as possible. When calling with
         // STATICIMAGEDONE the ImageConsumer might do some cleanup that will
@@ -480,17 +487,14 @@ public class BlkImgDataSrcImageProducer implements ImageProducer {
 
     /**
      * Starts the delivery of pixel data in the top-down letf-right order to
-     * the image consumer 'ic'. The TOPDOWNLEFTRIGHT hint is set in 
-     * the image consumer on delivery.
+     * the image consumer 'ic'. The TOPDOWNLEFTRIGHT hint is set in the image
+     * consumer on delivery.
      *
-     * <P>Currently this call is ignored (which is perfectly legal according
-     * to the ImageProducer interface specification).
+     * <p>Currently this call is ignored (which is perfectly legal according
+     * to the ImageProducer interface specification).</p>
      *
      * @param ic The image consumer to which the data is sent in top-down,
      * left-right order.
-     *
-     *
      * */
-    public void requestTopDownLeftRightResend(ImageConsumer ic) {
-    }
+    public void requestTopDownLeftRightResend(ImageConsumer ic) { }
 }

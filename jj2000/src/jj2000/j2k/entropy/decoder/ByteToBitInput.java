@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ByteToBitInput.java,v 1.12 2000/12/22 12:49:02 grosbois Exp $
+ * $Id: ByteToBitInput.java,v 1.14 2002/07/19 12:41:33 grosbois Exp $
  * 
  * Class:                   ByteToBitInput
  * 
@@ -51,7 +51,7 @@ import jj2000.j2k.io.*;
  * performs the bit unstuffing procedure specified for the 'selective
  * arithmetic coding bypass' mode of the JPEG 2000 entropy coder.
  * */
-class ByteToBitInput {
+public class ByteToBitInput {
 
     /** The byte based input */
     ByteInputBuffer in;
@@ -63,12 +63,13 @@ class ByteToBitInput {
      * -1 the bit buffer is empty. */
     int bpos = -1;
 
-    /** Instantiates a new 'ByteToBitInput' object that uses 'in' as the
+    /** 
+     * Instantiates a new 'ByteToBitInput' object that uses 'in' as the
      * underlying byte based input.
      *
      * @param in The underlying byte based input.
      * */
-    ByteToBitInput(ByteInputBuffer in) {
+    public ByteToBitInput(ByteInputBuffer in) {
         this.in = in;
     }
 
@@ -79,13 +80,12 @@ class ByteToBitInput {
      *
      * @return The read bit (0 or 1).
      * */
-    final int readBit() {
-        if (bpos < 0) {
-            if ((bbuf&0xFF) != 0xFF) { // Normal byte to read
+    public final int readBit() {
+        if(bpos<0) {
+            if((bbuf&0xFF) != 0xFF) { // Normal byte to read
                 bbuf = in.read();
                 bpos = 7;
-            }
-            else { // Previous byte is 0xFF => there was bit stuffing
+            } else { // Previous byte is 0xFF => there was bit stuffing
                 bbuf = in.read();
                 bpos = 6;
             }
@@ -108,7 +108,7 @@ class ByteToBitInput {
 
         // If there are no spare bits and bbuf is 0xFF (not EOF), then there
         // is a next byte with bit stuffing that we must load.
-        if (bpos < 0 && bbuf == 0xFF) {
+        if (bpos < 0 && (bbuf&0xFF) == 0xFF) {
             bbuf = in.read();
             bpos = 6;
         }

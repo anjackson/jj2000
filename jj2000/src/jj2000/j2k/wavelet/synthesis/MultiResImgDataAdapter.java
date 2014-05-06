@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: MultiResImgDataAdapter.java,v 1.7 2000/09/05 09:26:27 grosbois Exp $
+ * $Id: MultiResImgDataAdapter.java,v 1.10 2002/07/25 15:11:55 grosbois Exp $
  * 
  * Class:                   MultiResImgDataAdapter
  * 
@@ -41,29 +41,25 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 import jj2000.j2k.image.*;
 
 /**
- * This class provides a default implementation of the methods in the
- * 'MultiResImgData' interface. The default implementation is just to return the
- * value of the source, where the source is another 'MultiResImgData' object.
+ * This class provides a default implementation for the methods of the
+ * 'MultiResImgData' interface. The default implementation consists just in
+ * returning the value of the source, where the source is another
+ * 'MultiResImgData' object.
  *
- * <P>This abstract class can be used to facilitate the development of other
+ * <p>This abstract class can be used to facilitate the development of other
  * classes that implement 'MultiResImgData'. For example a dequantizer can
  * inherit from this class and all the trivial methods do not have to be
- * reimplemented.
+ * reimplemented.</p>
  *
- * <P>If the default implementation of a method provided in this class does
- * not suit a particular implementation of the 'MultiResImgData' interface, the
- * method can be overriden to implement the proper behaviour.
+ * <p>If the default implementation of a method provided in this class does
+ * not suit a particular implementation of the 'MultiResImgData' interface,
+ * the method can be overriden to implement the proper behaviour.</p>
  *
  * @see MultiResImgData
  * */
@@ -80,91 +76,76 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
      * MultiResImgData source.
      *
      * @param src From where to obrtain the MultiResImgData values.
-     *
-     *
      * */
     protected MultiResImgDataAdapter(MultiResImgData src) {
         mressrc = src;
     }
 
-//      /**
-//       * Returns the maximum resolution level available from the
-//       * bit stream. The number of resolution levels available is the
-//       * returned value plus 1.
-//       *
-//       * <P>This default implementation returns the value of the source.
-//       *
-//       * @return The maximum resolution level available.
-//       *
-//       *
-//       * */
-//      public int getMaxResLvl() {
-//          return mressrc.getMaxResLvl();
-//      }
-    
     /**
-     * Returns the overall width of the current tile in pixels, for
-     * the given resolution level. This is the tile's width without
-     * accounting for any component subsampling.
+     * Returns the overall width of the current tile in pixels, for the given
+     * resolution level. This is the tile's width without accounting for any
+     * component subsampling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The total current tile's width in pixels.
-     *
-     *
      * */
-    public int getWidth(int rl) {
-        return mressrc.getWidth(rl);
+    public int getTileWidth(int rl) {
+        return mressrc.getTileWidth(rl);
     }
 
     /**
-     * Returns the overall height of the current tile in pixels, for
-     * the given resolution level. This is the tile's height without
-     * accounting for any component subsampling.
+     * Returns the overall height of the current tile in pixels, for the given
+     * resolution level. This is the tile's height without accounting for any
+     * component subsampling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The total current tile's height in pixels.
-     *
-     *
      * */
-    public int getHeight(int rl) {
-        return mressrc.getHeight(rl);
+    public int getTileHeight(int rl) {
+        return mressrc.getTileHeight(rl);
+    }
+
+    /** Returns the nominal tiles width */
+    public int getNomTileWidth() {
+        return mressrc.getNomTileWidth();
+    }
+
+    /** Returns the nominal tiles height */
+    public int getNomTileHeight() {
+        return mressrc.getNomTileHeight();
     }
 
     /**
      * Returns the overall width of the image in pixels, for the given
-     * resolution level. This is the image's width without accounting
-     * for any component subsampling or tiling.
+     * resolution level. This is the image's width without accounting for any
+     * component subsampling or tiling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The total image's width in pixels.
-     *
-     *
      * */
     public int getImgWidth(int rl) {
         return mressrc.getImgWidth(rl);
     }
 
     /**
-     * Returns the overall height of the image in pixels, for the
-     * given resolution level. This is the image's height without
-     * accounting for any component subsampling or tiling.
+     * Returns the overall height of the image in pixels, for the given
+     * resolution level. This is the image's height without accounting for any
+     * component subsampling or tiling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The total image's height in pixels.
-     *
-     *
      * */
     public int getImgHeight(int rl) {
         return mressrc.getImgHeight(rl);
@@ -173,11 +154,9 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
     /**
      * Returns the number of components in the image.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The number of components in the image.
-     *
-     *
      * */
     public int getNumComps() {
         return mressrc.getNumComps();
@@ -189,18 +168,16 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
      * dimensions between the reference grid and the component itself, see the
      * 'ImgData' interface desription for details.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The index of the component (between 0 and N-1)
      *
-     * @return The horizontal subsampling factor of component 'n'
+     * @return The horizontal subsampling factor of component 'c'
      *
-     * @see ImgData
-     *
-     *
+     * @see jj2000.j2k.image.ImgData
      * */
-    public int getCompSubsX(int n) {
-        return mressrc.getCompSubsX(n);
+    public int getCompSubsX(int c) {
+        return mressrc.getCompSubsX(c);
     }
 
     /**
@@ -209,124 +186,112 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
      * dimensions between the reference grid and the component itself, see the
      * 'ImgData' interface desription for details.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The index of the component (between 0 and N-1)
      *
-     * @return The vertical subsampling factor of component 'n'
+     * @return The vertical subsampling factor of component 'c'
      *
-     * @see ImgData
-     *
-     *
+     * @see jj2000.j2k.image.ImgData
      * */
-    public int getCompSubsY(int n) {
-        return mressrc.getCompSubsY(n);
+    public int getCompSubsY(int c) {
+        return mressrc.getCompSubsY(c);
     }
 
     /**
-     * Returns the width in pixels of the specified component
-     * in the current tile, for the given resolution level.
+     * Returns the width in pixels of the specified tile-component for the
+     * given resolution level.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param t Tile index.
+     *
+     * @param c The index of the component, from 0 to N-1.
      *
      * @param rl The resolution level, from 0 to L.
      *
-     * @return The width in pixels of component <tt>n</tt> in the
-     * current tile.
-     *
-     *
+     * @return The width in pixels of component <tt>c</tt> in tile <tt>t</tt>
+     * for resolution level <tt>rl</tt>.
      * */
-    public int getCompWidth(int n, int rl) {
-        return mressrc.getCompWidth(n,rl);
+    public int getTileCompWidth(int t,int c,int rl) {
+        return mressrc.getTileCompWidth(t,c,rl);
     }
 
     /**
-     * Returns the height in pixels of the specified component
-     * in the current tile, for the given resolution level.
+     * Returns the height in pixels of the specified tile-component for the
+     * given resolution level.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param t The tile index.
+     *
+     * @param c The index of the component, from 0 to N-1.
      *
      * @param rl The resolution level, from 0 to L.
      *
-     * @return The height in pixels of component <tt>n</tt> in the
-     * current tile.
-     *
-     *
+     * @return The height in pixels of component <tt>c</tt> in tile
+     * <tt>t</tt>. 
      * */
-    public int getCompHeight(int n, int rl) {
-        return mressrc.getCompHeight(n,rl);
+    public int getTileCompHeight(int t,int c,int rl) {
+        return mressrc.getTileCompHeight(t,c,rl);
     }
 
     /**
-     * Returns the width in pixels of the specified component
-     * in the overall image, for the given resolution level.
+     * Returns the width in pixels of the specified component in the overall
+     * image, for the given resolution level.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param c The index of the component, from 0 to N-1.
      *
      * @param rl The resolution level, from 0 to L.
      *
-     * @return The width in pixels of component <tt>n</tt> in the
-     * overall image.
-     *
-     *
+     * @return The width in pixels of component <tt>c</tt> in the overall
+     * image.
      * */
-    public int getCompImgWidth(int n, int rl) {
-        return mressrc.getCompImgWidth(n,rl);
+    public int getCompImgWidth(int c,int rl) {
+        return mressrc.getCompImgWidth(c,rl);
     }
     
     /**
-     * Returns the height in pixels of the specified component
-     * in the overall image, for the given resolution level.
+     * Returns the height in pixels of the specified component in the overall
+     * image, for the given resolution level.
      *
      * <P>This default implementation returns the value of the source.
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param c The index of the component, from 0 to N-1.
      *
      * @param rl The resolution level, from 0 to L.
      *
-     * @return The height in pixels of component <tt>n</tt> in the
-     * overall image.
-     *
-     *
+     * @return The height in pixels of component <tt>c</tt> in the overall
+     * image.
      * */
-    public int getCompImgHeight(int n, int rl) {
-        return mressrc.getCompImgHeight(n,rl);
+    public int getCompImgHeight(int c,int rl) {
+        return mressrc.getCompImgHeight(c,rl);
     }
 
     /**
      * Changes the current tile, given the new indexes. An
-     * IllegalArgumentException is thrown if the indexes do not
-     * correspond to a valid tile.
+     * IllegalArgumentException is thrown if the indexes do not correspond to
+     * a valid tile.
      *
-     * <P>This default implementation just changes the tile in the
-     * source.
+     * <p>This default implementation just changes the tile in the source.</p>
      *
      * @param x The horizontal indexes the tile.
      *
      * @param y The vertical indexes of the new tile.
-     *
-     *
      * */
-    public void setTile(int x, int y) {
+    public void setTile(int x,int y) {
         mressrc.setTile(x,y);
 	tIdx = getTileIdx();
     }
 
     /**
-     * Advances to the next tile, in standard scan-line order (by rows
-     * then columns). An NoNextElementException is thrown if the
-     * current tile is the last one (i.e. there is no next tile).
+     * Advances to the next tile, in standard scan-line order (by rows then
+     * columns). An NoNextElementException is thrown if the current tile is
+     * the last one (i.e. there is no next tile).
      *
-     * <P>This default implementation just changes the tile in the
-     * source.
-     *
-     *
+     * <p>This default implementation just changes the tile in the source.</p>
      * */
     public void nextTile() {
         mressrc.nextTile();
@@ -334,110 +299,68 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
     }
 
     /**
-     * Returns the indexes of the current tile. These are the
-     * horizontal and vertical indexes of the current tile.
+     * Returns the indexes of the current tile. These are the horizontal and
+     * vertical indexes of the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The current tile's indexes (vertical and horizontal
-     * indexes).
-     *
-     *
+     * @return The current tile's indexes (vertical and horizontal indexes).
      * */
     public Coord getTile(Coord co) {
         return mressrc.getTile(co);
     }
 
     /**
-     * Returns the index of the current tile, relative to a standard
-     * scan-line order.
+     * Returns the index of the current tile, relative to a standard scan-line
+     * order.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The current tile's index (starts at 0).
-     *
-     *
      * */
     public int getTileIdx() {
         return mressrc.getTileIdx();
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, for the specified resolution level. This is returned in the
-     * component coordinates (not in the reference grid coordinates) reduced
-     * to the specified resolution. These are the coordinates of the current
-     * tile's (not active tile) upper-left corner relative to the canvas, in
-     * the specified component, at the specified resolution.
-     *
-     * <P>This default implementation returns the value of the source.
-     *
-     * @param co If not null the object is used to return the values,
-     * if null a new one is created and returned.
-     *
-     * @param n The index of the component (between 0 and N-1)
-     *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The horizontal and vertical offsets of the upper-left
-     * corner of the current tile, for the specified component and
-     * resolution level, relative to the canvas origin, in the component
-     * coordinates.
-     *
-     *
-     * */
-    public Coord getTileOff(Coord co, int n, int rl) {
-        return mressrc.getTileOff(co,n,rl);
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component and resolution level. This is
-     * actually the horizontal coordinate of the top-left corner of the image
-     * data within the current tile.
+     * specified resolution level in the given component of the current tile. 
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The component index.
      *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The horizontal coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates, at resolution level 'rl'.
-     *
-     *
+     * @param rl The resolution level index.
      * */
-    public int getULX(int n, int rl) {
-        return mressrc.getULX(n,rl);
+    public int getResULX(int c,int rl) {
+        return mressrc.getResULX(c,rl);
     }
 
     /**
      * Returns the vertical coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component and resolution level. This is
-     * actually the vertical coordinate of the top-left corner of the image
-     * data within the current tile.
+     * specified resolution in the given component of the current tile. 
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The component index.
      *
-     * @param rl The resolution level, from 0 to L.
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates, at resolution level 'rl'.
-     *
-     *
+     * @param rl The resolution level index.
      * */
-    public int getULY(int n, int rl) {
-        return mressrc.getULY(n,rl);
+    public int getResULY(int c,int rl) {
+        return mressrc.getResULY(c,rl);
+    }
+
+    /** Returns the horizontal tile partition offset in the reference grid */
+    public int getTilePartULX() {
+        return mressrc.getTilePartULX();
+    }
+
+    /** Returns the vertical tile partition offset in the reference grid */
+    public int getTilePartULY() {
+        return mressrc.getTilePartULY();
     }
 
     /**
@@ -445,14 +368,12 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
      * corner, in the canvas system, on the reference grid at the specified
      * resolution level.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The horizontal coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULX(int rl) {
         return mressrc.getImgULX(rl);
@@ -463,14 +384,12 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
      * corner, in the canvas system, on the reference grid at the specified
      * resolution level.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @param rl The resolution level, from 0 to L.
      *
      * @return The vertical coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULY(int rl) {
         return mressrc.getImgULY(rl);
@@ -479,15 +398,13 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
     /**
      * Returns the number of tiles in the horizontal and vertical directions.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The number of tiles in the horizontal (Coord.x) and
-     * vertical (Coord.y) directions.
-     *
-     *
+     * @return The number of tiles in the horizontal (Coord.x) and vertical
+     * (Coord.y) directions.
      * */
     public Coord getNumTiles(Coord co) {
         return mressrc.getNumTiles(co);
@@ -496,11 +413,9 @@ public abstract class MultiResImgDataAdapter implements MultiResImgData {
     /**
      * Returns the total number of tiles in the image.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total number of tiles in the image.
-     *
-     *
      * */
     public int getNumTiles() {
         return mressrc.getNumTiles();

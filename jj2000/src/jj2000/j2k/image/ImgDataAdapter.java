@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ImgDataAdapter.java,v 1.6 2000/09/05 09:24:06 grosbois Exp $
+ * $Id: ImgDataAdapter.java,v 1.8 2001/09/14 09:17:23 grosbois Exp $
  * 
  * Class:                   ImgDataAdapter
  * 
@@ -41,27 +41,22 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.image;
 
 /**
  * This class provides a default implementation of the methods in the
- * 'ImgData' interface. The default implementation is just to return the
- * value of the source, where the source is another 'ImgData' object.
+ * 'ImgData' interface. The default implementation is just to return the value
+ * of the source, where the source is another 'ImgData' object.
  *
- * <P>This abstract class can be used to facilitate the development of other
- * classes that implement 'ImgData'. For example a YCbCr color transform can 
+ * <p>This abstract class can be used to facilitate the development of other
+ * classes that implement 'ImgData'. For example a YCbCr color transform can
  * inherit from this class and all the trivial methods do not have to be
- * reimplemented.
+ * re-implemented.</p>
  *
- * <P>If the default implementation of a method provided in this class does
- * not suit a particular implementation of the 'ImgData' interface, the
- * method can be overriden to implement the proper behaviour.
+ * <p>If the default implementation of a method provided in this class does
+ * not suit a particular implementation of the 'ImgData' interface, the method
+ * can be overridden to implement the proper behavior.</p>
  *
  * @see ImgData
  * */
@@ -74,12 +69,9 @@ public abstract class ImgDataAdapter implements ImgData {
     protected ImgData imgdatasrc;
 
     /**
-     * Instantiates the ImgDataAdapter object specifying the ImgData
-     * source.
+     * Instantiates the ImgDataAdapter object specifying the ImgData source.
      *
      * @param src From where to obtain all the ImgData values.
-     *
-     *
      * */
     protected ImgDataAdapter(ImgData src) {
         imgdatasrc = src;
@@ -90,14 +82,12 @@ public abstract class ImgDataAdapter implements ImgData {
      * tile's width without accounting for any component subsampling. This is
      * also referred as the reference grid width in the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total current tile's width in pixels.
-     *
-     *
      * */
-    public int getWidth() {
-        return imgdatasrc.getWidth();
+    public int getTileWidth() {
+        return imgdatasrc.getTileWidth();
     }
 
     /**
@@ -105,41 +95,43 @@ public abstract class ImgDataAdapter implements ImgData {
      * tile's height without accounting for any component subsampling. This is
      * also referred as the reference grid height in the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total current tile's height in pixels.
-     *
-     *
      * */
-    public int getHeight() {
-        return imgdatasrc.getHeight();
+    public int getTileHeight() {
+        return imgdatasrc.getTileHeight();
+    }
+
+    /** Returns the nominal tiles width */
+    public int getNomTileWidth() {
+        return imgdatasrc.getNomTileWidth();
+    }
+
+    /** Returns the nominal tiles height */
+    public int getNomTileHeight() {
+        return imgdatasrc.getNomTileHeight();
     }
 
     /**
-     * Returns the overall width of the image in pixels. This is the
-     * image's width without accounting for any component subsampling
-     * or tiling.
+     * Returns the overall width of the image in pixels. This is the image's
+     * width without accounting for any component subsampling or tiling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total image's width in pixels.
-     *
-     *
      * */
     public int getImgWidth() {
         return imgdatasrc.getImgWidth();
     }
 
     /**
-     * Returns the overall height of the image in pixels. This is the
-     * image's height without accounting for any component subsampling
-     * or tiling.
+     * Returns the overall height of the image in pixels. This is the image's
+     * height without accounting for any component subsampling or tiling.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total image's height in pixels.
-     *
-     *
      * */
     public int getImgHeight() {
         return imgdatasrc.getImgHeight();
@@ -148,11 +140,9 @@ public abstract class ImgDataAdapter implements ImgData {
     /**
      * Returns the number of components in the image.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The number of components in the image.
-     *
-     *
      * */
     public int getNumComps() {
         return imgdatasrc.getNumComps();
@@ -164,18 +154,16 @@ public abstract class ImgDataAdapter implements ImgData {
      * dimensions between the reference grid and the component itself, see the
      * 'ImgData' interface desription for details.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The index of the component (between 0 and N-1)
      *
-     * @return The horizontal subsampling factor of component 'n'
+     * @return The horizontal subsampling factor of component 'c'
      *
      * @see ImgData
-     *
-     *
      * */
-    public int getCompSubsX(int n) {
-        return imgdatasrc.getCompSubsX(n);
+    public int getCompSubsX(int c) {
+        return imgdatasrc.getCompSubsX(c);
     }
 
     /**
@@ -184,86 +172,78 @@ public abstract class ImgDataAdapter implements ImgData {
      * dimensions between the reference grid and the component itself, see the
      * 'ImgData' interface desription for details.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
+     * @param c The index of the component (between 0 and N-1)
      *
-     * @return The vertical subsampling factor of component 'n'
+     * @return The vertical subsampling factor of component 'c'
      *
      * @see ImgData
-     *
-     *
      * */
-    public int getCompSubsY(int n) {
-        return imgdatasrc.getCompSubsY(n);
+    public int getCompSubsY(int c) {
+        return imgdatasrc.getCompSubsY(c);
     }
 
     /**
-     * Returns the width in pixels of the specified component in the current
+     * Returns the width in pixels of the specified tile-component
      * tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param t Tile index
      *
-     * @return The width in pixels of component <tt>n</tt> in the
-     * current tile.
+     * @param c The index of the component, from 0 to N-1.
      *
-     *
+     * @return The width in pixels of component <tt>c</tt> in tile<tt>t</tt>.
      * */
-    public int getCompWidth(int n) {
-        return imgdatasrc.getCompWidth(n);
+    public int getTileCompWidth(int t,int c) {
+        return imgdatasrc.getTileCompWidth(t,c);
     }
     
     /**
-     * Returns the height in pixels of the specified component
-     * in the current tile.
+     * Returns the height in pixels of the specified tile-component.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component, from 0 to N-1.
+     * @param t The tile index.
      *
-     * @return The height in pixels of component <tt>n</tt> in the current
-     * tile.
+     * @param c The index of the component, from 0 to N-1.
      *
-     *
+     * @return The height in pixels of component <tt>c</tt> in tile
+     * <tt>t</tt>.
      * */
-    public int getCompHeight(int n) {
-        return imgdatasrc.getCompHeight(n);
+    public int getTileCompHeight(int t,int c) {
+        return imgdatasrc.getTileCompHeight(t,c);
     }
 
     /**
-     * Returns the width in pixels of the specified component
-     * in the overall image.
-     *
-     * <P>This default implementation returns the value of the source.
-     *
-     * @param n The index of the component, from 0 to N-1.
-     *
-     * @return The width in pixels of component <tt>n</tt> in the overall
+     * Returns the width in pixels of the specified component in the overall
      * image.
      *
+     * <p>This default implementation returns the value of the source.</p>
      *
+     * @param c The index of the component, from 0 to N-1.
+     *
+     * @return The width in pixels of component <tt>c</tt> in the overall
+     * image.
      * */
-    public int getCompImgWidth(int n) {
-        return imgdatasrc.getCompImgWidth(n);
+    public int getCompImgWidth(int c) {
+        return imgdatasrc.getCompImgWidth(c);
     }
 
     /**
-     * Returns the height in pixels of the specified component
-     * in the overall image.
-     *
-     * <P>This default implementation returns the value of the source.
-     *
-     * @param n The index of the component, from 0 to N-1.
-     *
-     * @return The height in pixels of component <tt>n</tt> in the overall
+     * Returns the height in pixels of the specified component in the overall
      * image.
      *
+     * <p>This default implementation returns the value of the source.</p>
      *
+     * @param c The index of the component, from 0 to N-1.
+     *
+     * @return The height in pixels of component <tt>c</tt> in the overall
+     * image.
      * */
-    public int getCompImgHeight(int n) {
-        return imgdatasrc.getCompImgHeight(n);
+    public int getCompImgHeight(int c) {
+        return imgdatasrc.getCompImgHeight(c);
     }
 
     /**
@@ -275,32 +255,27 @@ public abstract class ImgDataAdapter implements ImgData {
      * the image domain (e.g., wavelet coefficients), this method returns the
      * "range bits" of the image data that generated the coefficients.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component.
+     * @param c The index of the component.
      *
-     * @return The number of bits corresponding to the nominal range
-     * of the image data (in the image domain).
-     *
-     *
+     * @return The number of bits corresponding to the nominal range of the
+     * image data (in the image domain).
      * */
-    public int getNomRangeBits(int n) {
-        return imgdatasrc.getNomRangeBits(n);
+    public int getNomRangeBits(int c) {
+        return imgdatasrc.getNomRangeBits(c);
     }
 
     /**
      * Changes the current tile, given the new indexes. An
-     * IllegalArgumentException is thrown if the indexes do not
-     * correspond to a valid tile.
+     * IllegalArgumentException is thrown if the indexes do not correspond to
+     * a valid tile.
      *
-     * <P>This default implementation just changes the tile in the
-     * source.
+     * <p>This default implementation just changes the tile in the source.</p>
      *
      * @param x The horizontal index of the tile.
      *
      * @param y The vertical index of the new tile.
-     *
-     *
      * */
     public void setTile(int x, int y) {
         imgdatasrc.setTile(x,y);
@@ -308,14 +283,12 @@ public abstract class ImgDataAdapter implements ImgData {
     }
 
     /**
-     * Advances to the next tile, in standard scan-line order (by rows
-     * then columns). An NoNextElementException is thrown if the
-     * current tile is the last one (i.e. there is no next tile).
+     * Advances to the next tile, in standard scan-line order (by rows then
+     * columns). An NoNextElementException is thrown if the current tile is
+     * the last one (i.e. there is no next tile).
      *
-     * <P>This default implementation just advances to the next tile
-     * in the source.
-     *
-     *
+     * <p>This default implementation just advances to the next tile in the
+     * source.</p>
      * */
     public void nextTile() {
         imgdatasrc.nextTile();
@@ -323,109 +296,74 @@ public abstract class ImgDataAdapter implements ImgData {
     }
 
     /**
-     * Returns the indexes of the current tile. These are the
-     * horizontal and vertical indexes of the current tile.
+     * Returns the indexes of the current tile. These are the horizontal and
+     * vertical indexes of the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The current tile's indexes (vertical and horizontal
-     * indexes).
-     *
-     *
+     * @return The current tile's indexes (vertical and horizontal indexes).
      * */
     public Coord getTile(Coord co) {
         return imgdatasrc.getTile(co);
     }
     
     /**
-     * Returns the index of the current tile, relative to a standard
-     * scan-line order.
+     * Returns the index of the current tile, relative to a standard scan-line
+     * order.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      * 
      * @return The current tile's index (starts at 0).
-     *
-     *
      * */
     public int getTileIdx() {
         return imgdatasrc.getTileIdx();
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, in the component coordinates (not in the reference grid
-     * coordinates). These are the coordinates of the current tile's (not
-     * active tile) upper-left corner relative to the canvas.
-     *
-     * <P>This default implementation returns the value of the source.
-     *
-     * @param co If not null the object is used to return the values,
-     * if null a new one is created and returned.
-     *
-     * @param n The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal and vertical offsets of the upper-left
-     * corner of the current tile, for the specified component,
-     * relative to the canvas origin, in the component coordinates.
-     *
-     *
-     * */
-    public Coord getTileOff(Coord co, int n) {
-        return imgdatasrc.getTileOff(co,n);
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component.
+     * specified component in the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates.
-     *
-     *
+     * @param c The component index.
      * */
-    public int getULX(int n) {
-        return imgdatasrc.getULX(n);
+    public int getCompULX(int c) {
+        return imgdatasrc.getCompULX(c);
     }
 
     /**
      * Returns the vertical coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component.
+     * specified component in the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param n The index of the component (between 0 and N-1)
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates.
-     *
-     *
+     * @param c The component index.
      * */
-    public int getULY(int n) {
-        return imgdatasrc.getULY(n);
+    public int getCompULY(int c) {
+        return imgdatasrc.getCompULY(c);
+    }
+
+    /** Returns the horizontal tile partition offset in the reference grid */
+    public int getTilePartULX() {
+        return imgdatasrc.getTilePartULX();
+    }
+
+    /** Returns the vertical tile offset in the reference grid */
+    public int getTilePartULY() {
+        return imgdatasrc.getTilePartULY();
     }
 
     /**
      * Returns the horizontal coordinate of the image origin, the top-left
      * corner, in the canvas system, on the reference grid.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The horizontal coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULX() {
         return imgdatasrc.getImgULX();
@@ -435,12 +373,10 @@ public abstract class ImgDataAdapter implements ImgData {
      * Returns the vertical coordinate of the image origin, the top-left
      * corner, in the canvas system, on the reference grid.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The vertical coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULY() {
         return imgdatasrc.getImgULY();
@@ -449,15 +385,13 @@ public abstract class ImgDataAdapter implements ImgData {
     /**
      * Returns the number of tiles in the horizontal and vertical directions.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The number of tiles in the horizontal (Coord.x) and
-     * vertical (Coord.y) directions.
-     *
-     *
+     * @return The number of tiles in the horizontal (Coord.x) and vertical
+     * (Coord.y) directions.
      * */
     public Coord getNumTiles(Coord co) {
         return imgdatasrc.getNumTiles(co);
@@ -466,14 +400,11 @@ public abstract class ImgDataAdapter implements ImgData {
     /**
      * Returns the total number of tiles in the image.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total number of tiles in the image.
-     *
-     *
      * */
     public int getNumTiles() {
         return imgdatasrc.getNumTiles();
     }
-
 }

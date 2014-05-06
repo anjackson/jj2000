@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: IntegerSpec.java,v 1.13 2000/09/21 16:12:43 dsanta Exp $
+ * $Id: IntegerSpec.java,v 1.14 2001/09/20 12:31:08 grosbois Exp $
  * 
  * Class:                   IntegerSpec
  * 
@@ -39,10 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k;
 
 import jj2000.j2k.util.*;
@@ -51,39 +48,37 @@ import jj2000.j2k.*;
 import java.util.*;
 
 /**
- * This class extends ModuleSpec and is responsible of Integer
- * specifications for each tile-component.
+ * This class extends ModuleSpec and is responsible of Integer specifications
+ * for each tile-component.
  *
  * @see ModuleSpec
  * */
-public class IntegerSpec extends ModuleSpec{
+public class IntegerSpec extends ModuleSpec {
 
 
     /** The largest value of type int */
     protected static int MAX_INT = Integer.MAX_VALUE;
 
     /**
-     * Constructs a new 'IntegerSpec' for the specified number of
-     * tiles and components and with allowed type of
-     * specifications. This constructor is normally called at decoder
-     * side.
+     * Constructs a new 'IntegerSpec' for the specified number of tiles and
+     * components and with allowed type of specifications. This constructor is
+     * normally called at decoder side.
      *
      * @param nt The number of tiles
      *
      * @param nc The number of components
      *
      * @param type The type of allowed specifications
-     *
      * */
-    public IntegerSpec(int nt,int nc,byte type){
+    public IntegerSpec(int nt,int nc,byte type) {
         super(nt,nc,type);
     }
 
     /**
-     * Constructs a new 'IntegerSpec' for the specified number of
-     * tiles and components, the allowed specifications type and the
-     * ParameterList instance. This constructor is normally called at
-     * encoder side and parse arguments of specified option.
+     * Constructs a new 'IntegerSpec' for the specified number of tiles and
+     * components, the allowed specifications type and the ParameterList
+     * instance. This constructor is normally called at encoder side and parse
+     * arguments of specified option.
      *
      * @param nt The number of tiles
      *
@@ -94,21 +89,19 @@ public class IntegerSpec extends ModuleSpec{
      * @param pl The ParameterList instance
      *
      * @param optName The name of the option to process
-     *
      * */
     public IntegerSpec(int nt,int nc,byte type,ParameterList pl,
-                         String optName) {        
+                       String optName) {        
         super(nt,nc,type);
         
         Integer value;
 	String param = pl.getParameter(optName);
         
-        if(param==null){ // No parameter specified
+        if(param==null) { // No parameter specified
             param = pl.getDefaultParameterList().getParameter(optName);
-            try{
+            try {
                 setDefault(new Integer(param));
-            }
-            catch(NumberFormatException e){
+            } catch(NumberFormatException e) {
                     throw new IllegalArgumentException("Non recognized value"+
                                                        " for option -"+optName+
                                                        ": "+param);
@@ -124,53 +117,51 @@ public class IntegerSpec extends ModuleSpec{
 	boolean[] tileSpec = null; // Tiles concerned by the specification
 	boolean[] compSpec = null; // Components concerned by the specification
 	
-	while(stk.hasMoreTokens()){
+	while(stk.hasMoreTokens()) {
 	    word = stk.nextToken();
             
-	    switch(word.charAt(0)){
+	    switch(word.charAt(0)) {
 	    case 't': // Tiles specification
   		tileSpec = parseIdx(word,nTiles);
- 		if(curSpecType==SPEC_COMP_DEF)
+ 		if(curSpecType==SPEC_COMP_DEF) {
  		    curSpecType = SPEC_TILE_COMP;
- 		else
+ 		} else {
  		    curSpecType = SPEC_TILE_DEF;
+                }
   		break;
 	    case 'c': // Components specification
  		compSpec = parseIdx(word,nComp);
- 		if(curSpecType==SPEC_TILE_DEF)
+ 		if(curSpecType==SPEC_TILE_DEF) {
  		    curSpecType = SPEC_TILE_COMP;
- 		else
+ 		} else {
  		    curSpecType = SPEC_COMP_DEF;
+                }
  		break;
             default:
-                try{
+                try {
                     value = new Integer(word);
-                }
-                catch(NumberFormatException e){
+                } catch(NumberFormatException e) {
                     throw new IllegalArgumentException("Non recognized value"+
                                                        " for option -"+optName+
                                                        ": "+word);
                 }
                 
-		if(curSpecType==SPEC_DEF){
+		if(curSpecType==SPEC_DEF) {
 		    setDefault(value);
-		}
-		else if(curSpecType==SPEC_TILE_DEF){
+		} else if(curSpecType==SPEC_TILE_DEF) {
 		    for(int i=tileSpec.length-1; i>=0; i--)
-			if(tileSpec[i]){
+			if(tileSpec[i]) {
 			    setTileDef(i,value);
                         }
-		}
-		else if(curSpecType==SPEC_COMP_DEF){
+		} else if(curSpecType==SPEC_COMP_DEF) {
 		    for(int i=compSpec.length-1; i>=0; i--)
-			if(compSpec[i]){
+			if(compSpec[i]) {
 			    setCompDef(i,value);
                         }
-		}
-		else{
-		    for(int i=tileSpec.length-1; i>=0; i--){
-			for(int j=compSpec.length-1; j>=0 ; j--){
-			    if(tileSpec[i] && compSpec[j]){
+		} else {
+		    for(int i=tileSpec.length-1; i>=0; i--) {
+			for(int j=compSpec.length-1; j>=0 ; j--) {
+			    if(tileSpec[i] && compSpec[j]) {
 				setTileCompVal(i,j,value);
                             }
 			}
@@ -186,11 +177,11 @@ public class IntegerSpec extends ModuleSpec{
         }
         
         // Check that default value has been specified
-        if(getDefault()==null){
+        if(getDefault()==null) {
             int ndefspec = 0;
-            for(int t=nt-1; t>=0; t--){
-                for(int c=nc-1; c>=0 ; c--){
-                    if(specValType[t][c] == SPEC_DEF){
+            for(int t=nt-1; t>=0; t--) {
+                for(int c=nc-1; c>=0 ; c--) {
+                    if(specValType[t][c] == SPEC_DEF) {
                         ndefspec++;
                     }
                 }
@@ -198,31 +189,29 @@ public class IntegerSpec extends ModuleSpec{
             
             // If some tile-component have received no specification, it takes
             // the default value defined in ParameterList
-            if(ndefspec!=0){
+            if(ndefspec!=0) {
                 param = pl.getDefaultParameterList().getParameter(optName);
-                try{
+                try {
                     setDefault(new Integer(param));
-                }
-                catch(NumberFormatException e){
+                } catch(NumberFormatException e) {
                     throw new IllegalArgumentException("Non recognized value"+
                                                        " for option -"+optName+
                                                        ": "+param);
                 }
-            }
-            else{
+            } else {
                 // All tile-component have been specified, takes the first
                 // tile-component value as default.
                 setDefault(getTileCompVal(0,0));
-                switch(specValType[0][0]){
+                switch(specValType[0][0]) {
                 case SPEC_TILE_DEF:
-                    for(int c=nc-1; c>=0; c--){
+                    for(int c=nc-1; c>=0; c--) {
                         if(specValType[0][c]==SPEC_TILE_DEF)
                             specValType[0][c] = SPEC_DEF;
                     }
                     tileDef[0] = null;
                     break;
                 case SPEC_COMP_DEF:
-                    for(int t=nt-1; t>=0; t--){
+                    for(int t=nt-1; t>=0; t--) {
                         if(specValType[t][0]==SPEC_COMP_DEF)
                             specValType[t][0] = SPEC_DEF;
                     }
@@ -239,17 +228,16 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the maximum value of each tile-component
+     * Gets the maximum value of all tile-components.
      *
      * @return The maximum value
-     *
-     */
-    public int getMax(){
+     * */
+    public int getMax() {
 	int max = ((Integer)def).intValue();
 	int tmp;
 
-	for(int t=0; t<nTiles; t++){
-	    for(int c=0; c<nComp; c++){
+	for(int t=0; t<nTiles; t++) {
+	    for(int c=0; c<nComp; c++) {
 		tmp = ((Integer)getSpec(t,c)).intValue();
 		if(max<tmp)
 		    max = tmp;
@@ -260,17 +248,16 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the minimum value of each tile-component
+     * Get the minimum value of all tile-components.
      *
      * @return The minimum value
-     *
-     */
-    public int getMin(){
+     * */
+    public int getMin() {
 	int min = ((Integer)def).intValue();
 	int tmp;
 
-	for(int t=0; t<nTiles; t++){
-	    for(int c=0; c<nComp; c++){
+	for(int t=0; t<nTiles; t++) {
+	    for(int c=0; c<nComp; c++) {
 		tmp = ((Integer)getSpec(t,c)).intValue();
 		if(min>tmp)
 		    min = tmp;
@@ -281,18 +268,17 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the maximum value of each tile for specified component
+     * Gets the maximum value of each tile for specified component
      *
      * @param c The component index
      *
      * @return The maximum value
-     *
-     */
-    public int getMaxInComp(int c){
+     * */
+    public int getMaxInComp(int c) {
 	int max = 0;
 	int tmp;
 
-	for(int t=0; t<nTiles; t++){
+	for(int t=0; t<nTiles; t++) {
 	    tmp = ((Integer)getSpec(t,c)).intValue();
 	    if(max<tmp)
 		max = tmp;
@@ -302,18 +288,17 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the minimum value of each tile for specified component
+     * Gets the minimum value of all tiles for the specified component.
      *
      * @param c The component index
      *
      * @return The minimum value
-     *
-     */
-    public int getMinInComp(int c){
+     * */
+    public int getMinInComp(int c) {
 	int min = MAX_INT; // Big value
 	int tmp;
 
-	for(int t=0; t<nTiles; t++){
+	for(int t=0; t<nTiles; t++) {
 	    tmp = ((Integer)getSpec(t,c)).intValue();
 	    if(min>tmp)
 		min = tmp;
@@ -323,18 +308,17 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the maximum value of each component in specified tile
+     * Gets the maximum value of all components in the specified tile.
      *
      * @param t The tile index
      *
      * @return The maximum value
-     *
-     */
-    public int getMaxInTile(int t){
+     * */
+    public int getMaxInTile(int t) {
 	int max = 0;
 	int tmp;
 
-	for(int c=0; c<nComp; c++){
+	for(int c=0; c<nComp; c++) {
 	    tmp = ((Integer)getSpec(t,c)).intValue();
 	    if(max<tmp)
 		max = tmp;
@@ -344,18 +328,17 @@ public class IntegerSpec extends ModuleSpec{
     }
 
     /** 
-     * Get the minimum value of each component in specified tile
+     * Gets the minimum value of each component in specified tile
      *
      * @param t The tile index
      *
      * @return The minimum value
-     *
-     */
-    public int getMinInTile(int t){
+     * */
+    public int getMinInTile(int t) {
 	int min = MAX_INT; // Big value
 	int tmp;
 
-	for(int c=0; c<nComp; c++){
+	for(int c=0; c<nComp; c++) {
 	    tmp = ((Integer)getSpec(t,c)).intValue();
 	    if(min>tmp)
 		min = tmp;

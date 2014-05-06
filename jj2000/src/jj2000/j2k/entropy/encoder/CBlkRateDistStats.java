@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CBlkRateDistStats.java,v 1.8 2001/02/14 17:34:57 grosbois Exp $
+ * $Id: CBlkRateDistStats.java,v 1.11 2001/09/14 09:23:51 grosbois Exp $
  *
  * Class:                   CBlkRateDistStats
  *
@@ -43,8 +43,9 @@
  * */
 package jj2000.j2k.entropy.encoder;
 
-import jj2000.j2k.entropy.*;
 import jj2000.j2k.wavelet.analysis.*;
+import jj2000.j2k.entropy.*;
+
 import java.io.*;
 
 /**
@@ -54,34 +55,34 @@ import java.io.*;
  * only. Some data of the coded-block is stored in the super class, see
  * CodedCBlk.
  *
- * <P>The rate-distortion statistics (i.e. R-D slope) is stored for valid
+ * <p>The rate-distortion statistics (i.e. R-D slope) is stored for valid
  * points only. The set of valid points is determined by the entropy coder
  * engine itself. Normally they are selected so as to lye in a convex hull,
  * which can be achived by using the 'selectConvexHull' method of this class,
- * but some other strategies might be employed.
+ * but some other strategies might be employed.</p>
  *
- * <P>The rate (in bytes) for each truncation point (valid or not) is stored
+ * <p>The rate (in bytes) for each truncation point (valid or not) is stored
  * in the 'truncRates' array. The rate of a truncation point is the total
  * number of bytes in 'data' (see super class) that have to be decoded to
- * reach the truncation point.
+ * reach the truncation point.</p>
  *
- * <P>The slope (reduction of distortion divided by the increase in rate) at
- * each of the valid truncation points is stored in 'truncSlopes'.
+ * <p>The slope (reduction of distortion divided by the increase in rate) at
+ * each of the valid truncation points is stored in 'truncSlopes'.</p>
  *
- * <P>The index of each valid truncation point is stored in 'truncIdxs'. The
+ * <p>The index of each valid truncation point is stored in 'truncIdxs'. The
  * index should be interpreted in the following way: a valid truncation point
  * at position 'n' has the index 'truncIdxs[n]', the rate
  * 'truncRates[truncIdxs[n]]' and the slope 'truncSlopes[n]'. The arrays
  * 'truncIdxs' and 'truncRates' have at least 'nVldTrunc' elements. The
- * 'truncRates' array has at least 'nTotTrunc' elements.
+ * 'truncRates' array has at least 'nTotTrunc' elements.</p>
  *
- * <P>In addition the 'isTermPass' array contains a flag for each truncation
+ * <p>In addition the 'isTermPass' array contains a flag for each truncation
  * point (valid and non-valid ones) that tells if the pass is terminated or
  * not. If this variable is null then it means that no pass is terminated,
- * except the last one which always is.
+ * except the last one which always is.</p>
  *
- * <P>The compressed data is stored in the 'data' member variable of the super
- * class.
+ * <p>The compressed data is stored in the 'data' member variable of the super
+ * class.</p>
  *
  * @see CodedCBlk
  * */
@@ -107,8 +108,7 @@ public class CBlkRateDistStats extends CodedCBlk {
         point */
     public float truncSlopes[];
     
-    /** The indices of the valid truncation points, in increasing
-     * order. */
+    /** The indices of the valid truncation points, in increasing order.*/
     public int truncIdxs[];
     
     /** Array of flags indicating terminated passes (valid or non-valid
@@ -136,11 +136,12 @@ public class CBlkRateDistStats extends CodedCBlk {
      * the flag indicating if termination is used, respectively, for each
      * truncation point.
      *
-     * <P>The valid truncation points are selected by taking them as lying on
-     * a convex hull. This is done by calling the method selectConvexHull().
+     * <p>The valid truncation points are selected by taking them as lying on
+     * a convex hull. This is done by calling the method
+     * selectConvexHull().</p>
      *
-     * <P> Note that the arrays 'rates' and 'termp' are copied, not
-     * referenced, so they can be modified after a call to this constructor.
+     * <p>Note that the arrays 'rates' and 'termp' are copied, not referenced,
+     * so they can be modified after a call to this constructor.</p>
      *
      * @param m The horizontal index of the code-block, within the subband.
      *
@@ -156,9 +157,9 @@ public class CBlkRateDistStats extends CodedCBlk {
      * compressed data. This array is modified by the method but no reference
      * is kept to it.
      *
-     * @param dists The reduction in distortion (with respect to no information 
-     * coded) for each truncation point. This array is modified by the method
-     * but no reference is kept to it.
+     * @param dists The reduction in distortion (with respect to no
+     * information coded) for each truncation point. This array is modified by
+     * the method but no reference is kept to it.
      *
      * @param termp An array of boolean flags indicating, for each pass, if a
      * pass is terminated or not (true if terminated). If null then it is
@@ -187,8 +188,8 @@ public class CBlkRateDistStats extends CodedCBlk {
      * initialize 'truncRates' and 'isTermPass' arrays, as well as
      * 'nTotTrunc', with all the truncation points (selected or not).
      *
-     * <P> Note that the arrays 'rates' and 'termp' are copied, not
-     * referenced, so they can be modified after a call to this method.
+     * <p> Note that the arrays 'rates' and 'termp' are copied, not
+     * referenced, so they can be modified after a call to this method.</p>
      *
      * @param rates The rates (in bytes) for each truncation point in the
      * compressed data. This array is modified by the method.
@@ -279,8 +280,8 @@ ploop:
             break;
         } while (true); // We end the loop with the break statement
 
-        // If in lossless mode make sure we don't eliminate any last bit-planes 
-        // from being sent.
+        // If in lossless mode make sure we don't eliminate any last
+        // bit-planes from being sent.
         if (inclast && n > 0 && rates[n-1] < 0) {
             rates[n-1] = -rates[n-1];
             // This rate can never be equal to any previous selected rate,
@@ -332,8 +333,14 @@ ploop:
      * @return A string with the contents of the object
      * */
     public String toString() {
-        return super.toString() +
-            "\n nVldTrunc = "+nVldTrunc+", nTotTrunc="+nTotTrunc+", num. ROI"+
-            " coeff="+nROIcoeff+", num. ROI coding passes="+nROIcp;
+        String str = super.toString() +
+            "\n nVldTrunc="+nVldTrunc+", nTotTrunc="+nTotTrunc+", num. ROI"+
+            " coeff="+nROIcoeff+", num. ROI coding passes="+nROIcp+", sb="+
+            sb.sbandIdx;
+//          str += "\n\ttruncRates:\n";
+//          for(int i=0; i<truncRates.length; i++) {
+//              str += "\t "+i+": "+truncRates[i]+"\n";
+//          }
+        return str;
     }
 }

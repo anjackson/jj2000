@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CBlkInfo.java,v 1.10 2000/09/21 16:12:46 dsanta Exp $
+ * $Id: CBlkInfo.java,v 1.12 2001/09/14 08:32:15 grosbois Exp $
  *
  * Class:                   CBlkInfo
  *
@@ -39,28 +39,21 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
+ * */
 package jj2000.j2k.codestream.reader;
 
 import java.util.*;
 
 /**
- * This class contains location of code-blocks' piece of codewords
- * (there is one piece per layer) and some other information.
- *
+ * This class contains location of code-blocks' piece of codewords (there is
+ * one piece per layer) and some other information.
  * */
-public class CBlkInfo{
+public class CBlkInfo {
     
-    /** Upper-left x-coordinate of the code-block (relative to the
-        tile) */
+    /** Upper-left x-coordinate of the code-block (relative to the tile) */
     public int ulx;
 
-    /** Upper-left y-coordinate of the code-block (relative to the
-        tile) */
+    /** Upper-left y-coordinate of the code-block (relative to the tile) */
     public int uly;
 
     /** Width of the code-block */
@@ -69,8 +62,8 @@ public class CBlkInfo{
     /** Height of the code-block */
     public int h;
 
-    /** The number of most significant bits which are skipped for this 
-     * code-block (= Mb-1-bitDepth). See VM text */ 
+    /** The number of most significant bits which are skipped for this
+     * code-block (= Mb-1-bitDepth). */
     public int msbSkipped;
     
     /** Length of each piece of code-block's codewords */
@@ -85,8 +78,8 @@ public class CBlkInfo{
     /** The cumulative number of truncation points */
     public int ctp;
 
-    /** The length of each segment (used with regular termination or
-     * in selective arithmetic bypass coding mode) */
+    /** The length of each segment (used with regular termination or in
+     * selective arithmetic bypass coding mode) */
     public int[][] segLen;
 
     /** Index of the packet where each layer has been found */
@@ -94,8 +87,8 @@ public class CBlkInfo{
 
     /** 
      * Constructs a new instance with specified number of layers and
-     * code-block coordinates. The number corresponds to the maximum
-     * piece of codeword for one code-block.
+     * code-block coordinates. The number corresponds to the maximum piece of
+     * codeword for one code-block.
      *
      * @param ulx The uper-left x-coordinate
      *
@@ -106,9 +99,8 @@ public class CBlkInfo{
      * @param h Height of the code-block
      *
      * @param nl The number of layers
-     *
-     */
-    public CBlkInfo(int ulx,int uly,int w,int h,int nl){
+     * */
+    public CBlkInfo(int ulx,int uly,int w,int h,int nl) {
         this.ulx = ulx;
         this.uly = uly;
         this.w = w;
@@ -118,8 +110,9 @@ public class CBlkInfo{
         ntp = new int[nl];
         segLen = new int[nl][];
 	pktIdx = new int[nl];
-	for(int i=nl-1;i>=0;i--)
+	for(int i=nl-1;i>=0;i--) {
 	    pktIdx[i] = -1;
+        }
     }
 
     /** 
@@ -128,8 +121,7 @@ public class CBlkInfo{
      * @param l layer index
      *
      * @param newtp Number of new truncation points 
-     *
-     */
+     * */
     public void addNTP(int l,int newtp){
         ntp[l] = newtp;
         ctp = 0;
@@ -142,11 +134,10 @@ public class CBlkInfo{
      * Object information in a string.
      *
      * @return Object information
-     *
-     */
+     * */
     public String toString(){
-        String string = "(ulx,uly,w,h)= "+ulx+","+uly+","+w+","+h;
-        string += ", "+msbSkipped+" MSB bit(s) skipped\n";
+        String string = "(ulx,uly,w,h)= ("+ulx+","+uly+","+w+","+h;
+        string += ") "+msbSkipped+" MSB bit(s) skipped\n";
         if( len!=null )
             for(int i=0; i<len.length; i++){
                 string += "\tl:"+i+", start:"+off[i]+

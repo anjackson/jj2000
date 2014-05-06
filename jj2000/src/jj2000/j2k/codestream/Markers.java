@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: Markers.java,v 1.11 2001/02/14 13:18:03 grosbois Exp $
+ * $Id: Markers.java,v 1.13 2001/09/14 09:31:40 grosbois Exp $
  *
  * Class:                   Markers
  *
@@ -42,7 +42,7 @@ package jj2000.j2k.codestream;
 
 /**
  * This interface defines the values of the different markers in the JPEG 2000
- * codestream. They are 16 bit values, always appearing in big-endian (most
+ * codestream. There are 16 bit values, always appearing in big-endian (most
  * significant byte first) and byte-aligned in the codestream. This interface
  * also defines some other constants such as bit-masks and bit-shifts.
  * */
@@ -98,6 +98,10 @@ public interface Markers {
     public final static int SCOX_USE_SOP = 2;
     /** Use end of packet header marker */
     public final static int SCOX_USE_EPH = 4;
+    /** Horizontal code-block partition origin is at x=1 */
+    public final static int SCOX_HOR_CB_PART = 8;
+    /** Vertical code-block partition origin is at y=1 */
+    public final static int SCOX_VER_CB_PART = 16;
     /** The default size exponent of the precincts */
     public final static int PRECINCT_PARTITION_DEF_SIZE = 0xffff;
 
@@ -137,7 +141,7 @@ public interface Markers {
     /** The "SOP marker segments used" flag within Sers: 1 */
     public final static int ERS_SOP = 1;
     /** The "segmentation symbols used" flag within Sers: 2 */
-    public final static int ERS_SEG_MARKERS = 2;
+    public final static int ERS_SEG_SYMBOLS = 2;
 
     // ** Progression order change **
     public final static short POC = (short)0xff5f;

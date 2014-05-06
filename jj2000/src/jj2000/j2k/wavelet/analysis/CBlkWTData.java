@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CBlkWTData.java,v 1.17 2001/02/14 17:37:53 grosbois Exp $
+ * $Id: CBlkWTData.java,v 1.18 2001/08/15 17:15:14 grosbois Exp $
  * 
  * Class:                   CBlkWTData
  * 
@@ -45,38 +45,35 @@ package jj2000.j2k.wavelet.analysis;
 import jj2000.j2k.image.*;
 
 /**
- * This is a generic abstract class to store a code-block of wavelet data, be
- * it quantized or not. This class does not have the notion of
+ * This is a generic abstract class to store a code-block of wavelet data,
+ * quantized or not. This class does not have the notion of
  * components. Therefore, it should be used for data from a single
  * component. Subclasses should implement the different types of storage
  * (<tt>int</tt>, <tt>float</tt>, etc.).
  *
- * <P>The data is always stored in one array, of the type matching the data
+ * <p>The data is always stored in one array, of the type matching the data
  * type (i.e. for 'int' it's an 'int[]'). The data should be stored in the
  * array in standard scan-line order. That is the samples go from the top-left
- * corner of the code-block to the lower-right corner by line and then column.
+ * corner of the code-block to the lower-right corner by line and then
+ * column.</p>
  *
- * <P>The member variable 'offset' gives the index in the array of the first
+ * <p>The member variable 'offset' gives the index in the array of the first
  * data element (i.e. the top-left coefficient). The member variable 'scanw'
  * gives the width of the scan that is used to store the data, that can be
  * different from the width of the block. Element '(x,y)' of the code-block
  * (i.e. '(0,0)' is the top-left coefficient), will appear at position
- * 'offset+y*scanw+x' in the array of data.
+ * 'offset+y*scanw+x' in the array of data.</p>
  *
- * <P>The classes <tt>CBlkWTDataInt</tt> and <tt>CBlkWTDataFloat</tt>
- * provide implementations for <tt>int</tt> and <tt>float</tt> types
- * respectively.
+ * <p>The classes <tt>CBlkWTDataInt</tt> and <tt>CBlkWTDataFloat</tt> provide
+ * implementations for <tt>int</tt> and <tt>float</tt> types respectively.</p>
  *
- * <P>The types of data are the same as those defined by the 'DataBlk' class.
+ * <p>The types of data are the same as those defined by the 'DataBlk'
+ * class.</p>
  *
  * @see CBlkWTDataSrc
- *
  * @see jj2000.j2k.quantization.quantizer.CBlkQuantDataSrcEnc
- *
  * @see DataBlk
- *
  * @see CBlkWTDataInt
- *
  * @see CBlkWTDataFloat
  * */
 public abstract class CBlkWTData {
@@ -122,23 +119,19 @@ public abstract class CBlkWTData {
      * using the sign-magnitude representation. */
     public double convertFactor = 1.0;
 
-    /** 
-     * The quantization step size of the code-block. The value is updated by
-     * the quantizer module
-     * */
+    /** The quantization step size of the code-block. The value is updated by
+     * the quantizer module */
     public double stepSize = 1.0;
 
-    /** 
-     * Number of ROI coefficients in the code-block
-     * */
+    /** Number of ROI coefficients in the code-block */
     public int nROIcoeff = 0;
 
     /** Number of ROI magnitude bit-planes */
     public int nROIbp = 0;
 
     /**
-     * Returns the data type of the <tt>CBlkWTData</tt> object, as
-     * defined in the DataBlk class.
+     * Returns the data type of the <tt>CBlkWTData</tt> object, as defined in
+     * the DataBlk class.
      *
      * @return The data type of the object, as defined in the DataBlk class.
      *
@@ -151,10 +144,10 @@ public abstract class CBlkWTData {
      * returned array is of the type returned by <tt>getDataType()</tt> (e.g.,
      * for <tt>TYPE_INT</tt>, it is a <tt>int[]</tt>).
      *
-     * <P>Each implementing class should provide a type specific equivalent
+     * <p>Each implementing class should provide a type specific equivalent
      * method (e.g., <tt>getDataInt()</tt> in <tt>DataBlkInt</tt>) which
      * returns an array of the correct type explicitely and not through an
-     * <tt>Object</tt>.
+     * <tt>Object</tt>.</p>
      *
      * @return The array containing the data, or <tt>null</tt> if there is no
      * data.
@@ -169,13 +162,13 @@ public abstract class CBlkWTData {
      * for <tt>TYPE_INT</tt>, it should be a <tt>int[]</tt>). If the wrong
      * type of array is given a <tt>ClassCastException</tt> will be thrown.
      *
-     * <P>The size of the array is not necessarily checked for consistency
-     * with <tt>w</tt> and <tt>h</tt> or any other fields.
+     * <p>The size of the array is not necessarily checked for consistency
+     * with <tt>w</tt> and <tt>h</tt> or any other fields.</p>
      *
-     * <P>Each implementing class should provide a type specific equivalent
+     * <p>Each implementing class should provide a type specific equivalent
      * method (e.g., <tt>setDataInt()</tt> in <tt>DataBlkInt</tt>) which takes
      * an array of the correct type explicetely and not through an
-     * <tt>Object</tt>.
+     * <tt>Object</tt>.</p>
      *
      * @param arr The new data array to use
      *
@@ -206,11 +199,11 @@ public abstract class CBlkWTData {
 	}
 
 	return
-	    "CBlkWTData: "+
-	    "ulx= " + ulx + ", uly= " + uly +
-	    ", code-block("+m+","+n+"), width= "+w+
-	    ", height= "+h+", offset= "+offset+", scan-width="+scanw+
-	    ", type= "+typeString + ", sb= "+sb+", num. ROI coeff="+
-            nROIcoeff+", num. ROI bit-planes="+nROIbp;
+	    "ulx="+ulx+", uly="+uly+", idx=("+m+","+n+"), w="+w+
+	    ", h="+h+", off="+offset+", scanw="+scanw+", wmseScaling="+
+            wmseScaling+", convertFactor="+convertFactor+", stepSize="+
+            stepSize+
+	    ", type="+typeString +", magbits="+magbits+", nROIcoeff="+
+            nROIcoeff+", nROIbp="+nROIbp;
     }
 }

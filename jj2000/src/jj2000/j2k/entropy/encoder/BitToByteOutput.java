@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: BitToByteOutput.java,v 1.14 2000/12/22 12:59:54 grosbois Exp $
+ * $Id: BitToByteOutput.java,v 1.16 2001/10/17 16:56:59 grosbois Exp $
  * 
  * Class:                   BitToByteOutput
  * 
@@ -53,6 +53,10 @@ import jj2000.j2k.io.*;
  * of a trailing 0xFF, since they are synthetized be the decoder.
  * */
 class BitToByteOutput {
+
+    /** Whether or not predictable termination is requested. This value is
+     * important when the last byte before termination is an 0xFF  */
+    private boolean isPredTerm = false;
 
     /** The alternating sequence of 0's and 1's used for byte padding */
     static final int PAD_SEQ = 0x2A;
@@ -106,8 +110,8 @@ class BitToByteOutput {
                 if (bbuf != 0xFF) { // No bit-stuffing needed
                     if (delFF) { // Output delayed 0xFF if any
                         out.write(0xFF);
-                        delFF = false;
                         nb++;
+                        delFF = false;
                     }
                     out.write(bbuf);
                     nb++;
@@ -136,8 +140,8 @@ class BitToByteOutput {
             if (bbuf != 0xFF) { // No bit-stuffing needed
                 if (delFF) { // Output delayed 0xFF if any
                     out.write(0xFF);
-                    delFF = false;
                     nb++;
+                    delFF = false;
                 }
                 // Output the bit buffer
                 out.write(bbuf);
@@ -161,8 +165,8 @@ class BitToByteOutput {
             if (bpos != 6) { // Bit buffer is not empty
                 // Output delayed 0xFF
                 out.write(0xFF);
-                delFF = false;
                 nb++;
+                delFF = false;
                 // Pad to byte boundary with an alternating sequence of 0's
                 // and 1's.
                 bbuf |= (PAD_SEQ >>> (6-bpos));
@@ -171,9 +175,16 @@ class BitToByteOutput {
                 nb++;
                 bpos = 7;
                 bbuf = 0;
+            } else if(isPredTerm) {
+                out.write(0xFF);
+                nb++;
+                out.write(0x2A);
+                nb++;
+                bpos = 7;
+                bbuf = 0;
+                delFF = false;
             }
-        }
-        else { // There was no bit stuffing
+        } else { // There was no bit stuffing
             if (bpos != 7) { // Bit buffer is not empty
                 // Pad to byte boundary with an alternating sequence of 0's and
                 // 1's.
@@ -183,16 +194,21 @@ class BitToByteOutput {
                 nb++;
                 bpos = 7;
                 bbuf = 0;
-            }
+            } 
         }
     }
 
     /**
-     * Terminates the bit stream by calling 'flush()' and then 'reset()'.
+     * Terminates the bit stream by calling 'flush()' and then
+     * 'reset()'. Finally, it returns the number of bytes effectively written.
+     *
+     * @return The number of bytes effectively written.
      * */
-    public void terminate() {
+    public int terminate() {
         flush();
+        int savedNb = nb;
         reset();
+        return savedNb;
     }
 
     /**
@@ -218,12 +234,22 @@ class BitToByteOutput {
         if (delFF) {
             // If bit buffer is empty we just need 'nb' bytes. If not we need
             // the delayed FF and the padded bit buffer.
-            return nb + ((bpos==6) ? 0 : 2);
-        }
-        else {
+              return nb + 2;
+        } else {
             // If the bit buffer is empty, we just need 'nb' bytes. If not, we
             // add length of the padded bit buffer
             return nb + ((bpos==7) ? 0 : 1);
         }
     }
+
+    /** 
+     * Set the flag according to whether or not the predictable termination is
+     * requested.
+     *
+     * @param isPredTerm Whether or not predictable termination is requested.
+     * */
+    void setPredTerm(boolean isPredTerm) {
+        this.isPredTerm = isPredTerm;
+    }
 }
+

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: FileCodestreamWriter.java,v 1.13 2001/02/14 17:32:35 grosbois Exp $
+ * $Id: FileCodestreamWriter.java,v 1.15 2001/09/14 09:29:22 grosbois Exp $
  *
  * Class:                   FileCodestreamWriter
  *
@@ -52,15 +52,11 @@ import java.io.*;
  * as a OutputStream. See the CodestreamWriter abstract class for more details
  * on the implementation of the CodestreamWriter abstract class.
  *
- * <P>Before any packet data is written to the bit stream (even in simulation
- * mode) the complete header should be written to the HeaderEncoder object
- * supplied to the constructor, following the procedure explained in the
- * HeaderEncoder class. Otherwise incorrect estimates are given by
- * getMaxAvailableBytes() for rate allocation.
+ * <p>Before any packet data is written to the bit stream (even in simulation
+ * mode) the complete header should be written otherwise incorrect estimates
+ * are given by getMaxAvailableBytes() for rate allocation.
  *
  * @see CodestreamWriter
- *
- * @see HeaderEncoder
  * */
 public class FileCodestreamWriter extends CodestreamWriter 
     implements Markers {
@@ -74,7 +70,7 @@ public class FileCodestreamWriter extends CodestreamWriter
     /** The file to write */
     private OutputStream out;
 
-    /** The number of bytes already written to the bit stream, excluding the
+    /** The number of bytes already written to the codestream, excluding the
      * header length, magic number and header length info. */
     int ndata=0;
 
@@ -98,11 +94,11 @@ public class FileCodestreamWriter extends CodestreamWriter
     private int lenLastNoROI = 0;
 
     /**
-     * Opens the file 'file' for writing the bit stream, using the 'he' header
-     * encoder. The magic number is written to the bit stream. Normally, the
-     * header encoder must be empty (i.e. no data has been written to it
-     * yet). A BufferedOutputStream is used on top of the file to increase
-     * throughput, the length of the buffer is DEF_BUF_LEN.
+     * Opens the file 'file' for writing the codestream. The magic number is
+     * written to the bit stream. Normally, the header encoder must be empty
+     * (i.e. no data has been written to it yet). A BufferedOutputStream is
+     * used on top of the file to increase throughput, the length of the
+     * buffer is DEF_BUF_LEN.
      *
      * @param file The file where to write the bit stream
      *
@@ -112,9 +108,7 @@ public class FileCodestreamWriter extends CodestreamWriter
      * @exception IOException If an error occurs while trying to open the file
      * for writing or while writing the magic number.
      * */
-    public FileCodestreamWriter(File file, int mb)
-        throws IOException {
-
+    public FileCodestreamWriter(File file, int mb) throws IOException {
         super(mb);
         out = new BufferedOutputStream(new FileOutputStream(file),DEF_BUF_LEN);
         initSOP_EPHArrays();
@@ -137,9 +131,7 @@ public class FileCodestreamWriter extends CodestreamWriter
      * @exception IOException If an error occurs while trying to open the file
      * for writing or while writing the magic number.
      * */
-    public FileCodestreamWriter(String fname, int mb)
-        throws IOException {
-
+    public FileCodestreamWriter(String fname, int mb) throws IOException {
         super(mb);
         out = new BufferedOutputStream(new FileOutputStream(fname),
                                        DEF_BUF_LEN);
@@ -161,9 +153,7 @@ public class FileCodestreamWriter extends CodestreamWriter
      * @exception IOException If an error occurs while writing the magic
      * number to the 'os' output stream.
      * */
-    public FileCodestreamWriter(OutputStream os, int mb)
-        throws IOException {
-
+    public FileCodestreamWriter(OutputStream os, int mb) throws IOException {
         super(mb);
         out = os;
         initSOP_EPHArrays();

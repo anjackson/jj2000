@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CodestreamWriter.java,v 1.10 2001/02/14 17:32:11 grosbois Exp $
+ * $Id: CodestreamWriter.java,v 1.11 2001/07/24 17:03:30 grosbois Exp $
  *
  * Class:                   CodestreamWriter
  *
@@ -45,24 +45,23 @@ package jj2000.j2k.codestream.writer;
 import java.io.*;
 
 /**
- * This is the abstract class for writing to a bit stream. Data is
- * written in packets, each packet having a head and a body. The
- * bit stream always has a maximum number of bytes that can be written
- * to it. After that many number of bytes no more data is written to
- * the bit stream but the number of bytes is counted so that the value
- * returned by getMaxAvailableBytes() is negative. If the number of
- * bytes is unlimited a ridicoulosly large value, such as
- * Integer.MAX_VALUE, is equivalent.
+ * This is the abstract class for writing to a codestream. A codestream
+ * corresponds to headers (main and tile-parts) and packets. Each packet has a
+ * head and a body. The codestream always has a maximum number of bytes that
+ * can be written to it. After that many number of bytes no more data is
+ * written to the codestream but the number of bytes is counted so that the
+ * value returned by getMaxAvailableBytes() is negative. If the number of
+ * bytes is unlimited a ridicoulosly large value, such as Integer.MAX_VALUE,
+ * is equivalent.
  *
- * <P>Data may be written to the bit stream in sumulation mode. When in 
- * simulation mode no data is written to the bit stream but the
- * resulting number of bytes is calculated and returned (although it
- * is not accounted in the bit stream). This can be used in rate
- * control loops.
+ * <p>Data writting to the codestream can be simulated. In this case, no byto
+ * is effectively written to the codestream but the resulting number of bytes
+ * is calculated and returned (although it is not accounted in the bit
+ * stream). This can be used in rate control loops.</p>
  *
- * <P>Implementing classes should write the header of the bit stream
- * before writing any packets. The bit stream header should be written
- * with the aid of the HeaderEncoder class.
+ * <p>Implementing classes should write the header of the bit stream before
+ * writing any packets. The bit stream header can be written with the help of
+ * the HeaderEncoder class.</p>
  *
  * @see HeaderEncoder
  * */
@@ -71,23 +70,21 @@ public abstract class CodestreamWriter {
     /** The number of bytes already written to the bit stream */
     protected int ndata=0;
 
-    /** The maximum number of bytes that can be written to the
-     * bit stream */
+    /** The maximum number of bytes that can be written to the bit stream */
     protected int maxBytes;
 
     /**
-     * Allocates this object and initializes the maximum numner of
-     * bytes.
+     * Allocates this object and initializes the maximum number of bytes.
      *
-     * @param mb The maximum number of bytes that can be written to
-     * the bit stream.
+     * @param mb The maximum number of bytes that can be written to the
+     * codestream.
      * */
     protected CodestreamWriter(int mb) {
         maxBytes = mb;
     }
 
     /**
-     * Returns the number of bytes remaining available in the bit stream. This
+     * Returns the number of bytes remaining available in the codestream. This
      * is the maximum allowed number of bytes minus the number of bytes that
      * have already been written to the bit stream. If more bytes have been
      * written to the bit stream than the maximum number of allowed bytes,
@@ -98,26 +95,26 @@ public abstract class CodestreamWriter {
     public abstract int getMaxAvailableBytes();
 
     /**
-     * Returns the current length of the entire bit stream.
+     * Returns the current length of the entire codestream.
      *
-     * @return the current length of the bit stream
+     * @return the current length of the codestream
      * */
     public abstract int getLength();
 
     /**
-     * Writes a packet head to the bit stream and returns the number of bytes
-     * used by this header. It returns the total number of bytes that the
-     * packet head takes in the bit stream. If in simulation mode then no data
-     * is written to the bit stream but the number of bytes is
+     * Writes a packet head into the codestream and returns the number of
+     * bytes used by this header. If in simulation mode then no data is
+     * effectively written to the codestream but the number of bytes is
      * calculated. This can be used for iterative rate allocation.
      *
-     * <P>If the length of the data that is to be written to the bit stream is
-     * more than the space left (as returned by getMaxAvailableBytes()) only
-     * the data that does not exceed the allowed length is written, the rest
-     * is discarded. However the value returned by the method is the total
-     * length of the packet, as if all of it was written to the bit stream.
+     * <p>If the number of bytes that has to be written to the codestream is
+     * more than the space left (as returned by getMaxAvailableBytes()), only
+     * the data that does not exceed the allowed length is effectively written
+     * and the rest is discarded. However the value returned by the method is
+     * the total length of the packet, as if all of it was written to the bit
+     * stream.</p>
      *
-     * <P>If the bit stream header has not been commited yet and 'sim' is
+     * <p>If the codestream header has not been commited yet and if 'sim' is
      * false, then the bit stream header is automatically commited (see
      * commitBitstreamHeader() method) before writting the packet.
      *
@@ -148,17 +145,17 @@ public abstract class CodestreamWriter {
         throws IOException;
 
     /**
-     * Writes a packet body to the bit stream and returns the number of bytes
-     * used by this body .If in simulation mode then no data is written to the
+     * Writes a packet body to the codestream and returns the number of bytes
+     * used by this body. If in simulation mode then no data is written to the
      * bit stream but the number of bytes is calculated. This can be used for
      * iterative rate allocation.
      *
-     * <P>If the length of the data that is to be written to the bit stream is
-     * more than the space left (as returned by getMaxAvailableBytes()) only
-     * the data that does not exceed the allowed length is written, the rest
-     * is discarded. However the value returned by the method is the total
-     * length of the packet body , as if all of it was written to the bit
-     * stream.
+     * <p>If the number of bytes that has to be written to the codestream is
+     * more than the space left (as returned by getMaxAvailableBytes()), only
+     * the data that does not exceed the allowed length is effectively written
+     * and the rest is discarded. However the value returned by the method is
+     * the total length of the packet, as if all of it was written to the bit
+     * stream.</p>
      *
      * @param body The packet body data.
      *
@@ -174,8 +171,8 @@ public abstract class CodestreamWriter {
      *
      * @return The number of bytes spent by the packet body.
      *
-     * @exception IOException If an I/O error occurs while writing to
-     * the output stream.
+     * @exception IOException If an I/O error occurs while writing to the
+     * output stream.
      *
      * @see #commitBitstreamHeader
      * */ 

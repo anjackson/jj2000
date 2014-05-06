@@ -48,14 +48,14 @@ import java.io.*;
  * This class implements the ImgData interface for reading 8 bit unsigned data
  * from a binary PGM file.
  *
- * <P> After being read the coefficients are level shifted by subtracting
- * 2^(nominal bit range - 1)
+ * <p>After being read the coefficients are level shifted by subtracting
+ * 2^(nominal bit range-1)</p>
  *
- * <P>The TransferType (see ImgData) of this class is TYPE_INT.
+ * <p>The TransferType (see ImgData) of this class is TYPE_INT.</p>
  *
  * <P>NOTE: This class is not thread safe, for reasons of internal buffering.
  *
- * @see ImgData
+ * @see jj2000.j2k.image.ImgData
  * */
 public class ImgReaderPGM extends ImgReader {
 

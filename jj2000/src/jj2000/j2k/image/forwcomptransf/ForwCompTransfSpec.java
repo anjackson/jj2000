@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ForwCompTransfSpec.java,v 1.5 2001/02/27 19:15:11 grosbois Exp $
+ * $Id: ForwCompTransfSpec.java,v 1.7 2001/05/08 16:10:18 grosbois Exp $
  * 
  * Class:                   ForwCompTransfSpec
  * 
@@ -39,7 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.image.forwcomptransf;
 
 import jj2000.j2k.wavelet.analysis.*;
@@ -56,18 +56,16 @@ import java.util.*;
  *
  * @see CompTransfSpec
  * */
-public class ForwCompTransfSpec extends CompTransfSpec {
+public class ForwCompTransfSpec extends CompTransfSpec implements FilterTypes {
     /**
      * Constructs a new 'ForwCompTransfSpec' for the specified number of
-     * components and tiles and the arguments of <tt>optName</tt>
-     * option. This constructor is called by the encoder. It also
-     * checks that the arguments belongs to the recognized arguments
-     * list.
+     * components and tiles, the wavelet filters type and the parameter of the
+     * option 'Mct'. This constructor is called by the encoder. It also checks
+     * that the arguments belong to the recognized arguments list.
      *
-     * <P>This constructor chose the component transformation type
-     * depending on the wavelet filters : RCT with w5x3 filter and ICT
-     * with w9x7 filter. Note: All filters must use the same data
-     * type.
+     * <p>This constructor chose the component transformation type depending
+     * on the wavelet filters : RCT with w5x3 filter and ICT with w9x7
+     * filter. Note: All filters must use the same data type.</p>
      *
      * @param nt The number of tiles
      *
@@ -76,71 +74,84 @@ public class ForwCompTransfSpec extends CompTransfSpec {
      * @param type the type of the specification module i.e. tile specific,
      * component specific or both.
      *
-     * @param pl The ParameterList
-     *
      * @param wfs The wavelet filter specifications
+     *
+     * @param pl The ParameterList
      * */
-    public ForwCompTransfSpec(int nt, int nc, byte type, AnWTFilterSpec wfs,
+    public ForwCompTransfSpec(int nt,int nc,byte type,AnWTFilterSpec wfs,
                               ParameterList pl){
         super(nt,nc,type);
 
 	String param = pl.getParameter("Mct");
 
-	if(param==null){
-            if(nc==3) {
+	if(param==null) { // The option has not been specified
+            
+            // If less than three component, do not use any component
+            // transformation 
+            if(nc<3) {
+                setDefault("none");
+                return;
+            }
+            // If the compression is lossless, uses RCT
+            else if(pl.getBooleanParameter("lossless")) {
+                setDefault("rct");
+                return;
+            } else { 
                 AnWTFilter[][] anfilt;
                 int[] filtType = new int[nComp];
-                for(int c=0;c<nComp; c++){
+                for(int c=0; c<3; c++) {
                     anfilt = (AnWTFilter[][])wfs.getCompDef(c);
                     filtType[c] = anfilt[0][0].getFilterType();
                 }
-                // Check that all filters are the same one
+
+                // Check that the three first components use the same filters
+                boolean reject = false;
+                for(int c=1; c<3; c++){
+                    if(filtType[c]!=filtType[0]) reject = true;
+                }
+                
+                if(reject) {
+                    setDefault("none");
+                } else {
+                    anfilt = (AnWTFilter[][])wfs.getCompDef(0);
+                    if(anfilt[0][0].getFilterType()==W9X7) {
+                        setDefault("ict");
+                    } else {
+                        setDefault("rct");
+                    }
+                }
+            }
+
+            // Each tile receives a component transform specification
+            // according the type of wavelet filters that are used by the
+            // three first components
+ 	    for(int t=0; t<nt; t++) {
+                AnWTFilter[][] anfilt;
+                int[] filtType = new int[nComp];
+                for(int c=0; c<3; c++) {
+                    anfilt = (AnWTFilter[][])wfs.getTileCompVal(t,c);
+                    filtType[c] = anfilt[0][0].getFilterType();
+                }
+                
+                // Check that the three components use the same filters
                 boolean reject = false;
                 for(int c=1; c<nComp;c++){
                     if(filtType[c]!=filtType[0])
                         reject = true;
                 }
-                if(reject)
-                    param = "off";
-                else
-                    param = "on";
-            }
-            else 
-                param = "off";
 
-            if(param.equals("off")){
-                setDefault("none");
-            }
-            else if(param.equals("on")){
-                if(nc<3)
-                    throw new IllegalArgumentException("Cannot use component"+
-                                                       " transformation with "+
-                                                       "less than 3 "+
-                                                       "components"+
-                                                       " within the image");
-
-                // Chose component transformation depending on wavelet
-                // filters used
-                int filtType = getFilterType(-1,wfs);
-                
-                switch(filtType){
-                case FilterTypes.W5X3:
-                    setDefault("rct");
-                    return;
-                case FilterTypes.W9X7:
-                    setDefault("ict");
-                    return;
-                default:
-                    throw new IllegalArgumentException("Default filter is "+
-                                                       "not JPEG 2000 part"+
-                                                       " I compliant");
+                if(reject) {
+                    setTileDef(t,"none");
+                } else {
+                    anfilt = (AnWTFilter[][])wfs.getTileCompVal(t,0);
+                    if(anfilt[0][0].getFilterType()==W9X7) {
+                        setTileDef(t,"ict");
+                    } else {
+                        setTileDef(t,"rct");
+                    }
                 }
             }
-            else{
-                throw new IllegalArgumentException("Default parameter of "+
-                                                   "option Mct not"+
-                                                   " recognized: "+param);
-            }
+            return;
 	}
 
 	// Parse argument
@@ -158,10 +169,9 @@ public class ForwCompTransfSpec extends CompTransfSpec {
 	    switch(word.charAt(0)){
 	    case 't': // Tiles specification
  		tileSpec = parseIdx(word,nTiles);
-		if(curSpecType==SPEC_COMP_DEF){
+		if(curSpecType==SPEC_COMP_DEF) {
 		    curSpecType = SPEC_TILE_COMP;
-		}
-		else{
+		} else {
 		    curSpecType = SPEC_TILE_DEF;
 		}
  		break;
@@ -169,62 +179,42 @@ public class ForwCompTransfSpec extends CompTransfSpec {
                 throw new IllegalArgumentException("Component specific "+
                                                    " parameters"+
                                                    " not allowed with "+
-                                                   "-Mct option");
+                                                   "'-Mct' option");
             default:
-                if(word.equals("off")){
-                    if(curSpecType==SPEC_DEF){
+                if(word.equals("off")) {
+                    if(curSpecType==SPEC_DEF) {
                         setDefault("none");
-                    }
-                    else if(curSpecType==SPEC_TILE_DEF){
+                    } else if(curSpecType==SPEC_TILE_DEF) {
                         for(int i=tileSpec.length-1; i>=0; i--)
-                            if(tileSpec[i]){
+                            if(tileSpec[i]) {
                                 setTileDef(i,"none");
                             }
                     }   
-                }
-                else if(word.equals("on")){
-                    if(nc<3)
+                } else if(word.equals("on")) {
+                    if(nc<3) {
                         throw new 
                             IllegalArgumentException("Cannot use component"+
-                                                     " transformation with"+
-                                                     " less than 3 "+
-                                                     "components"+
-                                                     " within the image");
+                                                     " transformation on a "+
+                                                     "image with less than "+
+                                                     "three components");
+                    }
 
-                    // Get default filter type
-                    int filtType = getFilterType(-1,wfs);
-
-                    switch(filtType){
-                    case FilterTypes.W5X3:
-                        if(curSpecType==SPEC_DEF){
-                            setDefault("rct");
-                        }
-                        else if(curSpecType==SPEC_TILE_DEF){
-                            for(int i=tileSpec.length-1; i>=0; i--)
-                                if(tileSpec[i]){
+                    if(curSpecType==SPEC_DEF) { // Set arbitrarily the default
+                        // value to RCT (later will be found the suitable
+                        // component transform for each tile)
+                        setDefault("rct");
+                    } else if (curSpecType==SPEC_TILE_DEF) {
+                        for(int i=tileSpec.length-1; i>=0; i--) {
+                            if(tileSpec[i]) {
+                                if(getFilterType(i,wfs)==W5X3) {
                                     setTileDef(i,"rct");
-                                }
-                        }
-                        break;
-                    case FilterTypes.W9X7:
-                        if(curSpecType==SPEC_DEF){
-                            setDefault("ict");
-                        }
-                        else if(curSpecType==SPEC_TILE_DEF){
-                            for(int i=tileSpec.length-1; i>=0; i--)
-                                if(tileSpec[i]){
+                                } else {
                                     setTileDef(i,"ict");
                                 }
-                        }
-                        break;
-                    default:
-                        throw new 
-                            IllegalArgumentException("Default filter is "+
-                                                     "not JPEG 2000 part"+
-                                                     " I compliant");
+                            }
+                        } 
                     }
-                }
-                else{
+                } else {
                     throw new IllegalArgumentException("Default parameter of "+
                                                        "option Mct not"+
                                                        " recognized: "+param);
@@ -238,154 +228,53 @@ public class ForwCompTransfSpec extends CompTransfSpec {
 	}
 
         // Check that default value has been specified
-        if(getDefault()==null){
-            int ndefspec = 0;
-            for(int t=nt-1; t>=0; t--){
-                for(int c=nc-1; c>=0 ; c--){
-                    if(specValType[t][c] == SPEC_DEF){
-                        ndefspec++;
-                    }
+        if(getDefault()==null) {
+            // If not, set arbitrarily the default value to 'none' but
+            // specifies explicitely a default value for each tile depending
+            // on the wavelet transform that is used
+            setDefault("none");
+
+ 	    for(int t=0; t<nt; t++) {
+                if(isTileSpecified(t)) {
+                    continue;
                 }
-            }
-            
-            // If some tile-component have received no specification, it takes
-            // the default value defined in ParameterList
-            if(ndefspec!=0){
-                param = pl.getDefaultParameterList().getParameter("Mct");
 
-                if(param==null){
-                    if(nc==3) {
-                        AnWTFilter[][] anfilt;
-                        int[] filtType = new int[nComp];
-                        for(int c=0;c<nComp; c++){
-                            anfilt = (AnWTFilter[][])wfs.getCompDef(c);
-                            filtType[c] = anfilt[0][0].getFilterType();
-                        }
-                        // Check that all filters are the same one
-                        boolean reject = false;
-                        for(int c=1; c<nComp;c++){
-                            if(filtType[c]!=filtType[0])
-                                reject = true;
-                        }
-                        if(reject)
-                            param = "off";
-                        else
-                            param = "on";
-                    }
-                    else 
-                        param = "off";
-                    
-                    if(param.equals("off")){
-                        setDefault("none");
-                    }
-                    else if(param.equals("on")){
-                        if(nc<3)
-                            throw new 
-                                IllegalArgumentException("Cannot use "+
-                                                         "component"+
-                                                         " transformation"+
-                                                         " with "+
-                                                         "less than 3 "+
-                                                         "components"+
-                                                         " within the image");
-
-                        // Chose component transformation depending on wavelet
-                        // filters used
-                        int filtType = getFilterType(-1,wfs);
-                        
-                        switch(filtType){
-                        case FilterTypes.W5X3:
-                            setDefault("rct");
-                            return;
-                        case FilterTypes.W9X7:
-                            setDefault("ict");
-                            return;
-                        default:
-                            throw new 
-                                IllegalArgumentException("Default filter is "+
-                                                         "not JPEG 2000 part"+
-                                                         " I compliant");
-                        }
-                    }
-                    else{
-                        throw new 
-                            IllegalArgumentException("Default parameter of "+
-                                                     "option Mct not"+
-                                                     " recognized: "+param);
-                    }
-                } else if(param.equals("off")){
-                    setDefault("none");
+                AnWTFilter[][] anfilt;
+                int[] filtType = new int[nComp];
+                for(int c=0; c<3; c++) {
+                    anfilt = (AnWTFilter[][])wfs.getTileCompVal(t,c);
+                    filtType[c] = anfilt[0][0].getFilterType();
                 }
-                else if(param.equals("on")){
-                    if(nc<3)
-                        throw new IllegalArgumentException("Cannot use "+
-                                                           "component"+
-                                                           " transformation "+
-                                                           "with "+
-                                                           "less than 3 "+
-                                                           "components"+
-                                                           " within the "+
-                                                           "image");
-
-                    int filterType = getFilterType(-1,wfs);
                 
-                    switch(filterType){
-                    case FilterTypes.W5X3:
-                        setDefault("rct");
-                        return;
-                    case FilterTypes.W9X7:
-                        setDefault("ict");
-                        return;
-                    default:
-                        throw new IllegalArgumentException("Default filter"+
-                                                           " is "+
-                                                           "not JPEG 2000"+
-                                                           " part"+
-                                                           " I compliant");
-                    }
+                // Check that the three components use the same filters
+                boolean reject = false;
+                for(int c=1; c<nComp;c++){
+                    if(filtType[c]!=filtType[0])
+                        reject = true;
                 }
-                else{
-                    throw new IllegalArgumentException("Default parameter of "+
-                                                       "option Mct not"+
-                                                       " recognized: "+param);
-                }
-            }
-            else{
-                // All tile-component have been specified, takes the first
-                // tile-component value as default.
-                setDefault(getTileCompVal(0,0));
-                switch(specValType[0][0]){
-                case SPEC_TILE_DEF:
-                    for(int c=nc-1; c>=0; c--){
-                        if(specValType[0][c]==SPEC_TILE_DEF)
-                            specValType[0][c] = SPEC_DEF;
+
+                if(reject) {
+                    setTileDef(t,"none");
+                } else {
+                    anfilt = (AnWTFilter[][])wfs.getTileCompVal(t,0);
+                    if(anfilt[0][0].getFilterType()==W9X7) {
+                        setTileDef(t,"ict");
+                    } else {
+                        setTileDef(t,"rct");
                     }
-                    tileDef[0] = null;
-                    break;
-                case SPEC_COMP_DEF:
-                    for(int t=nt-1; t>=0; t--){
-                        if(specValType[t][0]==SPEC_COMP_DEF)
-                            specValType[t][0] = SPEC_DEF;
-                    }
-                    compDef[0] = null;
-                    break;
-                case SPEC_TILE_COMP:
-                    specValType[0][0] = SPEC_DEF;
-                    tileCompVal.put("t0c0",null);
-                    break;
                 }
             }
 	}
         
         // Check validity of component transformation of each tile compared to
         // the filter used.
-        for(int t=nt-1; t>=0; t--){
+        for(int t=nt-1; t>=0; t--) {
 
-            if(((String)getTileDef(t)).equals("none")){
+            if(((String)getTileDef(t)).equals("none")) {
                 // No comp. transf is used. No check is needed
                 continue;
             }
-            else if(((String)getTileDef(t)).equals("rct")){
+            else if(((String)getTileDef(t)).equals("rct")) {
                 // Tile is using Reversible component transform
                 int filterType = getFilterType(t,wfs);
                 switch(filterType){
@@ -407,10 +296,9 @@ public class ForwCompTransfSpec extends CompTransfSpec {
                                                        "not JPEG 2000 part"+
                                                        " I compliant");
                 }
-            }
-            else{ // ICT
+            } else { // ICT
                 int filterType = getFilterType(t,wfs);
-                switch(filterType){
+                switch(filterType) {
                 case FilterTypes.W5X3: // Must use RCT
                     if(isTileSpecified(t)){
                         // User has requested ICT -> Error
@@ -434,7 +322,8 @@ public class ForwCompTransfSpec extends CompTransfSpec {
         }
     }
 
-    /** Get the filter type common to all component of a given tile. If the
+    /** 
+     * Get the filter type common to all component of a given tile. If the
      * tile index is -1, it searches common filter type of default
      * specifications.
      *
@@ -443,16 +332,16 @@ public class ForwCompTransfSpec extends CompTransfSpec {
      * @param wfs The analysis filters specifications 
      *
      * @return The filter type common to all the components 
-     *
-     */
+     * */
     private int getFilterType(int t, AnWTFilterSpec wfs){
         AnWTFilter[][] anfilt;
         int[] filtType = new int[nComp];
         for(int c=0;c<nComp; c++){
-            if(t==-1)
+            if(t==-1) {
                 anfilt = (AnWTFilter[][])wfs.getCompDef(c);
-            else
+            } else {
                 anfilt = (AnWTFilter[][])wfs.getTileCompVal(t,c);
+            }
             filtType[c] = anfilt[0][0].getFilterType();
         }
         

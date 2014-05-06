@@ -1,7 +1,7 @@
 /*
  * CVS Identifier:
  *
- * $Id: BufferedRandomAccessFile.java,v 1.20 2000/11/22 17:10:45 qtxjoas Exp $
+ * $Id: BufferedRandomAccessFile.java,v 1.21 2001/04/15 14:34:29 grosbois Exp $
  *
  * Interface:           RandomAccessIO.java
  *
@@ -39,8 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
-
+ * */
 package jj2000.j2k.io;
 
 import java.io.*;
@@ -68,9 +67,7 @@ import java.io.*;
 public abstract class BufferedRandomAccessFile 
     implements RandomAccessIO, EndianType {
     
-    /**
-     * The name of the current file
-     * */
+    /** The name of the current file */
     private String fileName;
 
     /**

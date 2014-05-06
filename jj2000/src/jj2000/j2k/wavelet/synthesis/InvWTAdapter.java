@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: InvWTAdapter.java,v 1.9 2000/09/21 16:13:15 dsanta Exp $
+ * $Id: InvWTAdapter.java,v 1.14 2002/07/25 15:11:03 grosbois Exp $
  * 
  * Class:                   InvWTAdapter
  * 
@@ -39,34 +39,30 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 import jj2000.j2k.decoder.*;
 import jj2000.j2k.image.*;
 
 /**
- * This class provides default implementation of the methods in the
- * 'InvWT' interface. The source is always a 'MultiResImgData', which
- * is a multi-resolution image. The default implementation is just to
- * return the value of the source at the current image resolution
- * level, which is set by the 'setImgResLevel()' method.
+ * This class provides default implementation of the methods in the 'InvWT'
+ * interface. The source is always a 'MultiResImgData', which is a
+ * multi-resolution image. The default implementation is just to return the
+ * value of the source at the current image resolution level, which is set by
+ * the 'setImgResLevel()' method.
  *
- * <P>This abstract class can be used to facilitate the development of
- * other classes that implement the 'InvWT' interface, because most of
- * the trivial methods are already implemented.
+ * <p>This abstract class can be used to facilitate the development of other
+ * classes that implement the 'InvWT' interface, because most of the trivial
+ * methods are already implemented.</p>
  *
- * <P>If the default implementation of a method provided in this class
- * does not suit a particular implementation of the 'InvWT' interface,
- * the method can be overriden to implement the proper behaviour.
+ * <p>If the default implementation of a method provided in this class does
+ * not suit a particular implementation of the 'InvWT' interface, the method
+ * can be overriden to implement the proper behaviour.</p>
  *
- * <P>If the 'setImgResLevel()' method is overriden then it is very
- * important that the one of this class is called from the overriding
- * method, so that the other methods in this class return the correct
- * values.
+ * <p>If the 'setImgResLevel()' method is overriden then it is very important
+ * that the one of this class is called from the overriding method, so that
+ * the other methods in this class return the correct values.</p>
  *
  * @see InvWT
  * */
@@ -78,8 +74,11 @@ public abstract class InvWTAdapter implements InvWT {
     /** The 'MultiResImgData' source */
     protected MultiResImgData mressrc;
 
-    /** The wanted image resolution level */
-    int reslvl;
+    /** The resquested image resolution level for reconstruction. */
+    protected int reslvl;
+
+    /** The maximum available image resolution level */
+    protected int maxImgRes;
 
     /**
      * Instantiates the 'InvWTAdapter' object using the specified
@@ -89,61 +88,63 @@ public abstract class InvWTAdapter implements InvWT {
      * @param src From where to obtain the values to return
      *
      * @param decSpec The decoder specifications
-     *
-     *
      * */
     protected InvWTAdapter(MultiResImgData src,DecoderSpecs decSpec) {
         mressrc = src;
 	this.decSpec = decSpec;
+        maxImgRes = decSpec.dls.getMin();
     }
 
     /**
-     * Sets the image reconstruction resolution level. A value of 0
-     * means reconstruction of an image with the lowest resolution
-     * (dimension) available.
+     * Sets the image reconstruction resolution level. A value of 0 means
+     * reconstruction of an image with the lowest resolution (dimension)
+     * available.
      *
-     * <P>Note: Image resolution level indexes may differ from
-     * tile-component resolution index. They are indeed indexed
-     * starting from the lowest number of decomposition levels of each
-     * component of each tile.
+     * <p>Note: Image resolution level indexes may differ from tile-component
+     * resolution index. They are indeed indexed starting from the lowest
+     * number of decomposition levels of each component of each tile.</p>
      *
-     * <P>Example: For an image (1 tile) with 2 components (component
-     * 0 having 2 decomposition levels and component 1 having 3
-     * decomposition levels), the first (tile-) component has 3
-     * resolution levels and the second one has 4 resolution levels,
-     * whereas the image has only 3 resolution levels available.
+     * <p>Example: For an image (1 tile) with 2 components (component 0 having
+     * 2 decomposition levels and component 1 having 3 decomposition levels),
+     * the first (tile-) component has 3 resolution levels and the second one
+     * has 4 resolution levels, whereas the image has only 3 resolution levels
+     * available.</p>
      *
      * @param rl The image resolution level.
      *
      * @return The vertical coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
      * */
-    public void setImgResLevel(int rl){
-        if(rl<0){
-            throw new IllegalArgumentException();
+    public void setImgResLevel(int rl) {
+        if(rl<0) {
+            throw new IllegalArgumentException("Resolution level index "+
+                                               "cannot be negative.");
         }
         reslvl = rl;
     }
 
     /**
-     * Returns the overall width of the current tile in pixels. This
-     * is the tile's width without accounting for any component
-     * subsampling. This is also referred as the reference grid width
-     * in the current tile.
+     * Returns the overall width of the current tile in pixels. This is the
+     * tile's width without accounting for any component subsampling. This is
+     * also referred as the reference grid width in the current tile.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
      *
      * @return The total current tile's width in pixels.
-     *
-     *
      * */
-    public int getWidth() {
-	// Find tile resolution level
+    public int getTileWidth() {
+        // Retrieves the tile maximum resolution level index and request the
+        // width from the source module.
 	int tIdx = getTileIdx();
-	int rl = decSpec.dls.getMinInTile(tIdx)-decSpec.dls.getMin()+reslvl;
-        return mressrc.getWidth(rl);
+        int rl = 10000;
+        int mrl;
+        int nc = mressrc.getNumComps();
+        for(int c=0; c<nc; c++) {
+            mrl = mressrc.getSynSubbandTree(tIdx,c).resLvl;
+            if(mrl<rl) rl = mrl;
+        }
+        return mressrc.getTileWidth(rl);
     }
 
     /**
@@ -152,18 +153,33 @@ public abstract class InvWTAdapter implements InvWT {
      * subsampling. This is also referred as the reference grid height
      * in the current tile.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
      *
      * @return The total current tile's height in pixels.
-     *
-     *
      * */
-    public int getHeight(){
-	// Find tile resolution level
+    public int getTileHeight() {
+        // Retrieves the tile maximum resolution level index and request the
+        // height from the source module.
 	int tIdx = getTileIdx();
-	int rl = decSpec.dls.getMinInTile(tIdx)-decSpec.dls.getMin()+reslvl;
-        return mressrc.getHeight(rl);
+        int rl = 10000;
+        int mrl;
+        int nc = mressrc.getNumComps();
+        for(int c=0; c<nc; c++) {
+            mrl = mressrc.getSynSubbandTree(tIdx,c).resLvl;
+            if(mrl<rl) rl = mrl;
+        }
+        return mressrc.getTileHeight(rl);
+    }
+
+    /** Returns the nominal width of tiles */
+    public int getNomTileWidth() {
+        return mressrc.getNomTileWidth();
+    }
+
+    /** Returns the nominal height of tiles */
+    public int getNomTileHeight() {
+        return mressrc.getNomTileHeight();
     }
 
     /**
@@ -171,12 +187,7 @@ public abstract class InvWTAdapter implements InvWT {
      * image's width without accounting for any component subsampling
      * or tiling.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
-     *
      * @return The total image's width in pixels.
-     *
-     *
      * */
     public int getImgWidth() {
         return mressrc.getImgWidth(reslvl);
@@ -187,12 +198,7 @@ public abstract class InvWTAdapter implements InvWT {
      * image's height without accounting for any component subsampling
      * or tiling.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
-     *
      * @return The total image's height in pixels.
-     *
-     *
      * */
     public int getImgHeight() {
         return mressrc.getImgHeight(reslvl);
@@ -201,11 +207,7 @@ public abstract class InvWTAdapter implements InvWT {
     /**
      * Returns the number of components in the image.
      *
-     * <P>This default implementation returns the value of the source.
-     *
      * @return The number of components in the image.
-     *
-     *
      * */
     public int getNumComps() {
         return mressrc.getNumComps();
@@ -218,15 +220,11 @@ public abstract class InvWTAdapter implements InvWT {
      * component itself, see the 'ImgData' interface desription for
      * details.
      *
-     * <P>This default implementation returns the value of the source.
+     * @param c The index of the component (between 0 and N-1).
      *
-     * @param c The index of the component (between 0 and N-1)
+     * @return The horizontal subsampling factor of component 'c'.
      *
-     * @return The horizontal subsampling factor of component 'n'
-     *
-     * @see ImgData
-     *
-     *
+     * @see jj2000.j2k.image.ImgData
      * */
     public int getCompSubsX(int c) {
         return mressrc.getCompSubsX(c);
@@ -239,250 +237,177 @@ public abstract class InvWTAdapter implements InvWT {
      * component itself, see the 'ImgData' interface desription for
      * details.
      *
-     * <P>This default implementation returns the value of the source.
+     * @param c The index of the component (between 0 and N-1).
      *
-     * @param c The index of the component (between 0 and N-1)
+     * @return The vertical subsampling factor of component 'c'.
      *
-     * @return The vertical subsampling factor of component 'n'
-     *
-     * @see ImgData
-     *
-     *
+     * @see jj2000.j2k.image.ImgData
      * */
     public int getCompSubsY(int c) {
         return mressrc.getCompSubsY(c);
     }
 
     /**
-     * Returns the width in pixels of the specified component in the
-     * current tile.
+     * Returns the width in pixels of the specified tile-component
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * @param t Tile index
      *
      * @param c The index of the component, from 0 to N-1.
      *
-     * @return The width in pixels of component <tt>n</tt> in the current
-     * tile.
-     *
-     *
+     * @return The width in pixels of component <tt>n</tt> in tile <tt>t</tt>.
      * */
-    public int getCompWidth(int c) {
-	// Find tile-component resolution level
-	int tIdx = getTileIdx();
-	int rl = ((Integer)decSpec.dls.getTileCompVal(tIdx,c)).intValue()
-	    -decSpec.dls.getMin()+reslvl;
-        return mressrc.getCompWidth(c,rl);
+    public int getTileCompWidth(int t,int c) {
+        // Retrieves the tile-component maximum resolution index and gets the
+        // width from the source.
+        int rl = mressrc.getSynSubbandTree(t,c).resLvl;
+        return mressrc.getTileCompWidth(t,c,rl);
     }
 
     /**
-     * Returns the height in pixels of the specified component in the
-     * current tile.
+     * Returns the height in pixels of the specified tile-component.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
+     *
+     * @param t The tile index.
      *
      * @param c The index of the component, from 0 to N-1.
      *
-     * @return The height in pixels of component <tt>n</tt> in the current
-     * tile.
-     *
-     *
+     * @return The height in pixels of component <tt>n</tt> in tile
+     * <tt>t</tt>. 
      * */
-    public int getCompHeight(int c) {
-	// Find tile-component resolution level
-	int tIdx = getTileIdx();
-	int rl = ((Integer)decSpec.dls.getTileCompVal(tIdx,c)).intValue()
-	    -decSpec.dls.getMin()+reslvl;
-        return mressrc.getCompHeight(c,rl);
+    public int getTileCompHeight(int t,int c) {
+        // Retrieves the tile-component maximum resolution index and gets the
+        // height from the source.
+        int rl = mressrc.getSynSubbandTree(t,c).resLvl;
+        return mressrc.getTileCompHeight(t,c,rl);
     }
 
     /**
-     * Returns the width in pixels of the specified component in the
-     * overall image.
-     *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * Returns the width in pixels of the specified component in the overall
+     * image.
      *
      * @param c The index of the component, from 0 to N-1.
      *
      * @return The width in pixels of component <tt>c</tt> in the overall
      * image.
-     *
-     *
      * */
     public int getCompImgWidth(int c) {
-	// Find component resolution level
-	int rl = decSpec.dls.getMinInComp(c)-decSpec.dls.getMin()+reslvl;
+        // Retrieves the component maximum resolution index and gets the width
+        // from the source module.
+        int rl = decSpec.dls.getMinInComp(c);
         return mressrc.getCompImgWidth(c,rl);
     }
 
     /**
-     * Returns the height in pixels of the specified component in the
-     * overall image.
+     * Returns the height in pixels of the specified component in the overall
+     * image.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
      *
      * @param c The index of the component, from 0 to N-1.
      *
      * @return The height in pixels of component <tt>n</tt> in the overall
      * image.
-     *
-     *
      * */
     public int getCompImgHeight(int c) {
-	// Find component resolution level
-	int rl = decSpec.dls.getMinInComp(c)-decSpec.dls.getMin()+reslvl;
+        // Retrieves the component maximum resolution index and gets the
+        // height from the source module.
+        int rl = decSpec.dls.getMinInComp(c);
         return mressrc.getCompImgHeight(c,rl);
     }
 
     /**
      * Changes the current tile, given the new indices. An
-     * IllegalArgumentException is thrown if the coordinates do not
-     * correspond to a valid tile.
+     * IllegalArgumentException is thrown if the coordinates do not correspond
+     * to a valid tile.
      *
-     * <P>This default implementation calls the same method on the source.
+     * <p>This default implementation calls the same method on the source.</p>
      *
      * @param x The horizontal index of the tile.
      *
      * @param y The vertical index of the new tile.
-     *
-     *
      * */
     public void setTile(int x, int y) {
         mressrc.setTile(x,y);
     }
 
     /**
-     * Advances to the next tile, in standard scan-line order (by rows
-     * then columns). An NoNextElementException is thrown if the
-     * current tile is the last one (i.e. there is no next tile).
+     * Advances to the next tile, in standard scan-line order (by rows then
+     * columns). An NoNextElementException is thrown if the current tile is
+     * the last one (i.e. there is no next tile).
      *
-     * <P>This default implementation calls the same method on the source.
-     *
-     *
+     * <p>This default implementation calls the same method on the source.</p>
      * */
     public void nextTile() {
         mressrc.nextTile();
     }
 
     /**
-     * Returns the indixes of the current tile. These are the
-     * horizontal and vertical indexes of the current tile.
+     * Returns the indixes of the current tile. These are the horizontal and
+     * vertical indexes of the current tile.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The current tile's indices (vertical and horizontal
-     * indexes).
-     *
-     *
+     * @return The current tile's indices (vertical and horizontal indexes).
      * */
     public Coord getTile(Coord co) {
         return mressrc.getTile(co);
     }
 
     /**
-     * Returns the index of the current tile, relative to a standard
-     * scan-line order.
+     * Returns the index of the current tile, relative to a standard scan-line
+     * order.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The current tile's index (starts at 0).
-     *
-     *
      * */
     public int getTileIdx() {
         return mressrc.getTileIdx();
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, in the component coordinates (not in the reference grid
-     * coordinates). These are the coordinates of the current tile's (not
-     * active tile) upper-left corner relative to the canvas.
-     *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
-     *
-     * @param co If not null the object is used to return the values,
-     * if null a new one is created and returned.
-     *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal and vertical offsets of the upper-left
-     * corner of the current tile, for the specified component,
-     * relative to the canvas origin, in the component coordinates.
-     *
-     *
-     * */
-    public Coord getTileOff(Coord co, int c) {
-        return mressrc.getTileOff(co,c,reslvl);
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component.
+     * specified component in the current tile.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
-     *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The horizontal coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates.
-     *
-     *
+     * @param c The component index.
      * */
-    public int getULX(int c) {
-	// Find component resolution level
+    public int getCompULX(int c) {
+	// Find tile-component maximum resolution index and gets information
+        // from the source module.
 	int tIdx = getTileIdx();
-	int rl = ((Integer)decSpec.dls.getTileCompVal(tIdx,c)).intValue()
-	    -decSpec.dls.getMin()+reslvl;
-        return mressrc.getULX(c,rl);
+	int rl = mressrc.getSynSubbandTree(tIdx,c).resLvl;
+        return mressrc.getResULX(c,rl);
     }
 
     /**
      * Returns the vertical coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component.
+     * specified component in the current tile.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
-     *
-     * @param c The index of the component (between 0 and N-1)
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'n', in the
-     * component coordinates.
-     *
-     *
+     * @param c The component index.
      * */
-    public int getULY(int c) {
-	// Find component resolution level
+    public int getCompULY(int c) {
+	// Find tile-component maximum resolution index and gets information
+        // from the source module.
 	int tIdx = getTileIdx();
-	int rl = ((Integer)decSpec.dls.getTileCompVal(tIdx,c)).intValue()
-	    -decSpec.dls.getMin()+reslvl;
-        return mressrc.getULY(c,rl);
+	int rl = mressrc.getSynSubbandTree(tIdx,c).resLvl;
+        return mressrc.getResULY(c,rl);
     }
 
     /**
      * Returns the horizontal coordinate of the image origin, the top-left
      * corner, in the canvas system, on the reference grid.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
      *
      * @return The horizontal coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULX() {
         return mressrc.getImgULX(reslvl);
@@ -492,30 +417,36 @@ public abstract class InvWTAdapter implements InvWT {
      * Returns the vertical coordinate of the image origin, the top-left
      * corner, in the canvas system, on the reference grid.
      *
-     * <P>This default implementation returns the value of the source at the
-     * current reconstruction resolution level.
+     * <p>This default implementation returns the value of the source at the
+     * current reconstruction resolution level.</p>
      *
      * @return The vertical coordinate of the image origin in the canvas
      * system, on the reference grid.
-     *
-     *
      * */
     public int getImgULY() {
         return mressrc.getImgULY(reslvl);
     }
 
+    /** Returns the horizontal tile partition offset in the reference grid */
+    public int getTilePartULX() {
+        return mressrc.getTilePartULX();
+    }
+
+    /** Returns the vertical tile partition offset in the reference grid */
+    public int getTilePartULY() {
+        return mressrc.getTilePartULY();
+    }
+
     /**
      * Returns the number of tiles in the horizontal and vertical directions.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
-     * @param co If not null this object is used to return the
-     * information. If null a new one is created and returned.
+     * @param co If not null this object is used to return the information. If
+     * null a new one is created and returned.
      *
-     * @return The number of tiles in the horizontal (Coord.x) and
-     * vertical (Coord.y) directions.
-     *
-     *
+     * @return The number of tiles in the horizontal (Coord.x) and vertical
+     * (Coord.y) directions.
      * */
     public Coord getNumTiles(Coord co) {
         return mressrc.getNumTiles(co);
@@ -524,13 +455,22 @@ public abstract class InvWTAdapter implements InvWT {
     /**
      * Returns the total number of tiles in the image.
      *
-     * <P>This default implementation returns the value of the source.
+     * <p>This default implementation returns the value of the source.</p>
      *
      * @return The total number of tiles in the image.
-     *
-     *
      * */
     public int getNumTiles() {
         return mressrc.getNumTiles();
+    }
+
+    /** 
+     * Returns the specified synthesis subband tree 
+     * 
+     * @param t Tile index.
+     *
+     * @param c Component index.
+     * */
+    public SubbandSyn getSynSubbandTree(int t,int c) {
+        return mressrc.getSynSubbandTree(t,c);
     }
 }

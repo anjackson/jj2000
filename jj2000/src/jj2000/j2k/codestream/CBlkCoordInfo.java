@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CBlkCoordInfo.java,v 1.8 2001/02/12 09:31:41 grosbois Exp $
+ * $Id: CBlkCoordInfo.java,v 1.9 2001/09/14 09:32:53 grosbois Exp $
  *
  * Class:                   CBlkCoordInfo
  *
@@ -58,6 +58,18 @@ public class CBlkCoordInfo extends CoordInfo {
     public CBlkCoordInfo() {
         this.idx = new Coord(); 
     }
+
+    /** 
+     * Constructor. Creates a CBlkCoordInfo object width specified code-block
+     * vertical and horizontal indexes.
+     *
+     * @param m Code-block vertical index.
+     *
+     * @param n Code-block horizontal index.
+     * */
+    public CBlkCoordInfo(int m,int n) {
+        this.idx = new Coord(n,m);
+    }
     
     /** 
      * Returns code-block's information in a String 
@@ -65,6 +77,6 @@ public class CBlkCoordInfo extends CoordInfo {
      * @return String with code-block's information
      * */
     public String toString() {
-        return super.toString() + ", idx="+idx;
+        return super.toString() + ",idx="+idx;
     }
 }

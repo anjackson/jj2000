@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: SubbandSyn.java,v 1.24 2000/09/19 14:13:38 grosbois Exp $
+ * $Id: SubbandSyn.java,v 1.25 2001/07/26 08:54:59 grosbois Exp $
  *
  * Class:                   SubbandSyn
  *
@@ -40,68 +40,56 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 import jj2000.j2k.wavelet.*;
 
 /**
- * This class represents a subband in a tree structure that describes
- * the subband decomposition for a wavelet transform, specifically for
- * the syhthesis side.
+ * This class represents a subband in a tree structure that describes the
+ * subband decomposition for a wavelet transform, specifically for the
+ * syhthesis side.
  *
- * <P>The element can be either a node or a leaf of the tree. If it is
- * a node then ther are 4 descendants (LL, HL, LH and HH). If it is a
- * leaf there are no descendants.
+ * <p>The element can be either a node or a leaf of the tree. If it is a node
+ * then ther are 4 descendants (LL, HL, LH and HH). If it is a leaf there are
+ * no descendants.</p>
  *
- * <P>The tree is bidirectional. Each element in the tree structure
- * has a "parent", which is the subband from which the element was
- * obtained by decomposition. The only exception is the root element
- * which has no parent (i.e.it's null), for obvious reasons.
+ * <p>The tree is bidirectional. Each element in the tree structure has a
+ * "parent", which is the subband from which the element was obtained by
+ * decomposition. The only exception is the root element which has no parent
+ * (i.e.it's null), for obvious reasons.</p>
  * */
 public class SubbandSyn extends Subband {
 
-    /**
-     * The reference to the parent of this subband. It is null for the
-     * root element. It is null by default.  */
-    public SubbandSyn parent;
+    /** The reference to the parent of this subband. It is null for the root
+     * element. It is null by default.  */
+    private SubbandSyn parent;
 
-    /**
-     * The reference to the LL subband resulting from the
-     * decomposition of this subband. It is null by default.  */
-    public SubbandSyn subb_LL;
+    /** The reference to the LL subband resulting from the decomposition of
+     * this subband. It is null by default.  */
+    private SubbandSyn subb_LL;
 
-    /**
-     * The reference to the HL subband (horizontal high-pass)
-     * resulting from the decomposition of this subband. It is null by
-     * default.  */
-    public SubbandSyn subb_HL;
+    /** The reference to the HL subband (horizontal high-pass) resulting from
+     * the decomposition of this subband. It is null by default.  */
+    private SubbandSyn subb_HL;
 
-    /**
-     * The reference to the LH subband (vertical high-pass) resulting
-     * from the decomposition of this subband. It is null by default.
+    /** The reference to the LH subband (vertical high-pass) resulting from
+     * the decomposition of this subband. It is null by default.
      * */
-    public SubbandSyn subb_LH;
+    private SubbandSyn subb_LH;
 
-    /**
-     * The reference to the HH subband resulting from the
-     * decomposition of this subband. It is null by default.
-     */
-    public SubbandSyn subb_HH;
+    /** The reference to the HH subband resulting from the decomposition of
+     * this subband. It is null by default.  */
+    private SubbandSyn subb_HH;
 
-    /** The horizontal analysis filter used to recompose this subband,
-        from its childs. This is applicable to "node" elements
-        only. The default value is null. */
+    /** The horizontal analysis filter used to recompose this subband, from
+        its childs. This is applicable to "node" elements only. The default
+        value is null. */
     public SynWTFilter hFilter;
        
-    /** The vertical analysis filter used to decompose this subband,
-        from its childs. This is applicable to "node" elements
-        only. The default value is null. */
+    /** The vertical analysis filter used to decompose this subband, from its
+        childs. This is applicable to "node" elements only. The default value
+        is null. */
     public SynWTFilter vFilter;
 
     /** The number of magnitude bits */
@@ -110,19 +98,16 @@ public class SubbandSyn extends Subband {
     /**
      * Creates a SubbandSyn element with all the default values. The
      * dimensions are (0,0) and the upper left corner is (0,0).
-     *
-     *
      * */
-    public SubbandSyn() {
-    }
+    public SubbandSyn() { }
 
     /**
-     * Creates the top-level node and the entire subband tree, with
-     * the top-level dimensions, the number of decompositions, and the
+     * Creates the top-level node and the entire subband tree, with the
+     * top-level dimensions, the number of decompositions, and the
      * decomposition tree as specified.
      *
-     * <P>This constructor just calls the same constructor of the
-     * super class.
+     * <p>This constructor just calls the same constructor of the super
+     * class.</p>
      *
      * @param w The top-level width
      *
@@ -131,11 +116,10 @@ public class SubbandSyn extends Subband {
      * @param ulcx The horizontal coordinate of the upper-left corner with
      * respect to the canvas origin, in the component grid.
      *
-     * @param ulcy The vertical  coordinate of the upper-left corner with
+     * @param ulcy The vertical coordinate of the upper-left corner with
      * respect to the canvas origin, in the component grid.
      *
-     * @param lvls The number of levels (or LL decompositions) in the
-     * tree.
+     * @param lvls The number of levels (or LL decompositions) in the tree.
      *
      * @param hfilters The horizontal wavelet synthesis filters for each
      * resolution level, starting at resolution level 0.
@@ -145,8 +129,6 @@ public class SubbandSyn extends Subband {
      *
      * @see Subband#Subband(int,int,int,int,int,
      * WaveletFilter[],WaveletFilter[])
-     *
-     *
      * */
     public SubbandSyn(int w, int h, int ulcx, int ulcy, int lvls,
                      WaveletFilter hfilters[], WaveletFilter vfilters[]) {
@@ -154,13 +136,11 @@ public class SubbandSyn extends Subband {
     }
     
     /**
-     * Returns the parent of this subband. The parent of a subband is
-     * the subband from which this one was obtained by
-     * decomposition. The root element has no parent subband (null).
+     * Returns the parent of this subband. The parent of a subband is the
+     * subband from which this one was obtained by decomposition. The root
+     * element has no parent subband (null).
      *
      * @return The parent subband, or null for the root one.
-     *
-     *
      * */
     public Subband getParent() {
         return parent;
@@ -170,32 +150,24 @@ public class SubbandSyn extends Subband {
      * Returns the LL child subband of this subband.
      *
      * @return The LL child subband, or null if there are no childs.
-     *
-     *
      * */
     public Subband getLL() {
         return subb_LL;
     }
 
     /**
-     * Returns the HL (horizontal high-pass) child subband of this
-     * subband.
+     * Returns the HL (horizontal high-pass) child subband of this subband.
      *
      * @return The HL child subband, or null if there are no childs.
-     *
-     *
      * */
     public Subband getHL() {
         return subb_HL;
     }
 
     /**
-     * Returns the LH (vertical high-pass) child subband of this
-     * subband.
+     * Returns the LH (vertical high-pass) child subband of this subband.
      *
      * @return The LH child subband, or null if there are no childs.
-     *
-     *
      * */
     public Subband getLH() {
         return subb_LH;
@@ -205,33 +177,28 @@ public class SubbandSyn extends Subband {
      * Returns the HH child subband of this subband.
      *
      * @return The HH child subband, or null if there are no childs.
-     *
-     *
      * */
     public Subband getHH() {
         return subb_HH;
     }
 
     /**
-     * Splits the current subband in its four subbands. It changes the
-     * status of this element (from a leaf to a node, and sets the
-     * filters), creates the childs and initializes them. An
-     * IllegalArgumentException is thrown if this subband is not a
-     * leaf.
+     * Splits the current subband in its four subbands. It changes the status
+     * of this element (from a leaf to a node, and sets the filters), creates
+     * the childs and initializes them. An IllegalArgumentException is thrown
+     * if this subband is not a leaf.
      *
-     * <P>It uses the initChilds() method to initialize the childs.
+     * <p>It uses the initChilds() method to initialize the childs.</p>
      *
-     * @param hfilter The horizontal wavelet filter used to decompose
-     * this subband. It has to be a SynWTFilter object.
+     * @param hfilter The horizontal wavelet filter used to decompose this
+     * subband. It has to be a SynWTFilter object.
      *
      * @param vfilter The vertical wavelet filter used to decompose this
      * subband. It has to be a SynWTFilter object.
      *
-     * @return  A reference to the LL leaf (subb_LL).
+     * @return A reference to the LL leaf (subb_LL).
      *
      * @see Subband#initChilds
-     *
-     *
      * */
     protected Subband split(WaveletFilter hfilter, WaveletFilter vfilter) {
         // Test that this is a node
@@ -267,9 +234,7 @@ public class SubbandSyn extends Subband {
      * subband
      *
      * @return The horizontal wavelet filter
-     *
-     *
-     */
+     * */
     public WaveletFilter getHorWFilter(){
         return hFilter;
     }
@@ -279,11 +244,8 @@ public class SubbandSyn extends Subband {
      * subband
      *
      * @return The vertical wavelet filter
-     *
-     *
-     */
+     * */
     public WaveletFilter getVerWFilter(){
         return hFilter;
     }
-
 }

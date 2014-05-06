@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CodedCBlkDataSrcEnc.java,v 1.14 2000/09/21 16:13:00 dsanta Exp $
+ * $Id: CodedCBlkDataSrcEnc.java,v 1.15 2001/09/14 09:23:22 grosbois Exp $
  * 
  * Class:                   CodedCBlkDataSrcEnc
  * 
@@ -41,12 +41,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.entropy.encoder;
 
 import jj2000.j2k.wavelet.analysis.*;
@@ -55,39 +50,20 @@ import jj2000.j2k.image.*;
 /**
  * This interface defines a source of entropy coded data and methods to
  * transfer it in a code-block by code-block basis. In each call to
- * 'getNextCodeBlock()' a new coded code-block is returned. The code-block are 
+ * 'getNextCodeBlock()' a new coded code-block is returned. The code-block are
  * retruned in no specific-order.
  *
- * <P>This interface is the source of data for the rate allocator. See the
- * 'PostCompRateAllocator' class.
+ * <p>This interface is the source of data for the rate allocator. See the
+ * 'PostCompRateAllocator' class.</p>
  *
- * <P>For each coded-code-block the entropy-coded data is returned along with
- * the rate-distortion statistics in a 'CBlkRateDistStats' object.
+ * <p>For each coded-code-block the entropy-coded data is returned along with
+ * the rate-distortion statistics in a 'CBlkRateDistStats' object.</p>
  *
  * @see PostCompRateAllocator
- *
  * @see CBlkRateDistStats
- *
  * @see EntropyCoder
  * */
 public interface CodedCBlkDataSrcEnc extends ForwWTDataProps {
-
-    /**
-     * Returns the number of code-blocks in a subband, along the
-     * horizontal and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     *
-     *
-     * */
-    public Coord getNumCodeBlocks(SubbandAn sb, Coord co);
 
     /**
      * Returns the next coded code-block in the current tile for the specified
@@ -98,13 +74,13 @@ public interface CodedCBlkDataSrcEnc extends ForwWTDataProps {
      * the code-blocks have been returned for the current tile calls to this
      * method will return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
-     * any problems after being returned.
+     * any problems after being returned.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -114,18 +90,16 @@ public interface CodedCBlkDataSrcEnc extends ForwWTDataProps {
      * it may be reused to return the compressed data.
      *
      * @return The next coded code-block in the current tile for component
-     * 'n', or null if all code-blocks for the current tile have been
+     * 'c', or null if all code-blocks for the current tile have been
      * returned.
      *
      * @see CBlkRateDistStats
-     *
-     *
      * */
-    public CBlkRateDistStats getNextCodeBlock(int c, CBlkRateDistStats ccb);
+    public CBlkRateDistStats getNextCodeBlock(int c,CBlkRateDistStats ccb);
     
     /**
-     * Returns the width of a packet for the specified tile-
-     * component and resolution level.
+     * Returns the width of a packet for the specified tile-component and
+     * resolution level.
      *
      * @param t The tile
      *
@@ -133,15 +107,14 @@ public interface CodedCBlkDataSrcEnc extends ForwWTDataProps {
      *
      * @param r The resolution level
      *
-     * @return The width of a packet for the specified tile-
-     * component and resolution level.
-     *
+     * @return The width of a packet for the specified tile- component and
+     * resolution level.
      * */
-    public int getPPX(int t, int c, int r);
+    public int getPPX(int t,int c,int r);
     
     /**
-     * Returns the height of a packet for the specified tile-
-     * component and resolution level.
+     * Returns the height of a packet for the specified tile-component and
+     * resolution level.
      *
      * @param t The tile
      *
@@ -149,20 +122,18 @@ public interface CodedCBlkDataSrcEnc extends ForwWTDataProps {
      *
      * @param r The resolution level
      *
-     * @return The height of a packet for the specified tile-
-     * component and resolution level.
-     *
+     * @return The height of a packet for the specified tile- component and
+     * resolution level.
      * */
-    public int getPPY(int t, int c, int r);
+    public int getPPY(int t,int c,int r);
     
     /** 
-     * Returns true if the precinct partition is used for the
-     * specified component and tile, returns false otherwise
+     * Returns true if the precinct partition is used for the specified
+     * component and tile, returns false otherwise
      *
      * @param c The component
      *
      * @param t The tile
-     *
-     */
-    public boolean precinctPartitionUsed(int c, int t);
+     * */
+    public boolean precinctPartitionUsed(int c,int t);
 }

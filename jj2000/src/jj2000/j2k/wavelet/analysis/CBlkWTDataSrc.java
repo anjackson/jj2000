@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CBlkWTDataSrc.java,v 1.17 2000/09/21 16:13:14 dsanta Exp $
+ * $Id: CBlkWTDataSrc.java,v 1.18 2001/09/14 08:45:25 grosbois Exp $
  * 
  * Class:                   CBlkWTDataSrc
  * 
@@ -40,16 +40,11 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.wavelet.analysis;
 
-import jj2000.j2k.image.*;
 import jj2000.j2k.wavelet.*;
+import jj2000.j2k.image.*;
 
 /**
  * This abstract class defines methods to transfer wavelet data in a
@@ -57,39 +52,19 @@ import jj2000.j2k.wavelet.*;
  * 'getNextInternCodeBlock()' a new code-block is returned. The code-blocks
  * are returned in no specific order.
  *
- * <P>This class is the source of data for the quantizer. See the 'Quantizer'
- * class.
+ * <p>This class is the source of data for the quantizer. See the 'Quantizer'
+ * class.</p>
  *
- * <P>Note that no more of one object may request data, otherwise one object
+ * <p>Note that no more of one object may request data, otherwise one object
  * would get some of the data and another one another part, in no defined
- * manner.
+ * manner.</p>
  *
  * @see ForwWTDataProps
- *
  * @see WaveletTransform
- *
  * @see jj2000.j2k.quantization.quantizer.CBlkQuantDataSrcEnc
- *
  * @see jj2000.j2k.quantization.quantizer.Quantizer
  * */
 public interface CBlkWTDataSrc extends ForwWTDataProps {
-
-    /**
-     * Returns the number of code-blocks in a subband, along the
-     * horizontal and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     *
-     *
-     * */
-    public abstract Coord getNumCodeBlocks(SubbandAn sb, Coord co);
 
     /**
      * Returns the position of the fixed point in the specified component, or
@@ -101,28 +76,25 @@ public interface CBlkWTDataSrc extends ForwWTDataProps {
      * returned. Position 0 is the position of the least significant bit in
      * the data.
      *
-     * @param n The index of the component.
+     * @param c The index of the component.
      *
-     * @return The position of the fixed-point, which is the same as
-     * the number of fractional bits. For floating-point data 0 is
-     * returned.
-     *
-     *
+     * @return The position of the fixed-point, which is the same as the
+     * number of fractional bits. For floating-point data 0 is returned.
      * */
-     public int getFixedPoint(int n);
+     public int getFixedPoint(int c);
 
-    /** Return the data type of this CBlkWTDataSrc for the given
-     *  component in the current tile. Its value should be either
-     *  DataBlk.TYPE_INT or DataBlk.TYPE_FLOAT but can change
-     *  according to the current tile-component.
+    /** 
+     * Return the data type of this CBlkWTDataSrc for the given component in
+     * the current tile. Its value should be either DataBlk.TYPE_INT or
+     * DataBlk.TYPE_FLOAT but can change according to the current
+     * tile-component.
      *
      * @param t Tile index
      *
      * @param c Component index
      *
      * @return Current data type
-     *
-     */
+     * */
     public int getDataType(int t,int c);
 
     /**
@@ -134,36 +106,34 @@ public interface CBlkWTDataSrc extends ForwWTDataProps {
      * the code-blocks have been returned for the current tile calls to this
      * method will return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
      * any problems after being returned. The 'offset' of the returned data is
      * 0, and the 'scanw' is the same as the code-block width.  The 'magbits'
      * of the returned data is not set by this method and should be
-     * ignored. See the 'CBlkWTData' class.
+     * ignored. See the 'CBlkWTData' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
+     * <p>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
      * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * respect to the tile, not the subband.</p>
      *
-     * @param n The component for which to return the next code-block.
+     * @param c The component for which to return the next code-block.
      *
      * @param cblk If non-null this object will be used to return the new
      * code-block. If null a new one will be allocated and returned. If the
      * "data" array of the object is non-null it will be reused, if possible,
      * to return the data.
      *
-     * @return The next code-block in the current tile for component 'n', or
+     * @return The next code-block in the current tile for component 'c', or
      * null if all code-blocks for the current tile have been returned.
      *
      * @see CBlkWTData
-     *
-     *
      * */
-    public abstract CBlkWTData getNextCodeBlock(int n, CBlkWTData cblk);
+    public abstract CBlkWTData getNextCodeBlock(int c,CBlkWTData cblk);
 
     /**
      * Returns the next code-block in the current tile for the specified
@@ -174,21 +144,21 @@ public interface CBlkWTDataSrc extends ForwWTDataProps {
      * have been returned for the current tile calls to this method will
      * return 'null'.
      *
-     * <P>When changing the current tile (through 'setTile()' or 'nextTile()')
+     * <p>When changing the current tile (through 'setTile()' or 'nextTile()')
      * this method will always return the first code-block, as if this method
-     * was never called before for the new current tile.
+     * was never called before for the new current tile.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
      * arbitrary. The 'magbits' of the returned data is not set by this method
-     * and should be ignored. See the 'CBlkWTData' class.
+     * and should be ignored. See the 'CBlkWTData' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
+     * <p>The 'ulx' and 'uly' members of the returned 'CBlkWTData' object
      * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * respect to the tile, not the subband.</p>
      *
-     * @param n The component for which to return the next code-block.
+     * @param c The component for which to return the next code-block.
      *
      * @param cblk If non-null this object will be used to return the new
      * code-block. If null a new one will be allocated and returned. If the
@@ -199,9 +169,6 @@ public interface CBlkWTDataSrc extends ForwWTDataProps {
      * null if all code-blocks for the current tile have been returned.
      *
      * @see CBlkWTData
-     *
-     *
      * */
-    public abstract CBlkWTData getNextInternCodeBlock(int n, CBlkWTData cblk);
-
+    public abstract CBlkWTData getNextInternCodeBlock(int c,CBlkWTData cblk);
 }

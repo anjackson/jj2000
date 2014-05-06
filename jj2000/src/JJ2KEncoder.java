@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: JJ2KEncoder.java,v 1.9 2000/09/05 09:21:58 grosbois Exp $
+ * $Id: JJ2KEncoder.java,v 1.10 2001/10/26 12:31:43 grosbois Exp $
  *
  * Class:                   JJ2KEncoder
  *
@@ -39,11 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
+ * */
 
 import jj2000.j2k.encoder.*;
 
@@ -59,8 +55,6 @@ public class JJ2KEncoder {
      * CmdLnEncoder class.
      *
      * @param argv The command line arguments.
-     *
-     *
      * */
     public static void main(String argv[]) {
         if (argv.length == 0) {

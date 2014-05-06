@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: ModuleSpec.java,v 1.20 2000/11/30 13:12:26 grosbois Exp $
+ * $Id: ModuleSpec.java,v 1.24 2001/10/26 16:30:11 grosbois Exp $
  * 
  * Class:                   ModuleSpec
  * 
@@ -42,6 +42,8 @@
  * */
 package jj2000.j2k;
 
+import jj2000.j2k.image.*;
+
 import java.util.*;
 
 /**
@@ -52,28 +54,26 @@ import java.util.*;
  * This class might be used for values that are only tile specific or
  * component specific but not both.
  *
- * <P>The attributes to use are defined by a hierarchy. The hierarchy is:
+ * <p>The attributes to use are defined by a hierarchy. The hierarchy is:
  *
  * <ul>
  * <li> Tile and component specific attribute</li>
  * <li> Tile specific default attribute</li>
  * <li> Component main default attribute</li>
  * <li> Main default attribute</li>
- * </ul>
+ * </ul></p>
  * */
-
-public class ModuleSpec {
+public class ModuleSpec implements Cloneable {
 
     /** The identifier for a specification module that applies only to
      * components */
     public final static byte SPEC_TYPE_COMP = 0;
 
-    /** The identifier for a specification module that applies only to
-        tiles */
+    /** The identifier for a specification module that applies only to tiles */
     public final static byte SPEC_TYPE_TILE = 1;
 
-    /** The identifier for a specification module that applies both to
-     * tiles and components */
+    /** The identifier for a specification module that applies both to tiles
+     * and components */
     public final static byte SPEC_TYPE_TILE_COMP = 2;
 
     /** The identifier for default specification */
@@ -97,9 +97,8 @@ public class ModuleSpec {
     /** The number of components */
     protected int nComp = 0;
 
-    /** The spec type for each tile-component. The first index is
-     * the tile index, the second is the component index.
-     */
+    /** The spec type for each tile-component. The first index is the tile
+     * index, the second is the component index.  */
     protected byte[][] specValType;
 
     /** Default value for each tile-component */
@@ -109,14 +108,112 @@ public class ModuleSpec {
         specific value is defined */
     protected Object[] compDef = null;
 
-    /** The default value for each tile. Null if no tile specific
-        value is defined */
+    /** The default value for each tile. Null if no tile specific value is
+        defined */
     protected Object[] tileDef = null;
 
     /** The specific value for each tile-component. Value of tile 16 component
      * 3 is accessible through the hash value "t16c3". Null if no
      * tile-component specific value is defined */
     protected Hashtable tileCompVal;
+
+    public ModuleSpec getCopy() {
+        return (ModuleSpec)this.clone();
+    }
+
+    protected Object clone() {
+        ModuleSpec ms;
+        try {
+            ms = (ModuleSpec)super.clone();
+        } catch(CloneNotSupportedException e) {
+            throw new Error("Error when cloning ModuleSpec instance");
+        }
+        // Create a copy of the specValType array
+        ms.specValType = new byte[nTiles][nComp];
+        for(int t=0; t<nTiles; t++) {
+            for(int c=0; c<nComp; c++) {
+                ms.specValType[t][c] = specValType[t][c];
+            }
+        } 
+        // Create a copy of tileDef
+        if(tileDef!=null) {
+            ms.tileDef = new Object[nTiles];
+            for(int t=0; t<nTiles; t++) {
+                ms.tileDef[t] = tileDef[t];
+            }
+        }
+        // Create a copy of tileCompVal
+        if(tileCompVal!=null) {
+            ms.tileCompVal = new Hashtable();
+            String tmpKey;
+            Object tmpVal;
+            for(Enumeration e=tileCompVal.keys(); e.hasMoreElements(); ) {
+                tmpKey = (String)e.nextElement();
+                tmpVal = tileCompVal.get(tmpKey);
+                ms.tileCompVal.put(tmpKey,tmpVal);
+            }
+        }
+        return ms;
+    }
+
+    /** 
+     * Rotate the ModuleSpec instance by 90 degrees (this modifies only tile
+     * and tile-component specifications).
+     *
+     * @param nT Number of tiles along horizontal and vertical axis after
+     * rotation. 
+     * */
+    public void rotate90(Coord anT) {
+        // Rotate specValType
+        byte[][] tmpsvt = new byte[nTiles][];
+        int ax,ay;
+        Coord bnT = new Coord(anT.y,anT.x);
+        for(int by=0; by<bnT.y; by++) {
+            for(int bx=0; bx<bnT.x; bx++) {
+                ay = bx;
+                ax = bnT.y-by-1;
+                tmpsvt[ay*anT.x+ax] = specValType[by*bnT.x+bx];
+            }
+        }
+        specValType = tmpsvt;
+
+        // Rotate tileDef
+        if(tileDef!=null) {
+            Object[] tmptd = new Object[nTiles];
+            for(int by=0; by<bnT.y; by++) {
+                for(int bx=0; bx<bnT.x; bx++) {
+                    ay = bx;
+                    ax = bnT.y-by-1;
+                    tmptd[ay*anT.x+ax] = tileDef[by*bnT.x+bx];
+                }
+            }
+            tileDef = tmptd;
+        }
+
+        // Rotate tileCompVal
+        if(tileCompVal!=null && tileCompVal.size()>0) {
+            Hashtable tmptcv = new Hashtable();
+            String tmpKey;
+            Object tmpVal;
+            int btIdx,atIdx;
+            int i1,i2;
+            int bx,by;
+            for(Enumeration e=tileCompVal.keys(); e.hasMoreElements(); ) {
+                tmpKey = (String)e.nextElement();
+                tmpVal = tileCompVal.get(tmpKey);
+                i1 = tmpKey.indexOf('t');
+                i2 = tmpKey.indexOf('c');
+                btIdx = (new Integer(tmpKey.substring(i1+1,i2))).intValue();
+                bx = btIdx%bnT.x;
+                by = btIdx/bnT.x;
+                ay = bx;
+                ax = bnT.y-by-1;
+                atIdx = ax+ay*anT.x; 
+                tmptcv.put("t"+atIdx+tmpKey.substring(i2),tmpVal);
+            }
+            tileCompVal = tmptcv;
+        }
+    }
 
     /**
      * Constructs a 'ModuleSpec' object, initializing all the components and
@@ -130,7 +227,7 @@ public class ModuleSpec {
      * @param type the type of the specification module i.e. tile specific,
      * component specific or both.
      * */
-    public ModuleSpec(int nt, int nc, byte type) {
+    public ModuleSpec(int nt,int nc,byte type) {
 	nTiles = nt;
 	nComp = nc;
         specValType = new byte[nt][nc];
@@ -150,7 +247,7 @@ public class ModuleSpec {
     /** 
      * Sets default value for this module 
      * */
-    public void setDefault(Object value){
+    public void setDefault(Object value) {
 	def = value;
     }
 
@@ -159,7 +256,7 @@ public class ModuleSpec {
      *
      * @return The default value (Must be casted before use)
      * */
-    public Object getDefault(){
+    public Object getDefault() {
 	return def;
     }
 
@@ -169,15 +266,16 @@ public class ModuleSpec {
      *
      * @param c Component index 
      * */
-    public void setCompDef(int c, Object value){
+    public void setCompDef(int c, Object value) {
         if ( specType == SPEC_TYPE_TILE ) {
             String errMsg = "Option whose value is '"+value+"' cannot be "
                 +"specified for components as it is a 'tile only' specific "
                 +"option";
             throw new Error(errMsg);
         }
-	if(compDef==null)
+	if(compDef==null) {
 	    compDef = new Object[nComp];
+        }
 	for(int i=0; i<nTiles; i++){
 	    if(specValType[i][c]<SPEC_COMP_DEF) {
 		specValType[i][c] = SPEC_COMP_DEF;
@@ -192,39 +290,40 @@ public class ModuleSpec {
      *
      * @param c Component index 
      *
-     * @return The default value for this component (Must be casted before 
+     * @return The default value for this component (Must be casted before
      * use)
      *
      * @see #setCompDef
      * */
-    public Object getCompDef(int c){
+    public Object getCompDef(int c) {
         if ( specType == SPEC_TYPE_TILE ) {
             throw new Error("Illegal use of ModuleSpec class");
         }
-	if(compDef==null || compDef[c]==null){
+	if(compDef==null || compDef[c]==null) {
 	    return getDefault();
-	}
-	else
+	} else {
 	    return compDef[c];
+        }
     }
 
     /** 
-     * Sets default value for specified tile and specValType tag if
-     * allowed by its priority.
+     * Sets default value for specified tile and specValType tag if allowed by
+     * its priority.
      *
      * @param c Tile index.
      * */
-    public void setTileDef(int t, Object value){
+    public void setTileDef(int t, Object value) {
         if ( specType == SPEC_TYPE_COMP ) {
             String errMsg = "Option whose value is '"+value+"' cannot be "
                 + "specified for tiles as it is a 'component only' specific "
                 + "option";
             throw new Error(errMsg);
         }
-	if(tileDef==null)
+	if(tileDef==null) {
 	    tileDef = new Object[nTiles];
-	for(int i=0; i<nComp; i++){
-	    if(specValType[t][i]<SPEC_TILE_DEF){
+        }
+	for(int i=0; i<nComp; i++) {
+	    if(specValType[t][i]<SPEC_TILE_DEF) {
 		specValType[t][i] = SPEC_TILE_DEF;
 	    }
 	}
@@ -232,8 +331,8 @@ public class ModuleSpec {
     }
 
     /** 
-     * Gets default value of the specified tile. If no specification
-     * has been entered, it returns the default value.
+     * Gets default value of the specified tile. If no specification has been
+     * entered, it returns the default value.
      *
      * @param t Tile index 
      *
@@ -241,15 +340,15 @@ public class ModuleSpec {
      *
      * @see #setTileDef
      * */
-    public Object getTileDef(int t){
+    public Object getTileDef(int t) {
         if ( specType == SPEC_TYPE_COMP ) {
             throw new Error("Illegal use of ModuleSpec class");
         }
-	if(tileDef==null || tileDef[t]==null){
+	if(tileDef==null || tileDef[t]==null) {
 	    return getDefault();
-	}
-	else
+	} else {
 	    return tileDef[t];
+        }
     }
 
     /** 
@@ -259,7 +358,7 @@ public class ModuleSpec {
      * 
      * @param c Component index 
      * */
-    public void setTileCompVal(int t,int c, Object value){
+    public void setTileCompVal(int t,int c, Object value) {
         if ( specType != SPEC_TYPE_TILE_COMP ) {
             String errMsg = "Option whose value is '"+value+"' cannot be "
                 + "specified for ";
@@ -293,7 +392,7 @@ public class ModuleSpec {
      *
      * @see #getSpec 
      * */
-    public Object getTileCompVal(int t,int c){
+    public Object getTileCompVal(int t,int c) {
         if ( specType != SPEC_TYPE_TILE_COMP ) {
             throw new Error("Illegal use of ModuleSpec class");
         }
@@ -301,12 +400,11 @@ public class ModuleSpec {
     }
 
     /** 
-     * Gets value of specified tile-component without knowing if a
-     * specific tile-component value has been previously entered. It
-     * first check if a tile-component specific value has been
-     * entered, then if a tile specific value exist, then if a
-     * component specific value exist. If not the default value is
-     * returned.
+     * Gets value of specified tile-component without knowing if a specific
+     * tile-component value has been previously entered. It first check if a
+     * tile-component specific value has been entered, then if a tile specific
+     * value exist, then if a component specific value exist. If not the
+     * default value is returned.
      *
      * @param t Tile index
      *
@@ -314,8 +412,8 @@ public class ModuleSpec {
      *
      * @return Value for this tile component.
      * */
-    protected Object getSpec(int t,int c){
-	switch(specValType[t][c]){
+    protected Object getSpec(int t,int c) {
+	switch(specValType[t][c]) {
 	case SPEC_DEF:
 	    return getDefault();
 	case SPEC_COMP_DEF:
@@ -336,7 +434,7 @@ public class ModuleSpec {
      *
      * @param c Component index
      * */
-    public byte getSpecValType(int t,int c){
+    public byte getSpecValType(int t,int c) {
 	return specValType[t][c];
     }
 
@@ -349,25 +447,26 @@ public class ModuleSpec {
      * @return True if component specification has been defined
      * */
     public boolean isCompSpecified(int c){
-	if(compDef==null || compDef[c]==null)
+	if(compDef==null || compDef[c]==null) {
 	    return false;
-	else
+	} else {
 	    return true;
+        }
     }
 
     /** 
-     * Whether or not specifications have been entered for the given
-     * tile.
+     * Whether or not specifications have been entered for the given tile.
      *
      * @param t Index of the tile
      *
      * @return True if tile specification has been entered
      * */
-    public boolean isTileSpecified(int t){
-	if(tileDef==null || tileDef[t]==null)
+    public boolean isTileSpecified(int t) {
+	if(tileDef==null || tileDef[t]==null) {
 	    return false;
-	else
+	} else {
 	    return true;
+        }
     }
 
     /** 
@@ -379,21 +478,21 @@ public class ModuleSpec {
      *
      * @return True if a tile-component specification has been defined.
      * */
-    public boolean isTileCompSpecified(int t,int c){
-	if(tileCompVal==null || tileCompVal.get("t"+t+"c"+c)==null)
+    public boolean isTileCompSpecified(int t,int c) {
+	if(tileCompVal==null || tileCompVal.get("t"+t+"c"+c)==null) {
 	    return false;
-	else
+	} else {
 	    return true;
+        }
     }
 
     /** 
-     * This method is responsible of parsing tile indexes set and
-     * component indexes set for an option. Such an argument must
-     * follow the following policy:<br>
+     * This method is responsible of parsing tile indexes set and component
+     * indexes set for an option. Such an argument must follow the following
+     * policy:<br>
      * 
-     * <tt>t\<indexes set\></tt> or <tt>c\<indexes set\></tt> where
-     * tile or component indexes are separated by commas or a
-     * dashes.
+     * <tt>t&lt;indexes set&gt;</tt> or <tt>c&lt;indexes set&gt;</tt> where
+     * tile or component indexes are separated by commas or a dashes.
      *
      * <p><u>Example:</u><br>
      * <li> <tt>t0,3,4</tt> means tiles with indexes 0, 3 and 4.<br>
@@ -408,7 +507,7 @@ public class ModuleSpec {
      *
      * @return Indexes concerned by this parameter.
      * */
-    public static final boolean[] parseIdx(String word, int maxIdx){
+    public static final boolean[] parseIdx(String word, int maxIdx) {
 	int nChar = word.length(); // Number of characters
 	char c = word.charAt(0);   // current character
 	int idx = -1;              // Current (tile or component) index
@@ -418,35 +517,36 @@ public class ModuleSpec {
 	boolean[] idxSet = new boolean[maxIdx];
 	int i=1; // index of the current character
 
-	while(i<nChar){
+	while(i<nChar) {
 	    c = word.charAt(i);
-	    if(Character.isDigit(c)){
-		if(idx==-1)
+	    if(Character.isDigit(c)) {
+		if(idx==-1) {
 		    idx = 0;
+                }
 		idx = idx*10+ (c-'0');
-	    }
-	    else{
-		if(idx==-1 || (c!=',' && c!='-')){
+	    } else {
+		if(idx==-1 || (c!=',' && c!='-')) {
 		   throw new IllegalArgumentException("Bad construction for "+
 						      "parameter: "+word); 
 		}
-		if(idx<0 || idx>=maxIdx){
-		    throw new IllegalArgumentException("Out of range index in "+
-						       "parameter `"+word+"' : "+
-						       +idx); 
+		if(idx<0 || idx>=maxIdx) {
+		    throw new IllegalArgumentException("Out of range index "+
+                                                       "in "+
+						       "parameter `"+word+
+                                                       "' : "+idx); 
 		}
 
 		// Found a comma
-		if(c==','){
-		    if(isDash){ // Previously found a dash, fill idxSet
+		if(c==',') {
+		    if(isDash) { // Previously found a dash, fill idxSet
 			for(int j=lastIdx+1; j<idx; j++){
 			    idxSet[j] = true;
 			}
 		    }
 		    isDash = false;
-		}
-		else // Found a dash
+		} else {// Found a dash
 		    isDash = true;
+                }
 
 		// Udate idxSet
 		idxSet[idx] = true;
@@ -457,74 +557,17 @@ public class ModuleSpec {
 	}
 
 	// Process last found index
-	if(idx<0 || idx>=maxIdx){
+	if(idx<0 || idx>=maxIdx) {
 	    throw new IllegalArgumentException("Out of range index in "+
 					       "parameter `"+word+"' : "+idx);
 	}
-	if(isDash)
-	    for(int j=lastIdx+1; j<idx; j++){
+	if(isDash) {
+	    for(int j=lastIdx+1; j<idx; j++) {
 		idxSet[j] = true;
 	    }
+        }
 	idxSet[idx] = true;
 
 	return idxSet;
     }
-
-    /** 
-     * Returns a tile-component representative using default value.
-     *
-     * @return Tile component index in an array (first element: tile
-     * index, second element: component index).
-     * */
-    public int[] getDefRep(){
-	int[] tcidx = new int[2];
-	for(int t=nTiles-1; t>=0; t--){
-	    for(int c=nComp-1; c>=0; c--){
-		if(specValType[t][c]==SPEC_DEF){
-		    tcidx[0] = t;
-		    tcidx[1] = c;
-		    return tcidx;
-		}
-	    }
-	}
-		    
-        throw new IllegalArgumentException("No representative for "+
-                                           "default value");
-    }
-
-    /** 
-     * Returns a component representative using tile default value.
-     *
-     * @param t Tile index
-     *
-     * @return component index of the representant
-     * */
-    public int getTileDefRep(int t){
-	for(int c=nComp-1; c>=0; c--)
-	    if(specValType[t][c]==SPEC_TILE_DEF){
-		return c;
-	    }
-		    
-	throw new IllegalArgumentException("No representative for tile "+
-					   "default value");
-    }
-
-    /** 
-     * Returns a tile representative using component default value.
-     *
-     * @param c Component index
-     *
-     * @return tile index of the representant
-     * */
-    public int getCompDefRep(int c){
-	for(int t=nTiles-1; t>=0; t--) {
-	    if(specValType[t][c]==SPEC_COMP_DEF){
-		return t;
-	    }
-        }
-		    
-	throw new IllegalArgumentException("No representative for component "+
-					   "default value, c="+c);
-    }
-
 }

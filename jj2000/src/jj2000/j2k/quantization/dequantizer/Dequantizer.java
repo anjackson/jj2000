@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: Dequantizer.java,v 1.33 2000/09/19 14:11:47 grosbois Exp $
+ * $Id: Dequantizer.java,v 1.37 2001/10/29 20:07:28 qtxjoas Exp $
  *
  * Class:                   Dequantizer
  *
@@ -39,7 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
+ * */
 package jj2000.j2k.quantization.dequantizer;
 
 import jj2000.j2k.image.invcomptransf.*;
@@ -60,24 +60,24 @@ import java.io.*;
  * class has the concept of a current tile and all operations are performed on
  * the current tile.
  *
- * <P>This class provides default implemenations for most of the methods
+ * <p>This class provides default implemenations for most of the methods
  * (wherever it makes sense), under the assumption that the image and
  * component dimensions, and the tiles, are not modifed by the dequantizer. If
  * that is not the case for a particular implementation then the methods
- * should be overriden.
+ * should be overriden.</p>
  *
- * <P>Sign magnitude representation is used (instead of two's complement) for
+ * <p>Sign magnitude representation is used (instead of two's complement) for
  * the input data. The most significant bit is used for the sign (0 if
  * positive, 1 if negative). Then the magnitude of the quantized coefficient
  * is stored in the next most significat bits. The most significant magnitude
- * bit corresponds to the most significant bit-plane and so on.
+ * bit corresponds to the most significant bit-plane and so on.</p>
  *
- * <P>The output data is either in floating-point, or in fixed-point two's
+ * <p>The output data is either in floating-point, or in fixed-point two's
  * complement. In case of floating-point data the the value returned by
  * getFixedPoint() must be 0. If the case of fixed-point data the number of
  * fractional bits must be defined at the constructor of the implementing
  * class and all operations must be performed accordingly. Each component may
- * have a different number of fractional bits.
+ * have a different number of fractional bits.</p>
  * */
 public abstract class Dequantizer extends MultiResImgDataAdapter
     implements CBlkWTDataSrcDec {
@@ -110,13 +110,13 @@ public abstract class Dequantizer extends MultiResImgDataAdapter
      *
      * @param src From where to obtain the quantized data.
      *
-     * @param rb The number of "range bits" for each component (must
-     * be the "range bits" of the un-transformed components. For a
-     * definition of "range bits" see the getNomRangeBits() method.
+     * @param rb The number of "range bits" for each component (must be the
+     * "range bits" of the un-transformed components. For a definition of
+     * "range bits" see the getNomRangeBits() method.
      *
      * @see #getNomRangeBits
      * */
-    public Dequantizer(CBlkQuantDataSrcDec src, int utrb[],
+    public Dequantizer(CBlkQuantDataSrcDec src,int utrb[],
                        DecoderSpecs decSpec) {
         super(src);
         if (utrb.length != src.getNumComps()) {
@@ -133,27 +133,27 @@ public abstract class Dequantizer extends MultiResImgDataAdapter
      * corresponding to the nominal range of the data in the specified
      * component.
      *
-     * <P>The returned value corresponds to the nominal dynamic range of the
+     * <p>The returned value corresponds to the nominal dynamic range of the
      * reconstructed image data, not of the wavelet coefficients
      * themselves. This is because different subbands have different gains and
      * thus different nominal ranges. To have an idea of the nominal range in
      * each subband the subband analysis gain value from the subband tree
-     * structure, returned by the getSubbandTree() method, can be used. See
-     * the Subband class for more details.
+     * structure, returned by the getSynSubbandTree() method, can be used. See
+     * the Subband class for more details.</p>
      *
-     * <P>If this number is <i>b</b> then for unsigned data the nominal range
+     * <p>If this number is <i>b</b> then for unsigned data the nominal range
      * is between 0 and 2^b-1, and for signed data it is between -2^(b-1) and
-     * 2^(b-1)-1.
+     * 2^(b-1)-1.</p>
      *
-     * @param n The index of the component
+     * @param c The index of the component
      *
      * @return The number of bits corresponding to the nominal range of the
      * data.
      *
      * @see Subband
      * */
-    public int getNomRangeBits(int n) {
-        return rb[n];
+    public int getNomRangeBits(int c) {
+        return rb[c];
     }
 
     /**
@@ -172,55 +172,24 @@ public abstract class Dequantizer extends MultiResImgDataAdapter
      *
      * @return The root of the tree structure.
      * */
-    public SubbandSyn getSubbandTree(int t,int c) {
-        return src.getSubbandTree(t,c);
+    public SubbandSyn getSynSubbandTree(int t,int c) {
+        return src.getSynSubbandTree(t,c);
     }
 
     /**
-     * Returns the horizontal coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The horizontal coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the horizontal code-block partition origin. Allowable values
+     * are 0 and 1, nothing else.
      * */
-    public int getPartitionULX() {
-        return src.getPartitionULX();
+    public int getCbULX() {
+        return src.getCbULX();
     }
 
     /**
-     * Returns the vertical coordinate of the origin of the cell and
-     * code-block partition, with respect to the canvas origin, on the
-     * reference grid. Allowable values are 0 and 1, nothing else.
-     *
-     * @return The vertical coordinate of the origin of the cell and
-     * code-block partitions, with respect to the canvas origin, on the
-     * reference grid.
+     * Returns the vertical code-block partition origin. Allowable values are
+     * 0 and 1, nothing else.
      * */
-    public int getPartitionULY() {
-        return src.getPartitionULY();
-    }
-
-    /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * <P>This default implementation returns the value of the source.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param n The component where the subband is.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int n, Coord co) {
-        return src.getNumCodeBlocks(sb,n,co);
+    public int getCbULY() {
+        return src.getCbULY();
     }
 
     /**
@@ -262,7 +231,7 @@ public abstract class Dequantizer extends MultiResImgDataAdapter
         if( ((Integer)cts.getTileDef(tIdx)).intValue()==InvCompTransf.NONE )
             cttype = InvCompTransf.NONE;
         else {
-            int nc = src.getNumComps(); 
+            int nc = src.getNumComps() > 3 ? 3 : src.getNumComps(); 
             int rev = 0;
             for(int c=0; c<nc; c++)
                 rev += (wfs.isReversible(tIdx,c)?1:0);

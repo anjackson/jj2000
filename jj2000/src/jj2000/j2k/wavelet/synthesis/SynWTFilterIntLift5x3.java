@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: SynWTFilterIntLift5x3.java,v 1.10 2000/12/12 16:56:35 grosbois Exp $
+ * $Id: SynWTFilterIntLift5x3.java,v 1.11 2001/08/02 11:24:23 grosbois Exp $
  *
  * Class:                   SynWTFilterIntLift5x3
  *
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.wavelet.synthesis;
 
 import jj2000.j2k.wavelet.*;
@@ -52,9 +52,9 @@ import jj2000.j2k.*;
  * data. It implements the inverse wavelet transform specifically for the 5x3
  * filter. The implementation is based on the lifting scheme.
  *
- * <P>See the SynWTFilter class for details such as normalization, how to
+ * <p>See the SynWTFilter class for details such as normalization, how to
  * split odd-length signals, etc. In particular, this method assumes that the
- * low-pass coefficient is computed first.
+ * low-pass coefficient is computed first.</p>
  *
  * @see SynWTFilter
  * @see SynWTFilterInt
@@ -67,42 +67,42 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * scheme. See the general description of the synthetize_lpf() method in
      * the SynWTFilter class for more details.
      *
-     * <P>The coefficients of the first lifting step are [-1/4 1 -1/4]. 
+     * <p>The coefficients of the first lifting step are [-1/4 1 -1/4].</p>
      *
-     * <P>The coefficients of the second lifting step are [1/2 1 1/2].
+     * <p>The coefficients of the second lifting step are [1/2 1 1/2].</p>
      *
-     * @param lowSig This is the array that contains the low-pass
-     * input signal.
+     * @param lowSig This is the array that contains the low-pass input
+     * signal.
      *
      * @param lowOff This is the index in lowSig of the first sample to
      * filter.
      *
-     * @param lowLen This is the number of samples in the low-pass
-     * input signal to filter.
+     * @param lowLen This is the number of samples in the low-pass input
+     * signal to filter.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass input signal samples in the lowSig array.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * input signal samples in the lowSig array.
      *
-     * @param highSig This is the array that contains the high-pass
-     * input signal.
+     * @param highSig This is the array that contains the high-pass input
+     * signal.
      *
      * @param highOff This is the index in highSig of the first sample to
      * filter.
      *
-     * @param highLen This is the number of samples in the high-pass
-     * input signal to filter.
+     * @param highLen This is the number of samples in the high-pass input
+     * signal to filter.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass input signal samples in the highSig array.
      *
-     * @param outSig This is the array where the output signal is
-     * placed. It should be long enough to contain the output signal.
+     * @param outSig This is the array where the output signal is placed. It
+     * should be long enough to contain the output signal.
      *
-     * @param outOff This is the index in outSig of the element where
-     * to put the first output sample.
+     * @param outOff This is the index in outSig of the element where to put
+     * the first output sample.
      *
-     * @param outStep This is the step, or interleave factor, of the
-     * output samples in the outSig array.
+     * @param outStep This is the step, or interleave factor, of the output
+     * samples in the outSig array.
      *
      * @see SynWTFilter#synthetize_lpf
      * */
@@ -118,9 +118,7 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
         int lk; //Indexing lowSig
         int hk; //Indexing highSig  
         
-        /*
-         *Generate even samples (inverse low-pass filter)
-         */
+        /* Generate even samples (inverse low-pass filter) */
             
         //Initialize counters
         lk = lowOff;
@@ -154,9 +152,7 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
             outSig[ik] = lowSig[lk] - ((2*highSig[hk-highStep]+2)>>2);
         }
 
-        /*
-         *Generate odd samples (inverse high pass-filter)
-         */
+        /* Generate odd samples (inverse high pass-filter) */
          
         //Initialize counters
         hk = highOff;
@@ -185,42 +181,42 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * scheme. See the general description of the synthetize_hpf() method in
      * the SynWTFilter class for more details.
      *
-     * <P>The coefficients of the first lifting step are [-1/4 1 -1/4]. 
+     * <p>The coefficients of the first lifting step are [-1/4 1 -1/4].</p>
      *
-     * <P>The coefficients of the second lifting step are [1/2 1 1/2].
+     * <p>The coefficients of the second lifting step are [1/2 1 1/2].</p>
      *
-     * @param lowSig This is the array that contains the low-pass
-     * input signal.
+     * @param lowSig This is the array that contains the low-pass input
+     * signal.
      *
      * @param lowOff This is the index in lowSig of the first sample to
      * filter.
      *
-     * @param lowLen This is the number of samples in the low-pass
-     * input signal to filter.
+     * @param lowLen This is the number of samples in the low-pass input
+     * signal to filter.
      *
-     * @param lowStep This is the step, or interleave factor, of the
-     * low-pass input signal samples in the lowSig array.
+     * @param lowStep This is the step, or interleave factor, of the low-pass
+     * input signal samples in the lowSig array.
      *
-     * @param highSig This is the array that contains the high-pass
-     * input signal.
+     * @param highSig This is the array that contains the high-pass input
+     * signal.
      *
      * @param highOff This is the index in highSig of the first sample to
      * filter.
      *
-     * @param highLen This is the number of samples in the high-pass
-     * input signal to filter.
+     * @param highLen This is the number of samples in the high-pass input
+     * signal to filter.
      *
      * @param highStep This is the step, or interleave factor, of the
      * high-pass input signal samples in the highSig array.
      *
-     * @param outSig This is the array where the output signal is
-     * placed. It should be long enough to contain the output signal.
+     * @param outSig This is the array where the output signal is placed. It
+     * should be long enough to contain the output signal.
      *
-     * @param outOff This is the index in outSig of the element where
-     * to put the first output sample.
+     * @param outOff This is the index in outSig of the element where to put
+     * the first output sample.
      *
-     * @param outStep This is the step, or interleave factor, of the
-     * output samples in the outSig array.
+     * @param outStep This is the step, or interleave factor, of the output
+     * samples in the outSig array.
      *
      * @see SynWTFilter#synthetize_hpf
      * */
@@ -236,9 +232,7 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
         int lk; //Indexing lowSig
         int hk; //Indexing highSig
         
-        /*
-         *Generate even samples (inverse low-pass filter)
-         */
+        /* Generate even samples (inverse low-pass filter) */
         
         //Initialize counters
         lk = lowOff;
@@ -259,9 +253,7 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
             // symmetric extension.
             outSig[ik] = lowSig[lk] - ((2*highSig[hk]+2)>>2);
         }
-        /*
-         *Generate odd samples (inverse high pass-filter)
-         */
+        /* Generate odd samples (inverse high pass-filter) */
          
         //Initialize counters
         hk = highOff;
@@ -319,8 +311,8 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * Returns the negative support of the high-pass analysis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * @return The number of taps of the high-pass analysis filter in
-     * the negative direction
+     * @return The number of taps of the high-pass analysis filter in the
+     * negative direction
      * */
     public int getAnHighNegSupport() {
         return 1;
@@ -330,8 +322,8 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * Returns the positive support of the high-pass analysis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * @return The number of taps of the high-pass analysis filter in
-     * the positive direction
+     * @return The number of taps of the high-pass analysis filter in the
+     * positive direction
      * */
     public int getAnHighPosSupport() {
         return 1;
@@ -340,8 +332,6 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
     /**
      * Returns the negative support of the low-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
-     *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
      *
      * @return The number of taps of the low-pass synthesis filter in the
      * negative direction
@@ -354,8 +344,6 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * Returns the positive support of the low-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
-     *
      * @return The number of taps of the low-pass synthesis filter in the
      * positive direction
      * */
@@ -367,8 +355,6 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * Returns the negative support of the high-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
      *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
-     *
      * @return The number of taps of the high-pass synthesis filter in the
      * negative direction
      * */
@@ -379,8 +365,6 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
     /**
      * Returns the positive support of the high-pass synthesis filter. That is
      * the number of taps of the filter in the negative direction.
-     *
-     * <P>A MORE PRECISE DEFINITION IS NEEDED
      *
      * @return The number of taps of the high-pass synthesis filter in the
      * positive direction
@@ -420,9 +404,9 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
      * affected by image boundaries processings such as symmetric extension,
      * since there is not reference method for this.
      *
-     * <P>The result depends on the length of the allowed overlap when
+     * <p>The result depends on the length of the allowed overlap when
      * compared to the overlap required by the wavelet filter. It also depends
-     * on how overlap processing is implemented in the wavelet filter.
+     * on how overlap processing is implemented in the wavelet filter.</p>
      *
      * @param tailOvrlp This is the number of samples in the input signal
      * before the first sample to filter that can be used for overlap.
@@ -459,5 +443,4 @@ public class SynWTFilterIntLift5x3 extends SynWTFilterInt {
     public String toString(){
         return "w5x3 (lifting)";
     }
-
 }

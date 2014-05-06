@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: QuantTypeSpec.java,v 1.16 2000/12/15 10:07:44 grosbois Exp $
+ * $Id: QuantTypeSpec.java,v 1.18 2001/10/24 12:05:18 grosbois Exp $
  * 
  * Class:                   QuantTypeSpec
  * 
@@ -39,7 +39,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
+ * */
 package jj2000.j2k.quantization;
 
 import jj2000.j2k.util.*;
@@ -62,21 +62,21 @@ import java.util.*;
  *
  * @see ModuleSpec
  * */
-public class QuantTypeSpec extends ModuleSpec{
+public class QuantTypeSpec extends ModuleSpec {
     
     /** 
-     * Constructs an empty 'QuantTypeSpec' with specified number of tile and
-     * components. This constructor is called by the decoder.
+     * Constructs an empty 'QuantTypeSpec' with the specified number of tiles
+     * and components. This constructor is called by the decoder.
      *
      * @param nt Number of tiles
      *
      * @param nc Number of components
      *
-     * @param type the type of the specification module i.e. tile specific,
-     * component specific or both.
+     * @param type the type of the allowed specifications for this module
+     * i.e. tile specific, component specific or both.
      * */
-    public QuantTypeSpec(int nt, int nc, byte type){
-	super(nt, nc, type);
+    public QuantTypeSpec(int nt,int nc,byte type) {
+	super(nt,nc,type);
     }
 
 
@@ -94,15 +94,16 @@ public class QuantTypeSpec extends ModuleSpec{
      *
      * @param pl The ParameterList
      * */
-    public QuantTypeSpec(int nt, int nc, byte type, ParameterList pl){
-        super(nt, nc, type);
+    public QuantTypeSpec(int nt,int nc,byte type,ParameterList pl) {
+        super(nt,nc,type);
 
 	String param = pl.getParameter("Qtype");
-	if(param==null){
-            if(pl.getBooleanParameter("lossless"))
+	if(param==null) {
+            if(pl.getBooleanParameter("lossless")) {
                 setDefault("reversible");
-            else
+            } else {
                 setDefault("expounded");
+            }
             return;
 	}
 
@@ -114,64 +115,67 @@ public class QuantTypeSpec extends ModuleSpec{
 	boolean[] tileSpec = null; // Tiles concerned by the specification
 	boolean[] compSpec = null; // Components concerned by the specification
 	
-	while(stk.hasMoreTokens()){
+	while(stk.hasMoreTokens()) {
 	    word = stk.nextToken().toLowerCase();
 	  
 	    switch(word.charAt(0)){
 	    case 't': // Tiles specification
  		tileSpec = parseIdx(word,nTiles);
-		if(curSpecValType==SPEC_COMP_DEF){
+
+		if(curSpecValType==SPEC_COMP_DEF) {
 		    curSpecValType = SPEC_TILE_COMP;
-		}
-		else{
+		} else{
 		    curSpecValType = SPEC_TILE_DEF;
 		}
  		break;
 	    case 'c': // Components specification
 		compSpec = parseIdx(word,nComp);
-		if(curSpecValType==SPEC_TILE_DEF){
+
+		if(curSpecValType==SPEC_TILE_DEF) {
 		    curSpecValType = SPEC_TILE_COMP;
-		}
-		else
+		} else {
 		    curSpecValType = SPEC_COMP_DEF;
+                }
 		break;
 	    case 'r': // reversible specification
 	    case 'd': // derived quantization step size specification
 	    case 'e': // expounded quantization step size specification
 		if(!word.equalsIgnoreCase("reversible") && 
 		   !word.equalsIgnoreCase("derived") &&
-		   !word.equalsIgnoreCase("expounded"))
+		   !word.equalsIgnoreCase("expounded")) {
                     throw new IllegalArgumentException("Unknown parameter "+
                                                        "for "+
                                                        "'-Qtype' option: "+
                                                        word); 
+                }
 
                 if(pl.getBooleanParameter("lossless") && 
                    ( word.equalsIgnoreCase("derived") || 
-                    word.equalsIgnoreCase("expounded") ) )
+                     word.equalsIgnoreCase("expounded") ) ) {
                     throw new IllegalArgumentException("Cannot use non "+
                                                        "reversible "+
                                                        "quantization with "+
                                                        "'-lossless' option");
+                }
 
-		if(curSpecValType==SPEC_DEF){
+		if(curSpecValType==SPEC_DEF) { // Default specification
 		    setDefault(word);
-		}
-		else if(curSpecValType==SPEC_TILE_DEF){
-		    for(int i=tileSpec.length-1; i>=0; i--)
-			if(tileSpec[i]){
+		} else if(curSpecValType==SPEC_TILE_DEF) {
+                    // Tile default specification
+		    for(int i=tileSpec.length-1; i>=0; i--) {
+			if(tileSpec[i]) {
 			    setTileDef(i,word);
                         }
-		}
-		else if(curSpecValType==SPEC_COMP_DEF){
+                    }
+		} else if(curSpecValType==SPEC_COMP_DEF) {
+                    // Component default specification 
 		    for(int i=compSpec.length-1; i>=0; i--)
-			if(compSpec[i]){
+			if(compSpec[i]) {
 			    setCompDef(i,word);
                         }
-		}
-		else{
-		    for(int i=tileSpec.length-1; i>=0; i--){
-			for(int j=compSpec.length-1; j>=0 ; j--){
+		} else { // Tile-component specification
+		    for(int i=tileSpec.length-1; i>=0; i--) {
+			for(int j=compSpec.length-1; j>=0 ; j--) { 
 			    if(tileSpec[i] && compSpec[j]){
 				setTileCompVal(i,j,word);
                             }
@@ -192,7 +196,7 @@ public class QuantTypeSpec extends ModuleSpec{
 	}
 
         // Check that default value has been specified
-        if(getDefault()==null){
+        if(getDefault()==null) {
             int ndefspec = 0;
             for(int t=nt-1; t>=0; t--){
                 for(int c=nc-1; c>=0 ; c--){
@@ -202,21 +206,25 @@ public class QuantTypeSpec extends ModuleSpec{
                 }
             }
             
-            // If some tile-component have received no specification, it takes
-            // the default value defined in ParameterList
-            if(ndefspec!=0){
-                if(pl.getBooleanParameter("lossless"))
+            // If some tile-component have received no specification, the
+            // quantization type is 'reversible' (if '-lossless' is specified)
+            // or 'expounded' (if not). 
+            if(ndefspec!=0) {
+                if(pl.getBooleanParameter("lossless")) {
                     setDefault("reversible");
-                else
+                } else {
                     setDefault("expounded");
-            }
-            else{
-                // All tile-component have been specified, takes the first
-                // tile-component value as default.
+                }
+            } else {
+                // All tile-component have been specified, takes arbitrarily
+                // the first tile-component value as default and modifies the
+                // specification type of all tile-component sharing this
+                // value.
                 setDefault(getTileCompVal(0,0));
-                switch(specValType[0][0]){
+
+                switch(specValType[0][0]) {
                 case SPEC_TILE_DEF:
-                    for(int c=nc-1; c>=0; c--){
+                    for(int c=nc-1; c>=0; c--) {
                         if(specValType[0][c]==SPEC_TILE_DEF)
                             specValType[0][c] = SPEC_DEF;
                     }
@@ -248,11 +256,12 @@ public class QuantTypeSpec extends ModuleSpec{
      *
      * @return True if derived quantization step size
      * */ 
-    public boolean isDerived(int t,int c){
-	if( ((String)getTileCompVal(t,c)).equals("derived") )
+    public boolean isDerived(int t,int c) {
+	if( ((String)getTileCompVal(t,c)).equals("derived") ) {
 	    return true;
-	else
+	} else {
 	    return false;
+        }
     }
 
     /**
@@ -264,11 +273,12 @@ public class QuantTypeSpec extends ModuleSpec{
      *
      * @return Whether or not the tile-component is reversible
      * */
-    public boolean isReversible(int t,int c){
-	if( ((String)getTileCompVal(t,c)).equals("reversible") )
+    public boolean isReversible(int t,int c) {
+	if( ((String)getTileCompVal(t,c)).equals("reversible") ) {
 	    return true;
-	else
+	} else {
 	    return false;
+        }
     }
 
     /**
@@ -276,11 +286,11 @@ public class QuantTypeSpec extends ModuleSpec{
      *
      * @return Whether or not the whole image is reversible
      * */
-    public boolean isFullyReversible(){
+    public boolean isFullyReversible() {
 	// The whole image is reversible if default specification is
 	// rev and no tile default, component default and
 	// tile-component value has been specificied
-	if( ((String)getDefault()).equals("reversible") ){
+	if( ((String)getDefault()).equals("reversible") ) {
 	    for(int t=nTiles-1; t>=0; t--)
 		for(int c=nComp-1; c>=0; c--)
 		    if(specValType[t][c]!=SPEC_DEF)
@@ -296,7 +306,7 @@ public class QuantTypeSpec extends ModuleSpec{
      *
      * @return Whether or not the whole image is reversible
      * */
-    public boolean isFullyNonReversible(){
+    public boolean isFullyNonReversible() {
 	// The whole image is irreversible no tile-component is reversible
 	for(int t=nTiles-1; t>=0; t--)
 	    for(int c=nComp-1; c>=0; c--)

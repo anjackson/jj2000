@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: CodedCBlk.java,v 1.8 2001/01/10 10:12:29 grosbois Exp $
+ * $Id: CodedCBlk.java,v 1.9 2001/08/17 09:42:13 grosbois Exp $
  *
  * Class:                   CodedCBlk
  *
@@ -46,11 +46,10 @@ package jj2000.j2k.entropy;
  * This is the generic class to store coded (compressed) code-block. It stores
  * the compressed data as well as the necessary side-information.
  *
- * <P>This class is normally not used. Instead the EncRDCBlk, EncLyrdCBlk and
- * the DecLyrdCBlk subclasses are used.
+ * <p>This class is normally not used. Instead the EncRDCBlk, EncLyrdCBlk and
+ * the DecLyrdCBlk subclasses are used.</p>
  *
  * @see jj2000.j2k.entropy.encoder.CBlkRateDistStats
- *
  * @see jj2000.j2k.entropy.decoder.DecLyrdCBlk
  * */
 public class CodedCBlk {
@@ -71,8 +70,7 @@ public class CodedCBlk {
      * Creates a new CodedCBlk object wit the default values and without
      * allocating any space for its members.
      * */
-    public CodedCBlk() {
-    }
+    public CodedCBlk() { }
 
     /**
      * Creates a new CodedCBlk object with the specified values.
@@ -102,8 +100,8 @@ public class CodedCBlk {
      * @return A string with the contents of the object
      * */
     public String toString() {
-        return "m= " + m+", n= "+n+ ", skipMSBP= "+skipMSBP+
-            ", data.length= " + ((data != null) ? ""+data.length : "(null)");
+        return "m="+m+", n="+n+", skipMSBP="+skipMSBP+
+            ", data.length=" + ((data != null) ? ""+data.length : "(null)");
     }
 }
 

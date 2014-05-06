@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: ProgressionType.java,v 1.13 2000/12/04 17:19:59 grosbois Exp $
+ * $Id: ProgressionType.java,v 1.16 2001/07/25 16:21:06 grosbois Exp $
  *
  * Class:                   ProgressionType
  *
@@ -40,47 +40,43 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- *  */
-
-
+ * */
 package jj2000.j2k.codestream;
 
 /**
- * This interface defines the identifiers for the different bit stream
+ * This interface defines the identifiers for the different codestream
  * profiles and progression types.
  *
- * <P>Each progressive type has a different number: 'PT_SNR_PROG',
- * 'PT_RES_PROG', or 'PT_ARB_PROG'. These are the same identifiers are used in
- * the codestream syntax.
+ * <p>Each progressive type has a different number: 'LY_RES_COMP_POS_PROG',
+ * 'RES_LY_COMP_POS_PROG', 'RES_POS_COMP_LY_PROG', 'POS_COMP_RES_LY_PROG' or
+ * 'COMP_POS_RES_LY_PROG'.  These are the same identifiers are used in the
+ * codestream syntax.
  *
- * <P>Each profile identifier is a flag bit. Therefore, several
- * profiles can appear at the same time.
- *
- * <P>This interface defines the constants only. In order to use the
- * constants in any other class you can either use the fully qualified 
- * name (e.g., <tt>ProgressionType.PROF_RA</tt>) or declare this
- * interface in the implements clause of the class and then access the 
- * identifier directly.
+ * <p>This interface defines the constants only. In order to use the constants
+ * in any other class you can either use the fully qualified name (e.g.,
+ * <tt>ProgressionType.LY_RES_COMP_POS_PROG</tt>) or declare this interface in
+ * the implements clause of the class and then access the identifier
+ * directly.</p>
  * */
 public interface ProgressionType {
 
-    /** The bit stream is Layer/Resolution/Component/Position progressive : 0
+    /** The codestream is Layer/Resolution/Component/Position progressive : 0
      * */ 
     public final static int LY_RES_COMP_POS_PROG = 0;
 
-    /** The bit stream is Resolution/Layer/Component/Position progressive : 1
+    /** The codestream is Resolution/Layer/Component/Position progressive : 1
      * */ 
     public final static int RES_LY_COMP_POS_PROG = 1;
 
-    /** The bit stream is Resolution/Position/Component/Layer progressive : 2
+    /** The codestream is Resolution/Position/Component/Layer progressive : 2
      * */ 
     public final static int RES_POS_COMP_LY_PROG = 2;
 
-    /** The bit stream is Position/Component/Resolution/Layer progressive : 3
+    /** The codestream is Position/Component/Resolution/Layer progressive : 3
      * */ 
     public final static int POS_COMP_RES_LY_PROG = 3;
 
-    /** The bit stream is Component/Position/Resolution/Layer progressive : 4
+    /** The codestream is Component/Position/Resolution/Layer progressive : 4
      * */ 
     public final static int COMP_POS_RES_LY_PROG = 4;
 }

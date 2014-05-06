@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: StdDequantizer.java,v 1.10 2001/02/14 10:45:02 grosbois Exp $
+ * $Id: StdDequantizer.java,v 1.15 2002/07/19 12:50:23 grosbois Exp $
  *
  * Class:                   StdDequantizer
  *
@@ -63,26 +63,26 @@ import java.io.*;
  * step sizes and other parameters are taken from a StdDequantizerParams
  * class, which inherits from DequantizerParams.
  *
- * <P>Sign magnitude representation is used (instead of two's complement) for
+ * <p>Sign magnitude representation is used (instead of two's complement) for
  * the input data. The most significant bit is used for the sign (0 if
  * positive, 1 if negative). Then the magnitude of the quantized coefficient
  * is stored in the next most significat bits. The most significant magnitude
- * bit corresponds to the most significant bit-plane and so on.
+ * bit corresponds to the most significant bit-plane and so on.</p>
  *
- * <P>When reversible quantization is used, this class only converts between
+ * <p>When reversible quantization is used, this class only converts between
  * the sign-magnitude representation and the integer (or eventually
- * fixed-point) output, since there is no true quantization.
+ * fixed-point) output, since there is no true quantization.</p>
  *
- * <P>The output data is fixed-point two's complement for 'int' output and
+ * <p>The output data is fixed-point two's complement for 'int' output and
  * floating-point for 'float' output. The type of output and the number number
  * of fractional bits for 'int' output are defined at the constructor. Each
- * component may have a different number of fractional bits.
+ * component may have a different number of fractional bits.</p>
  *
- * <P>The reconstruction levels used by the dequantizer are exactly what is
+ * <p>The reconstruction levels used by the dequantizer are exactly what is
  * received from the entropy decoder. It is assumed that the entropy decoder
  * always returns codewords that are midways in the decoded intervals. In this
  * way the dequantized values will always lie midways in the quantization
- * intervals.
+ * intervals.</p>
  * */
 public class StdDequantizer extends Dequantizer {
 
@@ -127,10 +127,10 @@ public class StdDequantizer extends Dequantizer {
      * is TYPE_FLOAT and 'fp' has non-zero values.
      * */
     public StdDequantizer(CBlkQuantDataSrcDec src,int[] utrb,
-                               DecoderSpecs decSpec){
+                          DecoderSpecs decSpec) {
         super(src,utrb,decSpec);
 
-        if(utrb.length != src.getNumComps()){
+        if(utrb.length != src.getNumComps()) {
             throw new IllegalArgumentException("Invalid rb argument");
         }
         this.qsss = decSpec.qsss;
@@ -148,15 +148,14 @@ public class StdDequantizer extends Dequantizer {
      * least significant bit in the data. If the output data is 'float' then 0
      * is always returned.
      *
-     * <P><u>Note:</u> Fractional bits are no more supported by JJ2000. 
+     * <p><u>Note:</u> Fractional bits are no more supported by JJ2000.</p>
      *
      * @param c The index of the component.
      *
-     * @return The position of the fixed-point, which is the same as
-     * the number of fractional bits. For floating-point data 0 is
-     * returned.
+     * @return The position of the fixed-point, which is the same as the
+     * number of fractional bits. For floating-point data 0 is returned.
      * */
-    public int getFixedPoint(int c){
+    public int getFixedPoint(int c) {
         return 0;
     }
 
@@ -164,20 +163,20 @@ public class StdDequantizer extends Dequantizer {
      * Returns the specified code-block in the current tile for the specified
      * component, as a copy (see below).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
      * any problems after being returned. The 'offset' of the returned data is 
      * 0, and the 'scanw' is the same as the code-block width. See the
-     * 'DataBlk' class.
+     * 'DataBlk' class.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -200,7 +199,7 @@ public class StdDequantizer extends Dequantizer {
      * @see DataBlk
      * */
     public final DataBlk getCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                        DataBlk cblk) {
+                                      DataBlk cblk) {
         return getInternCodeBlock(c,m,n,sb,cblk);
     }
     
@@ -208,19 +207,19 @@ public class StdDequantizer extends Dequantizer {
      * Returns the specified code-block in the current tile for the specified
      * component (as a reference or copy).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk'
      * object. If a code-block is progressive it means that in a later request
      * to this method for the same code-block it is possible to retrieve data
      * which is a better approximation, since meanwhile more data to decode
      * for the code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'DataBlk' class.
+     * arbitrary. See the 'DataBlk' class.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -244,7 +243,7 @@ public class StdDequantizer extends Dequantizer {
      * */
     public final
         DataBlk getInternCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                     DataBlk cblk) {
+				   DataBlk cblk) {
         // This method is declared final since getNextCodeBlock() relies on
         // the actual implementation of this method.
         int j,jmin,k;
@@ -301,7 +300,7 @@ public class StdDequantizer extends Dequantizer {
             cblk.progressive = inblk.progressive;
             // Get output data array and check its size
             outfarr = (float[]) cblk.getData();
-            if (outfarr == null || outfarr.length < cblk.w*cblk.h) {
+            if (outfarr==null || outfarr.length<cblk.w*cblk.h) {
                 outfarr = new float[cblk.w*cblk.h];
                 cblk.setData(outfarr);
             }
@@ -313,26 +312,24 @@ public class StdDequantizer extends Dequantizer {
         // Calculate quantization step and number of magnitude bits
         // depending on reversibility and derivedness and perform
         // inverse quantization
-        if(reversible){
+        if(reversible) {
             shiftBits=31-magBits;
             // For int data Inverse quantization happens "in-place". The input
             // array has an offset of 0 and scan width equal to the code-block
             // width.
             for (j=outiarr.length-1; j>=0; j--) {
                 temp = outiarr[j]; // input array is same as output one
-                outiarr[j]=(temp >= 0) ? (temp>>shiftBits) :
+                outiarr[j]=(temp>=0) ? (temp>>shiftBits) :
                     -((temp&0x7FFFFFFF)>>shiftBits);
             }
-        }
-        else{// Not reversible 
-            if(derived){
+        } else { // Not reversible 
+            if(derived) {
                 // Max resolution level
-                int mrl = src.getSubbandTree(getTileIdx(),c).resLvl;
-                step=params.nStep[0][0]*
+                int mrl = src.getSynSubbandTree(getTileIdx(),c).resLvl;
+                step = params.nStep[0][0] *
                     (1L<<(rb[c]+sb.anGainExp+mrl-sb.level));
-            }
-            else{
-                step=params.nStep[sb.resLvl][sb.sbandIdx]*
+            } else {
+                step = params.nStep[sb.resLvl][sb.sbandIdx] *
                     (1L<<(rb[c]+sb.anGainExp));
             }
             shiftBits=31-magBits;

@@ -1,7 +1,7 @@
-/*
+/**
  * CVS identifier:
  *
- * $Id: ImgReader.java,v 1.8 2000/11/27 14:57:29 grosbois Exp $
+ * $Id: ImgReader.java,v 1.10 2002/07/25 15:07:44 grosbois Exp $
  *
  * Class:                   ImgReader
  *
@@ -40,7 +40,7 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- */
+ * */
 package jj2000.j2k.image.input;
 
 import jj2000.j2k.image.*;
@@ -51,20 +51,21 @@ import java.io.*;
  * This is the generic interface to be implemented by all image file (or other
  * resource) readers for different image file formats.
  *
- * <P>An ImgReader behaves as an ImgData object. Whenever image data is
+ * <p>An ImgReader behaves as an ImgData object. Whenever image data is
  * requested through the getInternCompData() or getCompData() methods, the
  * image data will be read (if it is not buffered) and returned. Implementing
  * classes should not buffer large amounts of data, so as to reduce memory
- * usage.
+ * usage.</p>
  *
- * <P>This class sets the image origin to (0,0). All default implementations
- * of the methods assume this.
+ * <p>This class sets the image origin to (0,0). All default implementations
+ * of the methods assume this.</p>
  *
- * <P>This class provides default implementations of many methods. These
+ * <p>This class provides default implementations of many methods. These
  * default implementations assume that there is no tiling (i.e., the only tile
  * is the entire image), that the image origin is (0,0) in the canvas system
  * and that there is no component subsampling (all components are the same
- * size), but they can be overloaded by the implementating class if need be.
+ * size), but they can be overloaded by the implementating class if need
+ * be.</p>
  * */
 public abstract class ImgReader implements BlkImgDataSrc {
 
@@ -92,7 +93,7 @@ public abstract class ImgReader implements BlkImgDataSrc {
      *
      * @return The total image width in pixels.
      * */
-    public int getWidth() {
+    public int getTileWidth() {
         return w;
     }
 
@@ -102,7 +103,17 @@ public abstract class ImgReader implements BlkImgDataSrc {
      * width of the image. The value of <tt>h</tt> is returned.
      *
      * @return The total image height in pixels.  */
-    public int getHeight() {
+    public int getTileHeight() {
+        return h;
+    }
+
+    /** Returns the nominal tiles width */
+    public int getNomTileWidth() {
+        return w;
+    }
+
+    /** Returns the nominal tiles height */
+    public int getNomTileHeight() {
         return h;
     }
 
@@ -148,7 +159,7 @@ public abstract class ImgReader implements BlkImgDataSrc {
      *
      * @return The horizontal subsampling factor of component 'c'
      *
-     * @see ImgData
+     * @see jj2000.j2k.image.ImgData
      * */
     public int getCompSubsX(int c) {
         return 1;
@@ -164,39 +175,50 @@ public abstract class ImgReader implements BlkImgDataSrc {
      *
      * @return The vertical subsampling factor of component 'c'
      *
-     * @see ImgData
+     * @see jj2000.j2k.image.ImgData
      * */
     public int getCompSubsY(int c) {
         return 1;
     }
 
     /**
-     * Returns the width in pixels of the specified component in the current
-     * tile. This default implementation assumes no tiling and no component
-     * subsampling (i.e., all components, or components, have the same
-     * dimensions in pixels).
+     * Returns the width in pixels of the specified tile-component. This
+     * default implementation assumes no tiling and no component subsampling
+     * (i.e., all components, or components, have the same dimensions in
+     * pixels).
+     *
+     * @param t Tile index
      *
      * @param c The index of the component, from 0 to C-1.
      *
-     * @return The width in pixels of component <tt>n</tt> in the current
-     * tile.
+     * @return The width in pixels of component <tt>c</tt> in tile<tt>t</tt>.
      * */
-    public int getCompWidth(int n) {
+    public int getTileCompWidth(int t,int c) {
+        if(t!=0) {
+            throw new Error("Asking a tile-component width for a tile index"+
+                            " greater than 0 whereas there is only one tile");
+        }
         return w;
     }
 
     /**
-     * Returns the height in pixels of the specified component in the current
-     * tile. This default implementation assumes no tiling and no component
-     * subsampling (i.e., all components, or components, have the same
-     * dimensions in pixels).
+     * Returns the height in pixels of the specified tile-component. This
+     * default implementation assumes no tiling and no component subsampling
+     * (i.e., all components, or components, have the same dimensions in
+     * pixels).
+     *
+     * @param t The tile index
      *
      * @param c The index of the component, from 0 to C-1.
      *
-     * @return The height in pixels of component <tt>c</tt> in the current
-     * tile.
+     * @return The height in pixels of component <tt>c</tt> in tile
+     * <tt>t</tt>.
      * */
-    public int getCompHeight(int c) {
+    public int getTileCompHeight(int t,int c) {
+        if(t!=0) {
+            throw new Error("Asking a tile-component width for a tile index"+
+                            " greater than 0 whereas there is only one tile");
+        }
         return h;
     }
 
@@ -286,62 +308,32 @@ public abstract class ImgReader implements BlkImgDataSrc {
     }
 
     /**
-     * Returns the horizontal and vertical offset of the upper-left corner of
-     * the current tile, in the specified component, relative to the canvas
-     * origin, in the component coordinates (not in the reference grid
-     * coordinates). These are the coordinates of the current tile's (not
-     * active tile) upper-left corner relative to the canvas.
-     *
-     * <P>This default implementation assumes no tiling and that the
-     * partitioning origin is the canvas origin, so (0,0) is always returned.
-     *
-     * @param co If not null the object is used to return the values, if null
-     * a new one is created and returned.
-     *
-     * @param c The index of the component (between 0 and C-1)
-     *
-     * @return The horizontal and vertical offsets of the upper-left corner of
-     * the current tile, for the specified component, relative to the canvas
-     * origin, in the component coordinates.
-     * */
-    public Coord getTileOff(Coord co, int c) {
-        if (co != null) {
-            co.x = 0;
-            co.y = 0;
-            return co;
-        }
-        else {
-            return new Coord(0,0);
-        }
-    }
-
-    /**
      * Returns the horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, in the component
-     * coordinates, for the specified component.
+     * specified component in the current tile.
      *
-     * @param c The index of the component (between 0 and C-1)
-     *
-     * @return The horizontal coordinate of the upper-left corner of the
-     * active tile, with respect to the canvas origin, for component 'c', in
-     * the component coordinates.
+     * @param c The component index.
      * */
-    public int getULX(int c) {
+    public int getCompULX(int c) {
         return 0;
     }
 
     /**
-     * Returns the vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, in the component coordinates,
-     * for the specified component.
+     * Returns the vertical coordinate of the upper-left corner of the
+     * specified component in the current tile.
      *
-     * @param c The index of the component (between 0 and C-1)
-     *
-     * @return The vertical coordinate of the upper-left corner of the active
-     * tile, with respect to the canvas origin, for component 'c', in the
-     * component coordinates.
+     * @param c The component index.
      * */
-    public int getULY(int c) {
+    public int getCompULY(int c) {
+        return 0;
+    }
+
+    /** Returns the horizontal tile partition offset in the reference grid */
+    public int getTilePartULX() {
+        return 0;
+    }
+
+    /** Returns the vertical tile partition offset in the reference grid */
+    public int getTilePartULY() {
         return 0;
     }
 

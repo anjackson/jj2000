@@ -60,7 +60,7 @@ import java.io.*;
  *
  * <P>NOTE: This class is not thread safe, for reasons of internal buffering.
  *
- * @see ImgData
+ * @see jj2000.j2k.image.ImgData
  * */
 public class ImgReaderPPM extends ImgReader {
 

@@ -1,7 +1,7 @@
 /*
  * CVS identifier:
  *
- * $Id: LayersInfo.java,v 1.6 2000/09/05 09:23:40 grosbois Exp $
+ * $Id: LayersInfo.java,v 1.7 2001/04/15 14:31:22 grosbois Exp $
  *
  * Class:                   LayersInfo
  *
@@ -39,39 +39,34 @@
  * derivative works of this software module.
  * 
  * Copyright (c) 1999/2000 JJ2000 Partners.
- * 
- * 
- * 
- */
-
-
+ * */
 package jj2000.j2k.entropy.encoder;
 
 /**
- * This class stores the specification of a layer distribution in the
- * bit stream. The specification is made of optimization points and a number of
+ * This class stores the specification of a layer distribution in the bit
+ * stream. The specification is made of optimization points and a number of
  * extra layers to add between the optimization points. Each optimization
  * point creates a layer which is optimized by the rate allocator to the
  * specified target bitrate. The extra layers are added by the rate allocator
  * between the optimized layers, with the difference that they are not
  * optimized (i.e. they have no precise target bitrate).
  *
- * <P>The overall target bitrate for the bit stream is always added as the last
- * optimization point without any extra layers after it. If there are some
- * optimization points whose target bitrate is larger than the overall target
- * bitrate, the overall target bitrate will still appear as the last
+ * <p>The overall target bitrate for the bit stream is always added as the
+ * last optimization point without any extra layers after it. If there are
+ * some optimization points whose target bitrate is larger than the overall
+ * target bitrate, the overall target bitrate will still appear as the last
  * optimization point, even though it does not follow the increasing target
  * bitrate order of the other optimization points. The rate allocator is
  * responsible for eliminating layers that have target bitrates larger than
- * the overall target bitrate.
+ * the overall target bitrate.</p>
  *
- * <P>Optimization points can be added with the addOptPoint() method. It takes 
+ * <p>Optimization points can be added with the addOptPoint() method. It takes
  * the target bitrate for the optimized layer and the number of extra layers
- * to add after it.
+ * to add after it.</p>
  *
- * <P>Information about the total number of layers, total number of
+ * <p>Information about the total number of layers, total number of
  * optimization points, target bitrates, etc. can be obtained with the other
- * methods.
+ * methods.</p>
  * */
 public class LayersInfo {
 
@@ -95,10 +90,10 @@ public class LayersInfo {
     /** The target bitrate to which specified layers should be optimized. */
     float optbrate[] = new float[SZ_INIT];
 
-    /** The number of extra layers to be added after an optimized layer. After 
+    /** The number of extra layers to be added after an optimized layer. After
      * the layer that is optimized to optbrate[i], extralyrs[i] extra layers
      * should be added. These layers are allocated between the bitrate
-     * optbrate[i] and the next optimized bitrate optbrate[i+1] or, if it does 
+     * optbrate[i] and the next optimized bitrate optbrate[i+1] or, if it does
      * not exist, the overall target bitrate. */
     int extralyrs[] = new int[SZ_INIT];
 
@@ -109,8 +104,6 @@ public class LayersInfo {
      * are always added before the overall target bitrate.
      *
      * @param brate The overall target bitrate for the bit stream
-     *
-     *
      * */
     public LayersInfo(float brate) {
         if (brate <= 0) {
@@ -124,8 +117,6 @@ public class LayersInfo {
      * Returns the overall target bitrate for the entire bit stream.
      *
      * @return The overall target bitrate
-     *
-     *
      * */
     public float getTotBitrate() {
         return totbrate;
@@ -136,8 +127,6 @@ public class LayersInfo {
      * specification of this object and the overall target bitrate.
      *
      * @return The total number of layers, according to the layer spec.
-     *
-     *
      * */
     public int getTotNumLayers() {
         return totlyrs;
@@ -148,8 +137,6 @@ public class LayersInfo {
      * specified by this object.
      *
      * @return The number of optimization points
-     *
-     *
      * */
     public int getNOptPoints() {
         // overall target bitrate is counted as extra
@@ -162,8 +149,6 @@ public class LayersInfo {
      * @param n The optimization point index (starts at 0).
      *
      * @return The target bitrate (in bpp) for the optimization point 'n'.
-     *
-     *
      * */
     public float getTargetBitrate(int n) {
         // overall target bitrate is counted as extra
@@ -173,14 +158,13 @@ public class LayersInfo {
     /**
      * Returns the number of extra layers to add after the optimization point
      * 'n', but before optimization point 'n+1'. If there is no optimization
-     * point 'n+1' then they should be added before the overall target bitrate.
+     * point 'n+1' then they should be added before the overall target
+     * bitrate.
      *
      * @param n The optimization point index (starts at 0).
      *
      * @return The number of extra (unoptimized) layers to add after the
      * optimization point 'n'
-     *
-     *
      * */
     public int getExtraLayers(int n) {
         // overall target bitrate is counted as extra
@@ -197,8 +181,6 @@ public class LayersInfo {
      *
      * @param elyrs The number of extra (unoptimized) layers to add after the
      * optimized layer.
-     *
-     *
      * */
     public void addOptPoint(float brate, int elyrs) {
         // Check validity of arguments

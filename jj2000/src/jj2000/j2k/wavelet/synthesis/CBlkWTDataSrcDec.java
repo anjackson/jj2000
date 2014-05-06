@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: CBlkWTDataSrcDec.java,v 1.17 2001/02/14 17:38:25 grosbois Exp $
+ * $Id: CBlkWTDataSrcDec.java,v 1.19 2001/09/20 12:46:31 grosbois Exp $
  * 
  * Class:                   CBlkWTDataSrcDec
  * 
@@ -52,54 +52,34 @@ import jj2000.j2k.wavelet.*;
  * 'getCodeBlock()' or 'getInternCodeBlock()' a new code-block is
  * returned. The code-blocks are returned in no specific order.
  *
- * <P>This class is the source of data, in general, for the inverse wavelet
- * transforms. See the 'InverseWT' class.
+ * <p>This class is the source of data, in general, for the inverse wavelet
+ * transforms. See the 'InverseWT' class.</p>
  *
  * @see InvWTData
- *
  * @see WaveletTransform
- *
  * @see jj2000.j2k.quantization.dequantizer.CBlkQuantDataSrcDec
- *
  * @see InverseWT
  * */
 public interface CBlkWTDataSrcDec extends InvWTData {
-
-    /**
-     * Returns the number of code-blocks in a subband, along the horizontal
-     * and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param c The component where the subband is.
-     *
-     * @param co If not null the values are returned in this object. If null a
-     * new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal dimension in
-     * 'Coord.x' and the number of code-blocks along the vertical dimension in
-     * 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int c, Coord co);
 
     /**
      * Returns the number of bits, referred to as the "range bits",
      * corresponding to the nominal range of the data in the specified
      * component.
      *
-     * <P>The returned value corresponds to the nominal dynamic range of the
+     * <p>The returned value corresponds to the nominal dynamic range of the
      * reconstructed image data, not of the wavelet coefficients
      * themselves. This is because different subbands have different gains and
      * thus different nominal ranges. To have an idea of the nominal range in
      * each subband the subband analysis gain value from the subband tree
-     * structure, returned by the 'getSubbandTree()' method, can be used. See
-     * the 'Subband' class for more details.
+     * structure, returned by the 'getSynSubbandTree()' method, can be
+     * used. See the 'Subband' class for more details.</p>
      *
-     * <P>If this number is <i>b</b> then for unsigned data the nominal range
+     * <p>If this number is <i>b</b> then for unsigned data the nominal range
      * is between 0 and 2^b-1, and for signed data it is between -2^(b-1) and
-     * 2^(b-1)-1.
+     * 2^(b-1)-1.</p>
      *
-     * @param c The index of the component
+     * @param c The index of the component.
      *
      * @return The number of bits corresponding to the nominal range of the
      * data.
@@ -129,20 +109,20 @@ public interface CBlkWTDataSrcDec extends InvWTData {
      * Returns the specified code-block in the current tile for the specified
      * component, as a copy (see below).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
+     * <p>The returned code-block may be progressive, which is indicated by
      * the 'progressive' variable of the returned 'DataBlk' object. If a
      * code-block is progressive it means that in a later request to this
      * method for the same code-block it is possible to retrieve data which is
      * a better approximation, since meanwhile more data to decode for the
      * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method is always a copy of the internal
+     * <p>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
      * any problems after being returned. The 'offset' of the returned data is 
      * 0, and the 'scanw' is the same as the code-block width. See the
-     * 'DataBlk' class.
+     * 'DataBlk' class.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -164,26 +144,25 @@ public interface CBlkWTDataSrcDec extends InvWTData {
      *
      * @see DataBlk
      * */
-    public DataBlk getCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                DataBlk cblk);
+    public DataBlk getCodeBlock(int c,int m,int n,SubbandSyn sb,DataBlk cblk);
     
     /**
      * Returns the specified code-block in the current tile for the specified
      * component (as a reference or copy).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
-     * the 'progressive' variable of the returned 'DataBlk'
-     * object. If a code-block is progressive it means that in a later request
-     * to this method for the same code-block it is possible to retrieve data
-     * which is a better approximation, since meanwhile more data to decode
-     * for the code-block could have been received. If the code-block is not
+     * <p>The returned code-block may be progressive, which is indicated by
+     * the 'progressive' variable of the returned 'DataBlk' object. If a
+     * code-block is progressive it means that in a later request to this
+     * method for the same code-block it is possible to retrieve data which is
+     * a better approximation, since meanwhile more data to decode for the
+     * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'DataBlk' class.
+     * arbitrary. See the 'DataBlk' class.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -205,6 +184,6 @@ public interface CBlkWTDataSrcDec extends InvWTData {
      *
      * @see DataBlk
      * */
-    public DataBlk getInternCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                        DataBlk cblk);
+    public DataBlk getInternCodeBlock(int c,int m,int n,SubbandSyn sb,
+                                      DataBlk cblk);
 }

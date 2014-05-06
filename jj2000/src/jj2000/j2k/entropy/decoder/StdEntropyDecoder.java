@@ -1,7 +1,7 @@
 /* 
  * CVS identifier:
  * 
- * $Id: StdEntropyDecoder.java,v 1.26 2001/02/14 10:48:15 grosbois Exp $
+ * $Id: StdEntropyDecoder.java,v 1.30 2001/10/25 12:12:16 qtxjoas Exp $
  * 
  * Class:                   StdEntropyDecoder
  * 
@@ -55,17 +55,17 @@ import jj2000.j2k.*;
  * This class implements the JPEG 2000 entropy decoder, which codes stripes in
  * code-blocks. This entropy decoding engine decodes one code-block at a time.
  *
- * The code-block are rectangular, with dimensions which must be powers of
- * 2. Each dimension has to be no smaller than 4 and no larger than 256. The
- * product of the two dimensions (i.e. area of the code-block) may not exceed
- * 4096.
+ * <p>The code-blocks are rectangular and their dimensions must be powers of
+ * 2. Each dimension cannot be smaller than 4 and larger than 256. The product
+ * of the two dimensions (i.e. area of the code-block) cannot exceed 4096.</p>
  *
- * Context 0 of the MQ-coder is used as the uniform one (uniform, non-adaptive
- * probability distribution). Context 1 is used for RLC coding. Contexts 2-10
- * are used for zero-coding (ZC), contexts 11-15 are used for sign-coding (SC)
- * and contexts 16-18 are used for magnitude-refinement (MR).
+ * <p>Context 0 of the MQ-coder is used as the uniform one (uniform,
+ * non-adaptive probability distribution). Context 1 is used for RLC
+ * coding. Contexts 2-10 are used for zero-coding (ZC), contexts 11-15 are
+ * used for sign-coding (SC) and contexts 16-18 are used for
+ * magnitude-refinement (MR).</p>
  *
- * <P>This implementation also provides some timing features. They can be
+ * <p>This implementation also provides some timing features. They can be
  * enabled by setting the 'DO_TIMING' constant of this class to true and
  * recompiling. The timing uses the 'System.currentTimeMillis()' Java API
  * call, which returns wall clock time, not the actual CPU time used. The
@@ -74,7 +74,7 @@ import jj2000.j2k.*;
  * to find the total used time (i.e. some time might be counted in several
  * places). When timing is disabled ('DO_TIMING' is false) there is no penalty
  * if the compiler performs some basic optimizations. Even if not the penalty
- * should be negligeable.
+ * should be negligeable.</p>
  * */
 public class StdEntropyDecoder extends EntropyDecoder 
     implements StdEntropyCoderOptions {
@@ -98,8 +98,9 @@ public class StdEntropyDecoder extends EntropyDecoder
     private DecoderSpecs decSpec;
 
     /** The options that are turned on, as flag bits. The options are
-     * 'OPT_REG_TERM', 'OPT_RESET_MQ', 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS' and
-     * 'OPT_SEG_MARKERS' as defined in the StdEntropyCoderOptions interface
+     * 'OPT_TERM_PASS', 'OPT_RESET_MQ', 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS'
+     * and 'OPT_SEG_SYMBOLS' as defined in the StdEntropyCoderOptions
+     * interface
      *
      * @see StdEntropyCoderOptions
      **/
@@ -169,9 +170,9 @@ public class StdEntropyDecoder extends EntropyDecoder
     private static final int MQ_INIT[] = {46, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0,
                                           0, 0, 0, 0, 0, 0, 0, 0};
 
-    /** The 4 symbol segmentation marker (decimal 10, which is binary sequence
-        1010) */
-    private static final int SEG_MARKER = 10;
+    /** The 4 bits of the error resilience segmentation symbol (decimal 10,
+        which is binary sequence 1010) */
+    private static final int SEG_SYMBOL = 10;
 
     /**
      * The state array for entropy coding. Each element of the state array
@@ -200,8 +201,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * up-right, down-left and down-right; 1 for significant, 0 for non
      * significant).
      *
-     * <P>The upper 16 bits the state is stored as in the lower 16 bits,
-     * but with the bits shifted up by 16.
+     * <P>The upper 16 bits the state is stored as in the lower 16 bits, but
+     * with the bits shifted up by 16.
      *
      * <P>The lower 16 bits are referred to as "row 1" ("R1") while the upper
      * 16 bits are referred to as "row 2" ("R2").
@@ -221,7 +222,7 @@ public class StdEntropyDecoder extends EntropyDecoder
     /** The flag bit for the "not zero context" bit in the state array, for
      * row 1. This bit is always the OR of bits STATE_H_L_R1, STATE_H_R_R1,
      * STATE_V_U_R1, STATE_V_D_R1, STATE_D_UL_R1, STATE_D_UR_R1, STATE_D_DL_R1
-     * and STATE_D_DR_R1. */ 
+     * and STATE_D_DR_R1. */
     private static final int STATE_NZ_CTXT_R1 = 1<<13;
 
     /** The flag bit for the horizontal-left sign in the state array, for row
@@ -292,8 +293,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * 2. This bit can only be set if the STATE_H_L_R2 is also set. */
     private static final int STATE_H_L_SIGN_R2 = STATE_H_L_SIGN_R1<<STATE_SEP;
 
-    /** The flag bit for the horizontal-right sign in the state array, for
-     * row 2. This bit can only be set if the STATE_H_R_R2 is also set. */
+    /** The flag bit for the horizontal-right sign in the state array, for row
+     * 2. This bit can only be set if the STATE_H_R_R2 is also set. */
     private static final int STATE_H_R_SIGN_R2 = STATE_H_R_SIGN_R1<<STATE_SEP;
 
     /** The flag bit for the vertical-up sign in the state array, for row
@@ -346,7 +347,8 @@ public class StdEntropyDecoder extends EntropyDecoder
 
     /** The mask to isolate the visited bits for row 1 and 2 of the state 
      * array. */
-    private static final int VSTD_MASK_R1R2 = STATE_VISITED_R1|STATE_VISITED_R2;
+    private static final int VSTD_MASK_R1R2 = 
+        STATE_VISITED_R1|STATE_VISITED_R2;
 
     /** The mask to isolate the bits necessary to identify RLC coding state
      * (significant, visited and non-zero context, for row 1 and 2). */
@@ -379,6 +381,9 @@ public class StdEntropyDecoder extends EntropyDecoder
     /** The source code-block to entropy code (avoids reallocation for each
         code-block). */
     private DecLyrdCBlk srcblk;
+
+    /** The maximum number of bit planes to decode for any code-block */
+    private int mQuit;
 
     /** Static initializer: initializes all the lookup tables. */
     static {
@@ -548,11 +553,11 @@ public class StdEntropyDecoder extends EntropyDecoder
         inter_sc_lut[(0<<3)|0] = 15 | INT_SIGN_BIT;
 
         // Using the intermediate sign code lookup table create the final
-        // one. The index into this table is a 9 bit index, the low 4 bits are 
+        // one. The index into this table is a 9 bit index, the low 4 bits are
         // the significance of the 4 horizontal/vertical neighbors, while the
         // top 4 bits are the signs of those neighbors. The bit in the middle
         // is ignored. This index arrangement matches the state bits in the
-        // 'state' array, thus direct addressing of the table can be done from 
+        // 'state' array, thus direct addressing of the table can be done from
         // the sate information.
         for (i=0; i<(1<<SC_LUT_BITS)-1; i++) {
             ds = i & 0x01;        // significance of down neighbor
@@ -596,22 +601,26 @@ public class StdEntropyDecoder extends EntropyDecoder
      * @param src The source of data
      *
      * @param opt The options to use for this encoder. It is a mix of the
-     * 'OPT_REG_TERM', 'OPT_RESET_MQ', 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS' and
-     * 'OPT_SEG_MARKERS' option flags.
+     * 'OPT_TERM_PASS', 'OPT_RESET_MQ', 'OPT_VERT_STR_CAUSAL', 'OPT_BYPASS'
+     * and 'OPT_SEG_SYMBOLS' option flags.
      * 
      * @param doer If true error detection will be performed, if any error
      * detection features have been enabled.
      *
      * @param verber This flag indicates if the entropy decoder should be
      * verbose about bit stream errors that are detected and concealed.
+     *
+     * @param mQuit the maximum number of bit planes to decode according to
+     * the m quit condition
      * */
     public StdEntropyDecoder(CodedCBlkDataSrcDec src, DecoderSpecs decSpec, 
-                             boolean doer, boolean verber) {
+                             boolean doer, boolean verber, int mQuit) {
         super(src);
 
         this.decSpec = decSpec;
         this.doer = doer;
         this.verber = verber;
+        this.mQuit = mQuit;
 
         // If we do timing create necessary structures
         if (DO_TIMING) {
@@ -650,25 +659,6 @@ public class StdEntropyDecoder extends EntropyDecoder
     }
 
     /**
-     * Returns the number of code-blocks in a subband, along the
-     * horizontal and vertical dimensions.
-     *
-     * @param sb The subband for which to return the number of blocks.
-     *
-     * @param n The component where the subband is.
-     *
-     * @param co If not null the values are returned in this
-     * object. If null a new object is allocated and returned.
-     *
-     * @return The number of code-blocks along the horizontal
-     * dimension in 'Coord.x' and the number of code-blocks along the 
-     * vertical dimension in 'Coord.y'.
-     * */
-    public Coord getNumCodeBlocks(SubbandSyn sb, int n, Coord co) {
-        return src.getNumCodeBlocks(sb,n,co);
-    }
-
-    /**
      * Returns the specified code-block in the current tile for the specified
      * component, as a copy (see below).
      *
@@ -683,7 +673,7 @@ public class StdEntropyDecoder extends EntropyDecoder
      *
      * <P>The data returned by this method is always a copy of the internal
      * data of this object, if any, and it can be modified "in place" without
-     * any problems after being returned. The 'offset' of the returned data is 
+     * any problems after being returned. The 'offset' of the returned data is
      * 0, and the 'scanw' is the same as the code-block width. See the
      * 'DataBlk' class.
      *
@@ -711,8 +701,7 @@ public class StdEntropyDecoder extends EntropyDecoder
      *
      * @see DataBlk
      * */
-    public DataBlk getCodeBlock(int c, int m, int n, SubbandSyn sb,
-                                DataBlk cblk) {
+    public DataBlk getCodeBlock(int c,int m,int n,SubbandSyn sb,DataBlk cblk) {
         long stime = 0L;  // Start time for timed sections
         int zc_lut[];     // The ZC lookup table to use
         int out_data[];   // The outupt data buffer
@@ -727,19 +716,17 @@ public class StdEntropyDecoder extends EntropyDecoder
 
         // Get the code-block to decode
         srcblk = src.getCodeBlock(c,m,n,sb,1,-1,srcblk);
+
         if (DO_TIMING) stime = System.currentTimeMillis();
         
         // Retrieve options from decSpec
-        options = ((Integer)decSpec.ecopts.
-                   getTileCompVal(tIdx,c)).intValue();
+        options = ((Integer)decSpec.ecopts.getTileCompVal(tIdx,c)).intValue();
 
         // Reset state
         ArrayUtil.intArraySet(state,0);
 
         // Initialize output code-block
-        if (cblk==null) {
-            cblk = new DataBlkInt();
-        }
+        if (cblk==null) cblk = new DataBlkInt();
         cblk.progressive = srcblk.prog;
         cblk.ulx = srcblk.ulx;
         cblk.uly = srcblk.uly;
@@ -749,43 +736,43 @@ public class StdEntropyDecoder extends EntropyDecoder
         cblk.scanw = cblk.w;
         out_data = (int[])cblk.getData();
 
-        if (out_data == null || out_data.length < srcblk.w*srcblk.h) {
+        if (out_data == null || out_data.length<srcblk.w*srcblk.h) {
             out_data = new int[srcblk.w*srcblk.h];
             cblk.setData(out_data);
+        } else {
+            // Set data values to 0
+            ArrayUtil.intArraySet(out_data,0);
         }
-        // Set data values to 0
-        ArrayUtil.intArraySet(out_data,0);
 
-        if (srcblk.nl <= 0 || srcblk.nTrunc <= 0) {
+        if (srcblk.nl<=0 || srcblk.nTrunc<=0) {
             // 0 layers => no data to decode => return all 0s
             return cblk;
         }
 
         // Get the length of the first terminated segment
-        tslen = (srcblk.tsLengths == null) ? srcblk.dl : srcblk.tsLengths[0];
+        tslen = (srcblk.tsLengths==null) ? srcblk.dl : srcblk.tsLengths[0];
         tsidx = 0;
         // Initialize for decoding
         npasses = srcblk.nTrunc;
-        if (mq == null) {
+        if (mq==null) {
             in = new ByteInputBuffer(srcblk.data,0,tslen);
-            mq = new MQDecoder(in ,NUM_CTXTS,MQ_INIT);
-        }
-        else {
+            mq = new MQDecoder(in,NUM_CTXTS,MQ_INIT);
+        } else {
             // We always start by an MQ segment
             mq.nextSegment(srcblk.data,0,tslen);
             mq.resetCtxts();
         }
         error = false;
 
-        if ((options & OPT_BYPASS) != 0) {
+        if ((options&OPT_BYPASS) != 0) {
             if(bin==null){
-                if (in == null) in = mq.getByteInputBuffer();
+                if (in==null) in = mq.getByteInputBuffer();
                 bin = new ByteToBitInput(in);
             }
         }
 
         // Choose correct ZC lookup table for global orientation
-        switch (sb.gOrient) {
+        switch (sb.orientation) {
         case Subband.WT_ORIENT_HL:
             zc_lut = ZC_LUT_HL;
             break;
@@ -801,21 +788,26 @@ public class StdEntropyDecoder extends EntropyDecoder
         }
         
         // NOTE: we don't currently detect which is the last magnitude
-        // bit-plane so that 'isterm' is true for the last pass of it. Doing so
-        // would aid marginally in error detection with the predictable error
-        // resilient MQ termination. However, determining which is the last
-        // magnitude bit-plane is quite hard (due to ROI, quantization, etc.)
-        // and in any case the predictable error resilient termination used
-        // without the arithmetic coding bypass and/or regular termination
-        // modes is almost useless.
+        // bit-plane so that 'isterm' is true for the last pass of it. Doing
+        // so would aid marginally in error detection with the predictable
+        // error resilient MQ termination. However, determining which is the
+        // last magnitude bit-plane is quite hard (due to ROI, quantization,
+        // etc.)  and in any case the predictable error resilient termination
+        // used without the arithmetic coding bypass and/or regular
+        // termination modes is almost useless.
 
         // Loop on bit-planes and passes
 
         curbp = 30-srcblk.skipMSBP;
         
+        // Check for maximum number of bitplanes quit condition
+        if(mQuit != -1 && (mQuit*3-2) < npasses){
+            npasses = mQuit*3-2;
+        }
+
         // First bit-plane has only the cleanup pass
-        if (curbp >= 0 && npasses > 0) {
-            isterm = (options & OPT_REG_TERM) != 0 ||
+        if (curbp>=0 && npasses>0) {
+            isterm = (options & OPT_TERM_PASS) != 0 ||
                 ((options & OPT_BYPASS) != 0 &&
                  (31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP)>=curbp);
             error = cleanuppass(cblk,mq,curbp,state,zc_lut,isterm);
@@ -825,60 +817,59 @@ public class StdEntropyDecoder extends EntropyDecoder
 
         // Other bit-planes have the three coding passes
         if (!error || !doer) {
-            while (curbp >= 0 && npasses > 0) {
+            while (curbp>=0 && npasses>0) {
 
-                if((options & OPT_BYPASS) != 0 &&
+                if((options&OPT_BYPASS)!=0 &&
                    (curbp < 31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP)){
                     // Use bypass decoding mode (only all bit-planes
                     // after the first 4 bit-planes).
                     
                     // Here starts a new raw segment
                     bin.setByteArray(null,-1,srcblk.tsLengths[++tsidx]);
-                    isterm = (options & OPT_REG_TERM) != 0;
+                    isterm = (options & OPT_TERM_PASS) != 0;
                     error = rawSigProgPass(cblk,bin,curbp,state,isterm);
                     npasses--;
-                    if (npasses <= 0 || (error && doer)) break;
+                    if (npasses<=0 || (error&&doer)) break;
 
-                    if ((options & OPT_REG_TERM) != 0) {
+                    if ((options & OPT_TERM_PASS) != 0) {
                         // Start a new raw segment
                         bin.setByteArray(null,-1,srcblk.tsLengths[++tsidx]);
                     }
-                    isterm = (options & OPT_REG_TERM) != 0 ||
+                    isterm = (options & OPT_TERM_PASS) != 0 ||
                         ((options & OPT_BYPASS) != 0 &&
                          (31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP>curbp));
                     error = rawMagRefPass(cblk,bin,curbp,state,isterm);
-                }
-                else {// Do not use bypass decoding mode
-                    if ((options & OPT_REG_TERM) != 0) {
+                } else { // Do not use bypass decoding mode
+                    if ((options&OPT_TERM_PASS)!=0) {
                         // Here starts a new MQ segment
                         mq.nextSegment(null,-1,srcblk.tsLengths[++tsidx]);
                     }
-                    isterm = (options & OPT_REG_TERM) != 0;
+                    isterm = (options&OPT_TERM_PASS)!=0;
                     error = sigProgPass(cblk,mq,curbp,state,zc_lut,isterm);
                     npasses--;
-                    if (npasses <= 0 || (error && doer)) break;
+                    if (npasses<=0 || (error&&doer)) break;
 
-                    if ((options & OPT_REG_TERM) != 0) {
+                    if ((options&OPT_TERM_PASS) != 0) {
                         // Here starts a new MQ segment
                         mq.nextSegment(null,-1,srcblk.tsLengths[++tsidx]);
                     }
-                    isterm = (options & OPT_REG_TERM) != 0 ||
+                    isterm = (options & OPT_TERM_PASS) != 0 ||
                         ((options & OPT_BYPASS) != 0 &&
                          (31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP>curbp));
                     error = magRefPass(cblk,mq,curbp,state,isterm);
                 }
 
                 npasses--;
-                if (npasses <= 0 || (error && doer)) break;
+                if (npasses<=0 || (error && doer)) break;
 
-                if ((options & OPT_REG_TERM) != 0 ||
-                    ((options & OPT_BYPASS) != 0 && 
-                     (curbp < 31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP))) {
+                if ((options&OPT_TERM_PASS) != 0 ||
+                    ((options&OPT_BYPASS) != 0 && 
+                     (curbp<31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP))) {
                     // Here starts a new MQ segment
                     mq.nextSegment(null,-1,srcblk.tsLengths[++tsidx]);
                 }
-                isterm = (options & OPT_REG_TERM) != 0 ||
-                    ((options & OPT_BYPASS) != 0 &&
+                isterm = (options&OPT_TERM_PASS) != 0 ||
+                    ((options&OPT_BYPASS) != 0 &&
                      (31-NUM_NON_BYPASS_MS_BP-srcblk.skipMSBP)>=curbp);
                 error = cleanuppass(cblk,mq,curbp,state,zc_lut,isterm);
                 npasses--;
@@ -911,23 +902,23 @@ public class StdEntropyDecoder extends EntropyDecoder
      * Returns the specified code-block in the current tile for the specified
      * component (as a reference or copy).
      *
-     * <P>The returned code-block may be progressive, which is indicated by
-     * the 'progressive' variable of the returned 'DataBlk'
-     * object. If a code-block is progressive it means that in a later request
-     * to this method for the same code-block it is possible to retrieve data
-     * which is a better approximation, since meanwhile more data to decode
-     * for the code-block could have been received. If the code-block is not
+     * <p>The returned code-block may be progressive, which is indicated by
+     * the 'progressive' variable of the returned 'DataBlk' object. If a
+     * code-block is progressive it means that in a later request to this
+     * method for the same code-block it is possible to retrieve data which is
+     * a better approximation, since meanwhile more data to decode for the
+     * code-block could have been received. If the code-block is not
      * progressive then later calls to this method for the same code-block
-     * will return the exact same data values.
+     * will return the exact same data values.</p>
      *
-     * <P>The data returned by this method can be the data in the internal
+     * <p>The data returned by this method can be the data in the internal
      * buffer of this object, if any, and thus can not be modified by the
      * caller. The 'offset' and 'scanw' of the returned data can be
-     * arbitrary. See the 'DataBlk' class.
+     * arbitrary. See the 'DataBlk' class.</p>
      *
-     * <P>The 'ulx' and 'uly' members of the returned 'DataBlk' object
-     * contain the coordinates of the top-left corner of the block, with
-     * respect to the tile, not the subband.
+     * <p>The 'ulx' and 'uly' members of the returned 'DataBlk' object contain
+     * the coordinates of the top-left corner of the block, with respect to
+     * the tile, not the subband.</p>
      *
      * @param c The component for which to return the next code-block.
      *
@@ -961,13 +952,14 @@ public class StdEntropyDecoder extends EntropyDecoder
      * and SC primitives as needed. It toggles the "visited" state bit to 1
      * for all those samples.
      *
-     * <P>This method also checks for segmentation markers if those are
+     * <p>This method also checks for segmentation markers if those are
      * present and returns true if an error is detected, or false
-     * otherwise. If an error is detected it means that the bit stream contains
-     * some erroneous bit that have led to the decoding of incorrect
-     * data. This data affects the whole last decoded bit-plane (i.e. 'bp'). If
-     * 'true' is returned the 'conceal' method should be called and no more
-     * passes should be decoded for this code-block's bit stream.
+     * otherwise. If an error is detected it means that the bit stream
+     * contains some erroneous bit that have led to the decoding of incorrect
+     * data. This data affects the whole last decoded bit-plane
+     * (i.e. 'bp'). If 'true' is returned the 'conceal' method should be
+     * called and no more passes should be decoded for this code-block's bit
+     * stream.</p>
      *
      * @param cblk The code-block data to decode
      *
@@ -982,7 +974,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * @param isterm If this pass has been terminated. If the pass has been
      * terminated it can be used to check error resilience.
      *
-     * @return True if an error was detected in the bit stream, false otherwise.
+     * @return True if an error was detected in the bit stream, false
+     * otherwise.
      * */
     private boolean sigProgPass(DataBlk cblk, MQDecoder mq, int bp,
                                 int state[], int zc_lut[], boolean isterm) {
@@ -1083,8 +1076,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (!causal) {
@@ -1100,8 +1092,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_D_UR_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1144,8 +1135,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1157,8 +1147,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|STATE_H_R_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1208,8 +1197,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -1221,8 +1209,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_D_UR_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1265,8 +1252,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1278,8 +1264,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|STATE_H_R_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1290,8 +1275,8 @@ public class StdEntropyDecoder extends EntropyDecoder
 
  	error = false;
 
-        // Check the error resilient termination
-        if (isterm && (options & OPT_ER_TERM) != 0) {
+        // Check the error resilience termination
+        if (isterm && (options & OPT_PRED_TERM) != 0) {
             error = mq.checkPredTerm();
         }
 
@@ -1306,21 +1291,21 @@ public class StdEntropyDecoder extends EntropyDecoder
 
     /**
      * Performs the significance propagation pass on the specified data and
-     * bit-plane. It decodes all insignificant samples which have, at least, one
-     * of its immediate eight neighbors already significant, using the ZC and
-     * SC primitives as needed. It toggles the "visited" state bit to 1 for
-     * all those samples.
+     * bit-plane. It decodes all insignificant samples which have, at least,
+     * one of its immediate eight neighbors already significant, using the ZC
+     * and SC primitives as needed. It toggles the "visited" state bit to 1
+     * for all those samples.
      *
-     * <P>This method bypasses the arithmetic coder and reads "raw" symbols
-     * from the bit stream.
+     * <p>This method bypasses the arithmetic coder and reads "raw" symbols
+     * from the bit stream.</p>
      *     
-     * <P>This method also checks for segmentation markers if those are
+     * <p>This method also checks for segmentation markers if those are
      * present and returns true if an error is detected, or false
      * otherwise. If an error is detected it measn that the bit stream contains
      * some erroneous bit that have led to the decoding of incorrect
      * data. This data affects the whole last decoded bit-plane (i.e. 'bp'). If
      * 'true' is returned the 'conceal' method should be called and no more
-     * passes should be decoded for this code-block's bit stream.
+     * passes should be decoded for this code-block's bit stream.</p>
      *
      * @param cblk The code-block data to decode
      *
@@ -1333,7 +1318,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * @param isterm If this pass has been terminated. If the pass has been
      * terminated it can be used to check error resilience.
      *
-     * @return True if an error was detected in the bit stream, false otherwise.
+     * @return True if an error was detected in the bit stream, false
+     * otherwise.
      * */
     private boolean rawSigProgPass(DataBlk cblk, ByteToBitInput bin, int bp,
                                    int state[], boolean isterm) {
@@ -1345,7 +1331,7 @@ public class StdEntropyDecoder extends EntropyDecoder
         int kstep;       // Stripe to stripe step for 'sk'
         int stopsk;      // The loop limit on the variable sk
         int csj;         // Local copy (i.e. cached) of 'state[j]'
-        int setmask;     // The mask to set current and lower bit-planes to 1/2
+        int setmask; // The mask to set current and lower bit-planes to 1/2
                          // approximation
         int sym;         // The symbol to code
         int data[];      // The data buffer
@@ -1431,8 +1417,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (!causal) {
@@ -1448,8 +1433,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_D_UR_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1488,8 +1472,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1501,8 +1484,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|STATE_H_R_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1550,8 +1532,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -1563,8 +1544,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_D_UR_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R1;
                         }
                     }
@@ -1604,8 +1584,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -1617,8 +1596,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|STATE_H_R_R2;
                             }
-                        }
-                        else {
+                        } else {
                             csj |= STATE_VISITED_R2;
                         }
                     }
@@ -1629,8 +1607,9 @@ public class StdEntropyDecoder extends EntropyDecoder
 
         error = false;
 
-        // Check the byte padding if the pass is terminated 
-        if (isterm) {
+        // Check the byte padding if the pass is terminated and if the error
+        // resilience predictable termination is signaled in COx marker.
+        if (isterm && (options & OPT_PRED_TERM)!=0 ) {
             error = bin.checkBytePadding();
         }
 
@@ -1663,7 +1642,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * @param isterm If this pass has been terminated. If the pass has been
      * terminated it can be used to check error resilience.
      *
-     * @return True if an error was detected in the bit stream, false otherwise.
+     * @return True if an error was detected in the bit stream, false
+     * otherwise.
      * */
     private boolean magRefPass(DataBlk cblk, MQDecoder mq, int bp,
                                int state[], boolean isterm) {
@@ -1675,7 +1655,7 @@ public class StdEntropyDecoder extends EntropyDecoder
         int kstep;       // Stripe to stripe step for 'sk'
         int stopsk;      // The loop limit on the variable sk
         int csj;         // Local copy (i.e. cached) of 'state[j]'
-        int setmask;     // The mask to set lower bit-planes to 1/2 approximation
+        int setmask; // The mask to set lower bit-planes to 1/2 approximation
         int resetmask;   // The mask to reset approximation bit-planes
         int sym;         // The symbol to decode
         int data[];      // The data buffer
@@ -1784,7 +1764,7 @@ public class StdEntropyDecoder extends EntropyDecoder
  	error = false;
 
         // Check the error resilient termination
-        if (isterm && (options & OPT_ER_TERM) != 0) {
+        if (isterm && (options & OPT_PRED_TERM) != 0) {
             error = mq.checkPredTerm();
         }
 
@@ -1799,8 +1779,8 @@ public class StdEntropyDecoder extends EntropyDecoder
 
     /**
      * Performs the magnitude refinement pass on the specified data and
-     * bit-plane. It decodes the samples which are significant and which do not
-     * have the "visited" state bit turned on, using the MR primitive. The
+     * bit-plane. It decodes the samples which are significant and which do
+     * not have the "visited" state bit turned on, using the MR primitive. The
      * "visited" state bit is not mofified for any samples.
      *     
      * <P>This method bypasses the arithmetic coder and reads "raw" symbols
@@ -1808,11 +1788,12 @@ public class StdEntropyDecoder extends EntropyDecoder
      *     
      * <P>This method also checks for segmentation markers if those are
      * present and returns true if an error is detected, or false
-     * otherwise. If an error is detected it measn that the bit stream contains
-     * some erroneous bit that have led to the decoding of incorrect
-     * data. This data affects the whole last decoded bit-plane (i.e. 'bp'). If
-     * 'true' is returned the 'conceal' method should be called and no more
-     * passes should be decoded for this code-block's bit stream.
+     * otherwise. If an error is detected it measn that the bit stream
+     * contains some erroneous bit that have led to the decoding of incorrect
+     * data. This data affects the whole last decoded bit-plane
+     * (i.e. 'bp'). If 'true' is returned the 'conceal' method should be
+     * called and no more passes should be decoded for this code-block's bit
+     * stream.
      *
      * @param cblk The code-block data to decode
      *
@@ -1825,7 +1806,8 @@ public class StdEntropyDecoder extends EntropyDecoder
      * @param isterm If this pass has been terminated. If the pass has been
      * terminated it can be used to check error resilience.
      *
-     * @return True if an error was detected in the bit stream, false otherwise.
+     * @return True if an error was detected in the bit stream, false
+     * otherwise.
      * */
     private boolean rawMagRefPass(DataBlk cblk, ByteToBitInput bin, int bp, 
                                   int state[], boolean isterm) {
@@ -1837,7 +1819,7 @@ public class StdEntropyDecoder extends EntropyDecoder
         int kstep;       // Stripe to stripe step for 'sk'
         int stopsk;      // The loop limit on the variable sk
         int csj;         // Local copy (i.e. cached) of 'state[j]'
-        int setmask;     // The mask to set lower bit-planes to 1/2 approximation
+        int setmask; // The mask to set lower bit-planes to 1/2 approximation
         int resetmask;   // The mask to reset approximation bit-planes
         int sym;         // The symbol to decode
         int data[];      // The data buffer
@@ -1935,8 +1917,9 @@ public class StdEntropyDecoder extends EntropyDecoder
 
         error = false;
 
-        // Check the byte padding if the pass is terminated
-        if (isterm) {
+        //  Check the byte padding if the pass is terminated and the
+        // predictable termination is signaled in COx marker.
+        if (isterm && (options & OPT_PRED_TERM)!=0 ) {
             error = bin.checkBytePadding();
         }
 
@@ -2030,8 +2013,8 @@ public class StdEntropyDecoder extends EntropyDecoder
             top_half:
                 {
                     // Check for RLC: if all samples are not significant, not
-                    // visited and do not have a non-zero context, and column is
-                    // full height, we do RLC.
+                    // visited and do not have a non-zero context, and column
+                    // is full height, we do RLC.
                     if (csj == 0 && state[j+sscanw] == 0 &&
                         sheight == STRIPE_HEIGHT) {
                         if (mq.decodeSymbol(RLC_CTXT) != 0) {
@@ -2044,8 +2027,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                 j += sscanw;
                                 csj = state[j];
                             }
-                        }
-                        else { // RLC is insignificant
+                        } else { // RLC is insignificant
                             // Goto next column
                             continue;
                         }
@@ -2091,8 +2073,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 if (rlclen != 0 || !causal) {
@@ -2117,8 +2098,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                             }
                             // Otherwise sample that became significant is in
                             // top half of column => continue on top half
-                        }
-                        else {
+                        } else {
                             // Sample that became significant is second row of
                             // its column half
                             ctxt = SC_LUT[(csj>>SC_SHIFT_R2)&SC_MASK];
@@ -2127,8 +2107,8 @@ public class StdEntropyDecoder extends EntropyDecoder
                             // Update the data
                             data[k] = (sym<<31) | setmask;
                             // Update state information (significant bit,
-                            // neighbor significant bit of neighbors, 
-                            // non zero context of neighbors, sign of neighbors)
+                            // neighbor significant bit of neighbors, non zero
+                            // context of neighbors, sign of neighbors)
                             state[j+off_dl] |= STATE_NZ_CTXT_R1|STATE_D_UR_R1;
                             state[j+off_dr] |= STATE_NZ_CTXT_R1|STATE_D_UL_R1;
                             // Update sign state information of neighbors
@@ -2145,8 +2125,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_NZ_CTXT_R1|
                                     STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2222,8 +2201,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                         STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                         STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                         STATE_D_UR_R2;
-                                }
-                                else {
+                                } else {
                                     csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                         STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                     if (!causal) {
@@ -2282,8 +2260,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                         STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                         STATE_D_DR_R1|
                                         STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                                }
-                                else {
+                                } else {
                                     csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                         STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                     state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2344,8 +2321,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_H_R_R1|STATE_H_R_SIGN_R1|
                                     STATE_D_UR_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R1|STATE_VISITED_R1|
                                     STATE_NZ_CTXT_R2|STATE_V_U_R2;
                                 state[j-sscanw] |= STATE_NZ_CTXT_R2|
@@ -2400,8 +2376,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                                     STATE_NZ_CTXT_R1|STATE_NZ_CTXT_R2|
                                     STATE_D_DR_R1|
                                     STATE_H_R_R2|STATE_H_R_SIGN_R2;
-                            }
-                            else {
+                            } else {
                                 csj |= STATE_SIG_R2|STATE_VISITED_R2|
                                     STATE_NZ_CTXT_R1|STATE_V_D_R1;
                                 state[j+sscanw] |= STATE_NZ_CTXT_R1|
@@ -2421,21 +2396,20 @@ public class StdEntropyDecoder extends EntropyDecoder
             }
         }
 
-        // Decode segment marker if we need to
-        if ((options & OPT_SEG_MARKERS) != 0) {
+        // Decode segment symbol if we need to
+        if ((options & OPT_SEG_SYMBOLS) != 0) {
             sym = mq.decodeSymbol(UNIF_CTXT)<<3;
             sym |= mq.decodeSymbol(UNIF_CTXT)<<2;
             sym |= mq.decodeSymbol(UNIF_CTXT)<<1;
             sym |= mq.decodeSymbol(UNIF_CTXT);
             // Set error condition accordingly
-            error = sym != SEG_MARKER;
-        }
-        else { // We can not detect any errors
+            error = sym != SEG_SYMBOL;
+        } else { // We can not detect any errors
             error = false;
         }
 
-        // Check the error resilient termination
-        if (isterm && (options & OPT_ER_TERM) != 0) {
+        // Check the error resilience termination
+        if (isterm && (options & OPT_PRED_TERM) != 0) {
             error = mq.checkPredTerm();
         }
 
@@ -2486,8 +2460,7 @@ public class StdEntropyDecoder extends EntropyDecoder
                     // Something was decoded in previous bit-planes => set the
                     // approximation for previous bit-plane
                     data[k] = (dk&resetmask)|setmask;
-                }
-                else {
+                } else {
                     // Was insignificant in previous bit-planes = set to zero
                     data[k] = 0;
                 }
