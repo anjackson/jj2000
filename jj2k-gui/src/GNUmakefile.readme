@@ -1,0 +1,34 @@
+# CVS identifier:
+# $Id: GNUmakefile.readme,v 1.1.1.1 2002/07/22 09:26:45 grosbois Exp $
+#
+#    JJ2000
+# 
+# This is a readme file for the makefile system
+# of the JJ2000 project. It explains what to
+# do when a new package is added to the project.
+#
+# Question or comments: henry@crf.canon.fr
+#
+
+Adding a new package to the project:
+------------------------------------
+
+1/Create the package directory
+e.g.:
+mkdir src/jj2000/j2k/mypackage
+
+2/Add a local makefile to the package
+e.g.:
+cp src/GNUmakefile.localtemplate src/jj2000/j2k/mypackage/GNUmakefile
+
+3/Edit the local makefile to set RELROOT to its correct value
+e.g.:
+textedit src/jj2000/j2k/mypackage/GNUmakefile
+>>>>RELROOT=../../..
+
+2/Edit the global makefile to add the package to the package list
+e.g.:
+textedit src/GNUmakefile
+>>>>PACKAGELIST= jj2000.j2k jj2000.j2k.io jj2000.j2k.mypackage
+
+

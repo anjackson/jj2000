@@ -1,0 +1,277 @@
+// $Id: sample.txt,v 1.1.1.1 2002/08/27 12:32:12 grosbois Exp $
+//
+// $Log: sample.txt,v $
+// Revision 1.1.1.1  2002/08/27 12:32:12  grosbois
+// Add cryptix 3.2
+//
+// Revision 1.3  1997/11/20 19:36:31  hopwood
+// + cryptix.util.* name changes.
+//
+// Revision 1.2  1997/11/07 05:53:25  raif
+// *** empty log message ***
+//
+// Revision 1.1.1.1  1997/11/03 22:36:56  hopwood
+// + Imported to CVS (tagged as 'start').
+//
+// Revision 0.1.0.0  1997/??/??  David Hopwood
+// + This file can be copied to construct new message digest implementations.
+//   First search and replace "sample" with the algorithm name.
+//
+// $Endlog$
+/*
+ * Copyright (c) 1997 Systemics Ltd
+ * on behalf of the Cryptix Development Team.  All rights reserved.
+ */
+
+package cryptix.provider.md;
+
+import cryptix.util.core.Debug;
+import cryptix.util.core.Hex;
+import cryptix.CryptixException;
+
+import java.io.PrintWriter;
+import java.security.MessageDigest;
+import java.security.Security;
+
+/**
+ * This class implements the sample message digest algorithm.
+ * <p>
+ * sample was designed by ?. The algorithm is [in the public domain/patented by ?].
+ * <p>
+ * <b>References:</b>
+ * <ol>
+ *   <li> Bruce Schneier,
+ *        "Section ? sample,"
+ *        <cite>Applied Cryptography, 2nd edition</cite>,
+ *        John Wiley &amp; Sons, 1996
+ *        <p>
+ *   <li> [paper by authors of algorithm]
+ * </ol>
+ * <p>
+ * <b>Copyright</b> &copy; 1997
+ * <a href="http://www.systemics.com/">Systemics Ltd</a> on behalf of the
+ * <a href="http://www.systemics.com/docs/cryptix/">Cryptix Development Team</a>.
+ * <br>All rights reserved.
+ * <p>
+ * <b>$Revision: 1.1.1.1 $</b>
+ * @author  ?
+ * @since   Cryptix 2.?
+ */
+public class sample
+extends MessageDigest
+implements Cloneable
+{
+// Debugging methods and vars.
+//...........................................................................
+
+    private static final boolean DEBUG = Debug.GLOBAL_DEBUG;
+    private static final boolean DEBUG_SLOW = Debug.GLOBAL_DEBUG_SLOW;
+    private static int debuglevel = DEBUG ? Debug.getLevel("sample") : 0;
+    private static final PrintWriter err = DEBUG ? Debug.getOutput() : null;
+    private static void debug(String s) { err.println("sample: " + s); }
+
+
+// Native library linking methods and vars.
+//...........................................................................
+
+    private static NativeLink linkStatus = new NativeLink("sample", 2, 3);
+    public static cryptix.core.util.LinkStatus getLinkStatus() { return linkStatus; }
+
+    /**
+     * This flag is false if the native code is not being used (e.g. the
+     * library did not load successfully, or the user disabled its use in
+     * the properties file).
+     */
+    private boolean native_ok; // defaults to false
+
+    private void link() {
+        synchronized(linkStatus) {
+            try {
+                if (linkStatus.attemptLoad())
+                    linkStatus.checkVersion(getLibMajorVersion(), getLibMinorVersion());
+                if (linkStatus.useNative())
+                    native_ok = true;
+            } catch (UnsatisfiedLinkError e) {
+                linkStatus.fail(e);
+if (DEBUG && debuglevel > 2) debug(e.getMessage());
+            }
+if (DEBUG && debuglevel > 2) debug("Using native library? " + native_ok);
+        }
+    }
+
+
+// Native support API
+//...........................................................................
+
+    // The methods that get the library version.
+    private native static int getLibMajorVersion();
+    private native static int getLibMinorVersion();
+
+    /**
+     * Transforms context based on BLOCK_LENGTH bytes from input block starting
+     * from the offset'th byte.
+     *
+     * @param  context  the current context of this instance.
+     * @param  block    input array containing data to hash.
+     * @param  offset   index of where we should start reading from input.
+     * @return an error string if one occurs, or null otherwise.
+     */
+    private native static String
+    native_hash (int[] context, byte[] block, int offset);
+
+
+// Variables
+//...........................................................................
+
+    private static final int
+        BLOCK_LENGTH =   ?,    // transform block length in bytes
+        CONTEXT_LENGTH = ?,    // length of intermediate digest array
+        DIGEST_LENGTH =  ?;    // algorithm output length in bytes
+    
+    /** Interim result. */
+    private int[] context = new int[CONTEXT_LENGTH];
+
+    /** Number of bytes processed so far. */
+    private long count;
+    
+    /** Input buffer. */
+    private byte[] buffer = new byte[BLOCK_LENGTH];
+
+
+// Constructors
+//...........................................................................
+    
+    public sample() {
+        super("sample");
+        engineReset();
+        link();
+    }
+
+    /** This constructor is here to implement cloneability of this class. */
+    private sample(sample md) {
+        this();
+        context = (int[])(md.context.clone());
+        buffer = (byte[])(md.buffer.clone());
+        count = md.count;
+    }
+
+
+// Cloneable method implementation
+//...........................................................................
+
+    /** Returns a copy of this MD object. */
+    public Object clone() { return new sample(this); }
+
+
+// JCE methods
+//...........................................................................
+
+    /**
+     * Resets the digest, disregarding any temporary data present at the
+     * time of the invocation of this call.
+     */
+    protected void engineReset() {
+        // magic sample initialisation constants
+        context[0] = ?;
+        context[1] = ?;
+        ...
+
+        count = 0L;
+        for (int i = 0; i < BLOCK_LENGTH; i++) buffer[i] = 0;
+    }
+
+    /** Continues a sample message digest using the input byte. */
+    protected void engineUpdate(byte input) {
+        // compute number of bytes still unhashed, i.e. present in buffer
+        int i = (int)(count % BLOCK_LENGTH);
+        count++;                              // update number of bytes
+        buffer[i] = input;
+        if (i == BLOCK_LENGTH - 1) transform(buffer, 0);
+    }
+    
+    /**
+     * sample block update operation.
+     * <p>
+     * Continues a sample message digest operation, by filling the buffer,
+     * transforming data in BLOCK_LENGTH-byte message block(s), updating the
+     * variables context and count, and leaving the remaining bytes in buffer
+     * for the next update or finish.
+     *
+     * @param  input    input block
+     * @param  offset   start of meaningful bytes in input
+     * @param  len      count of bytes in input block to consider
+     */
+    public void engineUpdate(byte[] input, int offset, int len) {
+        // make sure we don't exceed input's allocated length
+        if (offset < 0 || len < 0 || (long)offset + len > input.length)
+            throw new ArrayIndexOutOfBoundsException();
+
+        // compute number of bytes still unhashed, i.e. present in buffer
+        int bufferNdx = (int)(count % BLOCK_LENGTH);
+        count += len;                         // update number of bytes
+        int partLen = BLOCK_LENGTH - bufferNdx;
+        int i = 0;
+
+        if (len >= partLen) {
+            System.arraycopy(input, offset, buffer, bufferNdx, partLen);    
+            transform(buffer, 0);
+            for (i = partLen; i + BLOCK_LENGTH - 1 < len; i+= BLOCK_LENGTH)
+                transform(input, offset + i);
+            bufferNdx = 0;
+        }
+        // buffer remaining input
+        if (i < len)
+            System.arraycopy(input, offset + i, buffer, bufferNdx, len - i);
+    }
+
+    /**
+     * Completes the hash computation by performing final operations such
+     * as padding. At the return of this engineDigest, the MD engine is
+     * reset.
+     *
+     * @return the array of bytes for the resulting digest.
+     */
+    protected byte[] engineDigest() {
+        // pad the output.
+        // ...
+
+        byte[] result = new byte[DIGEST_LENGTH];
+        // create the digest array from the context.
+        // ...
+
+        engineReset();
+        return result;
+    }
+
+    /** <b>SPI</b>: Returns the digest length in bytes. */
+    protected int engineGetDigestLength() {
+        return DIGEST_LENGTH;
+    }
+
+
+// Own methods
+//...........................................................................
+    
+    /**
+     * sample basic transformation.
+     * <p>
+     * Transforms context based on BLOCK_LENGTH bytes from the input block
+     * starting from the offset'th byte.
+     */
+    private void transform(byte[] block, int offset) {
+        // if allowed to use native library then now's the time
+        if (native_ok) {
+            // should never happen, but this would be a security bug so check it anyway:
+            if (context.length != CONTEXT_LENGTH || offset < 0 ||
+                (long)offset + BLOCK_LENGTH > block.length) {
+                throw new InternalError(getAlgorithm() +
+                    ": context.length != " + CONTEXT_LENGTH + " || offset < 0 || " +
+                    "(long)offset + " + BLOCK_LENGTH + " > block.length");
+            }
+            linkStatus.check(native_hash(context, block, offset));
+            return;
+        }
+
+        // ...
+    }
+}

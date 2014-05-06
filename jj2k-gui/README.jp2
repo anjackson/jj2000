@@ -1,0 +1,122 @@
+Note to Windows users: use  Wordpad or Word (or other not-so-dumb text
+reader)  to read  this file.   Notepad does  not understand  UNIX line
+returns and will show all the file in 1 line.
+
+===============================================================================
+		  Color Space Processing for JJ2000
+
+		 Copyright 2002 Eastman Kodak Company
+===============================================================================
+
+
+Outline:
+=======
+
+1.  General notes
+2.  Relevant box structure
+3.  Modifications to the decoding chain
+
+===============================================================================
+
+
+1. General notes
+================
+
+This JJ2000 extension processes the colorspace information embedded in jp2
+format image files in order to output sRGB colorspace images.  In
+order to do so, several supplementary decoding steps necessary to the
+colorspace processing are implemented.  The required processing is
+described in Annex I of the JP2 spec Coding of Still Pictures
+JBIG/JPEG (ISO/TEC JTC 29/WG 1).
+
+The type of colorspace processing is determined by analyzing the
+relevant jp2 boxes contained within the image.  Based on this
+information the decoding chain is augmented to provide colorspace
+transformations to sRGB or sGreyScale colorspace by either applying an
+icc profile embedded within the image, transforming from sYCC to sRGB
+colorspace.  Before applying these conversion, and necessary channel
+redifinition, channel upsampling, or palettization is performed.
+
+The implementation of colorspace processing is contained in packages
+icc (profiling), colorspace (all other transformations) as well as
+more deeply nested packages.
+
+This JJ2000 extension was originally designed as a patch to JJ2000 4.1
+and is now part of the source code since JJ2000 5.1.
+
+2. Relevant box structure
+=========================
+
+The following jp2 boxes and subboxes are pertainent to colorspace:
+
+a. ImageHeaderBox
+   This box is always present and contains general information about
+   the image, such as number of components, bitdepth, etc.
+ 
+b. ColorSpecificationBox
+   This box is always present and contains a method field which 
+   designates the method as either profiled or enumerated. If 
+   profiled the remainder of the box contains the icc profile.
+   If the method indicates enumeration the box contains another field
+   which designates the colorspace as sRGB, sGreyScale, or sYCC.
+ 
+c. ChannelDefinitionBox
+   This optional box associates request channels with aspects of the 
+   requested colorspace.  Each channel is typed and we are only 
+   concerned with color channels (type 0). Legal associations for color 
+   channels areR,G,B (1,2,3) in sRGB, which map back to components 0,1,2
+   again insRGB samples.  So the effect of this box is to define 
+   component permutation for requested channels 0, 1, and 2.
+ 
+d. PaletteBox
+   This optional box contains a lookup table of sRGB triples.  The 
+   image sample is used to index this table to produce the sRGB values 
+   corresponding to the index.  The specification actually allows for 
+   tables containing ntuples, but the present implementation restricts 
+   the allowed palettes to contain only triples.
+
+f. ComponentMappingBox
+   This box exists if and only if the image contains a PaletteBox. It
+   provides a mapping of the palette columns to RGB components.
+
+3.  Modifications to the decoding chain
+=======================================
+
+Colorspace processing is accomplished by creating an instance of a
+ColorSpace object to analyze the box structure of the image, and 
+appending a series of BlkImageDataSrc modules to the decoding chain 
+to complete the colorspace steps. Each added module has access to 
+the ColorSpace instance.
+
+The following modules are added:
+
+a. ChannelDefinitionMapper
+   This module remaps the requested channel in sRGB to the associated
+   channel in the codestream as specified in the ChannelDefinitionBox.
+
+b. Resampler
+   The next module down the line requires that all components 
+   have the same number of entries.  This module performs 2 to 
+   1 upsampling of image components if required.  Other scale factors
+   are not supported in the present implementation.
+
+b. PalettizedColorSpaceMapper
+   This module performs palettized lookup of samples as Specified by the
+   PaletteBox and ComponentMappngBox.  The source sample in this case is 
+   used as an index into the entries in a color palette (usually triples)
+   value by this module. the requested component of the indexed entry is
+    returned as sample.
+
+c. ColorSpaceMapper
+   The ColorSpaceMapper space mapper provides icc profiling, sYCC to 
+   sRGB conversion, or sRGB to sRGB (identity) transformation as required
+   by the ColorSpecificationBox.
+
+
+
+
+
+
+
+
+

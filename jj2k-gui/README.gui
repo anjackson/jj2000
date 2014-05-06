@@ -1,0 +1,96 @@
+===============================================================================
+               Graphical User Interface for the JJ2000 codec
+
+                              Version 1.5 b
+
+                           EPFL - 2KAN project
+===============================================================================
+
+
+Outline:
+=======
+
+1.  General notes
+2.  Installation
+3.  Usage
+
+===============================================================================
+
+
+1. General notes
+================
+
+This interface is a graphical user interface assisting in the coding
+and the decoding of JPEG 2000 images. It uses the Java implementation
+of the JPEG 2000 reference software developed by EPFL, Canon Research
+France and Ericsson.  It is written in pure Java so that it can be run
+on any platform having a Java Virtual Machine version (JVM) 1.4 or
+later. If needed, you can download a JVM for your platform at:
+
+	http://java.sun.com/getjava/download.html.
+
+The goal of this GUI is to provide with a user-friendlier interface to
+the jj2000 API. This is accomplished thanks to selection of the
+codec's parameters by the mouse or through text areas (and other
+graphical data input tools). Note, however, that not all command-line
+options are accessible through this interface. For instance, it is not
+possible to select tile-component specific parameters. More advanced
+use of the JPEG 2000 codec shall prefer the command-line driven codec
+instead.
+
+Furthermore, this software embeds a module that implements the EPFL's
+technology proposal for JPEG 2000 part 8 (images security). This tool
+can be used to prevent access to the whole or a part of a JPEG 2000
+compressed image.
+
+Finally note that this GUI is in its beta testing phase. You are
+encourage to report encountered bugs or problem to
+Raphael.Grosbois@epfl.ch.
+
+2. Installation
+===============
+
+- Download the latest binaries and source code on our web-site at:
+
+	http://jpeg2000.epfl.ch
+
+The current packages are jj2k-gui_1.5b.tar.bz2 or jj2k-gui_1.5b.zip
+(for the binaries) and jj2k-gui_1.5b-src.tar.bz2 or
+jj2k-gui_1.5b-src.zip (for the source-code).
+
+Note that you do not need to separately download the JJ2000 codec as
+it is already part of the GUI package.
+
+- Decompress the archive in the directory you want to install the
+software:
+
+        * on Unix, Linux:
+                unzip jj2k-gui_1.5b.zip
+        or
+                bunzip2 -c jj2k-gui_1.5b.tar.bz2 | tar xvf -
+
+        * with Windows: use WinZip with jj2k-gui_1.5b.zip
+
+- Then you should find the following files in the 'jj2k-gui_1.5b'
+directory:
+
+        * jj2kgui-1.5b.jar   - This file contains all the Java compiled code.
+or
+	* src/		      - Source code of the application
+
+and
+	* README.gui	      - The readme file you are reading.
+        * README.jj2000       - The JJ2000 readme file.
+	* README.jp2	      - The readme file of the JP2 support included 
+			        in the JJ2000 codec.
+        * COPYRIGHT           - Copyright statement of the JJ2000 software.
+	* Cryptix_Licence.txt - Licence of the cryptix API used for the image
+				security module.
+
+3. Usage
+========
+
+Simply type the following command in a prompt (open in the directory
+containing the *.jar file) or create a desktop shortcut:
+
+	java -jar jj2kgui-1.5b.jar
